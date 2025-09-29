@@ -8,6 +8,8 @@ interface Group {
   location: string;
   personnel: string;
   leader: string;
+  imageUrl?: string;
+  status?: string; // 예: "모집중"
 }
 
 export default function GroupCard({
@@ -17,33 +19,70 @@ export default function GroupCard({
   location,
   personnel,
   leader,
+  imageUrl,
+  status,
 }: Group) {
   return (
-    <>
-      <article className="h-80 border flex flex-col items-center justify-center py-5 px-3">
-        <h2 className="text-2xl font-bold mb-1">{title}</h2>
-        <p className="text-neutral-500 font-bold text-sm mb-4">{teams}</p>
-        <div className=" flex items-center gap-1 text-neutral-500 text-base mb-2">
+    <article className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
+      {/* 이미지 영역 */}
+      <div className="relative h-40">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-200" />
+        )}
+        {status && (
+          <span className="absolute top-2 left-2 bg-green-600 text-white text-xs font-semibold px-2 py-0.5 rounded">
+            {status}
+          </span>
+        )}
+        <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
+          {location}
+        </span>
+      </div>
+
+      {/* 본문 */}
+      <div className="p-4 flex flex-col justify-between h-[calc(100%-10rem)]">
+        {/* 제목 + 팀 */}
+        <h2 className="text-base font-bold leading-snug mb-1 line-clamp-1">
+          {title}
+        </h2>
+        <p className="text-sm text-gray-500 mb-2 line-clamp-1">{teams}</p>
+
+        {/* 날짜 */}
+        <div className="flex items-center gap-1 text-gray-500 text-sm mb-1">
           <Calendar size={16} />
-          <span className="font-bold">{date}</span>
+          <span>{date}</span>
         </div>
-        <div className="flex items-center text-base gap-1  text-neutral-500 mb-3">
-          <MapPin size={16} />
-          <p className="font-bold">{location}</p>
+
+        {/* 인원 + 리더 */}
+        <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
+          <div className="flex items-center gap-1">
+            <UserRound size={16} />
+            <span>{personnel}</span>
+          </div>
+          <div className="flex items-center gap-1 text-gray-400 text-xs">
+            <User size={14} />
+            <span>{leader}</span>
+          </div>
         </div>
-        <div className="flex items-center text-base mb-3">
-          <UserRound size={16} />
-          <p className="font-bold">{personnel}</p>
+
+        {/* 버튼 영역 */}
+        <div className="flex gap-2">
+          <Modal
+            buttonText="상세보기"
+            classes="flex-1 text-sm px-4 py-2 rounded-md font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition text-center"
+          />
+          <Modal
+            buttonText="참여하기"
+            classes="flex-1 text-sm px-4 py-2 rounded-md font-semibold bg-[#8A2BE2] text-white hover:bg-[#6F00B6] transition text-center"
+          />
         </div>
-        <div className=" flex items-center gap-1 text-gray-400 text-xs mb-2">
-          <User size={14} />
-          <span className="font-bold">{leader}</span>
-        </div>
-        <Modal
-          buttonText="참여하기"
-          classes="text-xs inline-flex items-center justify-center rounded-xl px-8 py-2 font-semibold bg-indigo-600 text-white hover:bg-indigo-700"
-        />
-      </article>
-    </>
+      </div>
+    </article>
   );
 }
