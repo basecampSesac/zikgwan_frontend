@@ -37,7 +37,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-white py-30">
+    <main className="flex flex-1 justify-center bg-white min-h-screen pt-20">
       <div className="w-full max-w-sm p-6 rounded-lg bg-white">
         {/* 타이틀 */}
         <h1 className="text-2xl font-bold mb-8 text-center">이메일로 로그인</h1>
@@ -52,8 +52,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="이메일을 입력해주세요."
-            className="w-full rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#6F00B6]"
-            style={{ border: "1px solid rgba(112, 115, 124, 0.22)" }}
+            className="input-border"
           />
         </label>
 
@@ -68,8 +67,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="비밀번호를 입력해주세요."
-              className="w-full rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-[#6F00B6]"
-              style={{ border: "1px solid rgba(112, 115, 124, 0.22)" }}
+              className="input-border pr-10"
             />
             <button
               type="button"
@@ -119,10 +117,10 @@ export default function LoginPage() {
           <div className="flex-grow h-px bg-gray-300"></div>
         </div>
 
+        {/* 회원가입 이동 버튼 */}
         <button
-          className="w-full py-3 rounded-lg font-semibold text-[#6F00B6] hover:bg-gray-50 transition-colors"
+          className="button-border text-[#6F00B6] hover:bg-gray-50"
           onClick={() => navigate("/signup")}
-          style={{ border: "1px solid rgba(112, 115, 124, 0.22)" }}
         >
           이메일로 계속하기
         </button>
@@ -138,22 +136,13 @@ export default function LoginPage() {
 
         {/* 소셜 로그인 버튼들 */}
         <div className="space-y-3">
-          <button
-            className="w-full py-3 rounded-lg font-semibold text-black hover:bg-gray-50 transition-colors"
-            style={{ border: "1px solid rgba(112, 115, 124, 0.22)" }}
-          >
+          <button className="button-border text-black hover:bg-gray-50">
             카카오로 로그인
           </button>
-          <button
-            className="w-full py-3 rounded-lg font-semibold text-black hover:bg-gray-50 transition-colors"
-            style={{ border: "1px solid rgba(112, 115, 124, 0.22)" }}
-          >
+          <button className="button-border text-black hover:bg-gray-50">
             네이버로 로그인
           </button>
-          <button
-            className="w-full py-3 rounded-lg font-semibold text-black hover:bg-gray-50 transition-colors"
-            style={{ border: "1px solid rgba(112, 115, 124, 0.22)" }}
-          >
+          <button className="button-border text-black hover:bg-gray-50">
             구글로 로그인
           </button>
         </div>

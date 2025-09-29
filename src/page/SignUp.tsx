@@ -4,7 +4,6 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
-console.log("✅ 현재 API_URL:", API_URL); // 디버깅용
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -20,13 +19,13 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [isEmailVerified, setIsEmailVerified] = useState(false); // 이메일 인증 여부
-  const [isCodeSent, setIsCodeSent] = useState(false); // 인증번호 발송 여부
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isCodeSent, setIsCodeSent] = useState(false);
 
   const [emailMessage, setEmailMessage] = useState("");
   const [emailAvailable, setEmailAvailable] = useState(false);
 
-  // 📌 이메일 중복 확인
+  // 이메일 중복 확인
   const handleEmailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setEmail(value);
@@ -61,7 +60,7 @@ export default function SignupPage() {
     }
   };
 
-  // 📌 인증번호 발송
+  // 인증번호 발송
   const handleSendCode = async () => {
     try {
       const res = await fetch(`${API_URL}/api/auth/send-code`, {
@@ -82,7 +81,7 @@ export default function SignupPage() {
     }
   };
 
-  // 📌 인증번호 검증
+  // 인증번호 검증
   const handleVerifyCode = async () => {
     try {
       const res = await fetch(`${API_URL}/api/auth/verify-code`, {
@@ -103,7 +102,7 @@ export default function SignupPage() {
     }
   };
 
-  // 📌 닉네임 중복 확인
+  // 닉네임 중복 확인
   const handleNicknameChange = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -137,7 +136,7 @@ export default function SignupPage() {
     }
   };
 
-  // 📌 최종 회원가입
+  // 최종 회원가입
   const handleSignup = async () => {
     try {
       const res = await fetch(`${API_URL}/api/auth/signup`, {
@@ -158,7 +157,7 @@ export default function SignupPage() {
     }
   };
 
-  // 📌 비밀번호 유효성 검사
+  // 비밀번호 유효성 검사
   const isPasswordValid =
     password.length >= 8 &&
     /[A-Z]/.test(password) &&
@@ -177,7 +176,7 @@ export default function SignupPage() {
     nicknameAvailable;
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-white py-30">
+    <main className="flex flex-1 justify-center bg-white min-h-screen pt-20">
       <div className="w-full max-w-sm p-6 rounded-lg bg-white">
         <h1 className="text-2xl font-bold mb-8 text-center">회원가입</h1>
 
@@ -191,8 +190,7 @@ export default function SignupPage() {
             value={email}
             onChange={handleEmailChange}
             placeholder="이메일을 입력해주세요."
-            className="w-full rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#6F00B6]"
-            style={{ border: "1px solid rgba(112,115,124,0.22)" }}
+            className="input-border"
           />
           {emailMessage && (
             <p
@@ -212,8 +210,7 @@ export default function SignupPage() {
             value={verificationCode}
             onChange={(e) => setVerificationCode(e.target.value)}
             placeholder="인증번호를 입력해주세요."
-            className="w-full rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#6F00B6]"
-            style={{ border: "1px solid rgba(112,115,124,0.22)" }}
+            className="input-border"
             disabled={isEmailVerified}
           />
           <button
@@ -226,7 +223,7 @@ export default function SignupPage() {
                 : handleSendCode
             }
             disabled={!emailAvailable || isEmailVerified}
-            className="px-3 rounded-lg border text-sm font-medium text-[#6F00B6] hover:bg-gray-50 whitespace-nowrap"
+            className="button-border px-3 text-sm font-medium text-[#6F00B6] hover:bg-gray-50 whitespace-nowrap"
           >
             {isEmailVerified
               ? "인증 완료"
@@ -246,8 +243,7 @@ export default function SignupPage() {
             value={nickname}
             onChange={handleNicknameChange}
             placeholder="닉네임을 입력해주세요."
-            className="w-full rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#6F00B6]"
-            style={{ border: "1px solid rgba(112,115,124,0.22)" }}
+            className="input-border"
           />
           {nicknameMessage && (
             <p
@@ -268,8 +264,7 @@ export default function SignupPage() {
           <select
             value={club}
             onChange={(e) => setClub(e.target.value)}
-            className="w-full rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#6F00B6]"
-            style={{ border: "1px solid rgba(112,115,124,0.22)" }}
+            className="input-border"
           >
             <option value="">선택 안 함</option>
             <option value="두산">두산</option>
@@ -296,8 +291,7 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="비밀번호를 입력해주세요."
-              className="w-full rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-[#6F00B6]"
-              style={{ border: "1px solid rgba(112,115,124,0.22)" }}
+              className="input-border pr-10"
             />
             <button
               type="button"
@@ -327,8 +321,7 @@ export default function SignupPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="비밀번호를 다시 입력해주세요."
-              className="w-full rounded-lg p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-[#6F00B6]"
-              style={{ border: "1px solid rgba(112,115,124,0.22)" }}
+              className="input-border pr-10"
             />
             <button
               type="button"
@@ -352,8 +345,7 @@ export default function SignupPage() {
         {/* 뒤로가기 */}
         <button
           onClick={() => navigate("/login")}
-          className="w-full py-3 rounded-lg font-semibold text-gray-600 hover:bg-gray-100 transition-colors mb-4"
-          style={{ border: "1px solid rgba(112,115,124,0.22)" }}
+          className="button-border text-gray-600 hover:bg-gray-100 mb-4"
         >
           ← 로그인 화면으로 돌아가기
         </button>
