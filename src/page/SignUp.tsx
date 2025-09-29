@@ -20,64 +20,38 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [isCodeSent, setIsCodeSent] = useState(false);
-
   const [emailMessage, setEmailMessage] = useState("");
   const [emailAvailable, setEmailAvailable] = useState(false);
 
-  // 이메일 중복 확인
-  const handleEmailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setEmail(value);
-
-    if (!value) {
-      setEmailMessage("");
-      setEmailAvailable(false);
-      setIsEmailVerified(false);
-      setIsCodeSent(false);
-      setVerificationCode("");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_URL}/api/auth/check-email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: value }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setEmailMessage("가입이 가능한 이메일입니다.");
-        setEmailAvailable(true);
-      } else {
-        setEmailMessage(data.message || "이미 사용 중인 이메일입니다.");
-        setEmailAvailable(false);
-      }
-    } catch (err) {
-      console.error("중복 확인 에러:", err);
-      setEmailMessage("이메일 확인 중 오류가 발생했습니다.");
-      setEmailAvailable(false);
-    }
-  };
-
-  // 인증번호 발송
+  // 이메일 중복 확인 + 인증번호 발송
   const handleSendCode = async () => {
+    if (!email) return;
     try {
-      const res = await fetch(`${API_URL}/api/auth/send-code`, {
+      const chk = await fetch(`${API_URL}/api/auth/check-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert("인증번호가 이메일로 발송되었습니다.");
-        setIsCodeSent(true);
-      } else {
-        alert(data.message || "인증번호 발송 실패");
+      }).then((r) => r.json());
+
+      if (!chk.success) {
+        setEmailMessage(chk.message || "이미 사용 중인 이메일입니다.");
+        setEmailAvailable(false);
+        return;
       }
-    } catch (err) {
-      console.error("인증번호 발송 에러:", err);
-      alert("인증번호 발송 중 오류가 발생했습니다.");
+      setEmailMessage("가입이 가능한 이메일입니다.");
+      setEmailAvailable(true);
+
+      const snd = await fetch(`${API_URL}/api/auth/send-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      }).then((r) => r.json());
+
+      if (snd.success) alert("인증번호가 이메일로 발송되었습니다.");
+      else alert(snd.message || "인증번호 발송 실패");
+    } catch (e) {
+      console.error(e);
+      setEmailMessage("이메일 처리 중 오류가 발생했습니다.");
     }
   };
 
@@ -88,16 +62,16 @@ export default function SignupPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, code: verificationCode }),
-      });
-      const data = await res.json();
-      if (data.success) {
+      }).then((r) => r.json());
+
+      if (res.success) {
         alert("이메일 인증이 완료되었습니다.");
         setIsEmailVerified(true);
       } else {
         alert("인증번호가 올바르지 않습니다.");
       }
-    } catch (err) {
-      console.error("인증코드 검증 에러:", err);
+    } catch (e) {
+      console.error(e);
       alert("인증번호 확인 중 오류가 발생했습니다.");
     }
   };
@@ -108,56 +82,52 @@ export default function SignupPage() {
   ) => {
     const value = e.target.value;
     setNickname(value);
-
     if (!value) {
       setNicknameMessage("");
       setNicknameAvailable(false);
       return;
     }
-
     try {
       const res = await fetch(`${API_URL}/api/auth/check-nickname`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nickname: value }),
-      });
-      const data = await res.json();
-      if (data.success) {
+      }).then((r) => r.json());
+
+      if (res.success) {
         setNicknameMessage("사용 가능한 닉네임입니다.");
         setNicknameAvailable(true);
       } else {
-        setNicknameMessage(data.message || "이미 사용 중인 닉네임입니다.");
+        setNicknameMessage(res.message || "이미 사용 중인 닉네임입니다.");
         setNicknameAvailable(false);
       }
-    } catch (err) {
-      console.error("닉네임 확인 에러:", err);
+    } catch (e) {
+      console.error(e);
       setNicknameMessage("닉네임 확인 중 오류가 발생했습니다.");
       setNicknameAvailable(false);
     }
   };
 
-  // 최종 회원가입
   const handleSignup = async () => {
     try {
       const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, nickname, club, password }),
-      });
-      const data = await res.json();
-      if (data.success) {
+      }).then((r) => r.json());
+
+      if (res.success) {
         alert("회원가입이 완료되었습니다. 로그인 해주세요.");
         navigate("/login");
       } else {
-        alert(data.message || "회원가입에 실패했습니다.");
+        alert(res.message || "회원가입에 실패했습니다.");
       }
-    } catch (err) {
-      console.error("회원가입 에러:", err);
+    } catch (e) {
+      console.error(e);
       alert("회원가입 중 오류가 발생했습니다.");
     }
   };
 
-  // 비밀번호 유효성 검사
   const isPasswordValid =
     password.length >= 8 &&
     /[A-Z]/.test(password) &&
@@ -175,6 +145,10 @@ export default function SignupPage() {
     isEmailVerified &&
     nicknameAvailable;
 
+  // 버튼 공통(라인·보라 텍스트)
+  const btnLine =
+    "rounded-lg border border-gray-300 text-[#6F00B6] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed";
+
   return (
     <main className="flex flex-1 justify-center bg-white min-h-screen pt-20">
       <div className="w-full max-w-sm p-6 rounded-lg bg-white">
@@ -185,99 +159,48 @@ export default function SignupPage() {
           <span className="block text-sm font-medium mb-1 text-gray-600">
             이메일*
           </span>
-          <input
-            type="email"
-            value={email}
-            onChange={handleEmailChange}
-            placeholder="이메일을 입력해주세요."
-            className="input-border"
-          />
-          {emailMessage && (
-            <p
-              className={`text-sm mt-1 ${
-                emailAvailable ? "text-green-600" : "text-red-500"
-              }`}
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="이메일을 입력해주세요."
+              className="input-border h-11"
+              disabled={isEmailVerified}
+            />
+            <button
+              type="button"
+              onClick={handleSendCode}
+              disabled={isEmailVerified}
+              className="button-border min-w-[6rem] h-11 flex items-center justify-center text-sm font-medium text-[#6F00B6] hover:bg-gray-50"
             >
-              {emailMessage}
-            </p>
-          )}
+              {isEmailVerified ? "인증 완료" : "인증번호 받기"}
+            </button>
+          </div>
         </label>
 
         {/* 인증번호 */}
-        <div className="flex gap-2 mb-4">
-          <input
-            type="text"
-            value={verificationCode}
-            onChange={(e) => setVerificationCode(e.target.value)}
-            placeholder="인증번호를 입력해주세요."
-            className="input-border"
-            disabled={isEmailVerified}
-          />
-          <button
-            type="button"
-            onClick={
-              isEmailVerified
-                ? undefined
-                : verificationCode
-                ? handleVerifyCode
-                : handleSendCode
-            }
-            disabled={!emailAvailable || isEmailVerified}
-            className="button-border px-3 text-sm font-medium text-[#6F00B6] hover:bg-gray-50 whitespace-nowrap"
-          >
-            {isEmailVerified
-              ? "인증 완료"
-              : verificationCode
-              ? "인증 확인"
-              : "인증번호 받기"}
-          </button>
-        </div>
-
-        {/* 닉네임 */}
         <label className="block mb-4">
           <span className="block text-sm font-medium mb-1 text-gray-600">
-            닉네임*
+            인증번호*
           </span>
-          <input
-            type="text"
-            value={nickname}
-            onChange={handleNicknameChange}
-            placeholder="닉네임을 입력해주세요."
-            className="input-border"
-          />
-          {nicknameMessage && (
-            <p
-              className={`text-sm mt-1 ${
-                nicknameAvailable ? "text-green-600" : "text-red-500"
-              }`}
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <input
+              type="text"
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+              placeholder="인증번호를 입력해주세요."
+              className="input-border h-11"
+              disabled={isEmailVerified}
+            />
+            <button
+              type="button"
+              onClick={handleVerifyCode}
+              className="button-border min-w-[6rem] h-11 flex items-center justify-center text-sm font-medium text-[#6F00B6] hover:bg-gray-50"
             >
-              {nicknameMessage}
-            </p>
-          )}
-        </label>
-
-        {/* 구단 선택 */}
-        <label className="block mb-4">
-          <span className="block text-sm font-medium mb-1 text-gray-600">
-            좋아하는 구단 (선택)
-          </span>
-          <select
-            value={club}
-            onChange={(e) => setClub(e.target.value)}
-            className="input-border"
-          >
-            <option value="">선택 안 함</option>
-            <option value="두산">두산</option>
-            <option value="롯데">롯데</option>
-            <option value="삼성">삼성</option>
-            <option value="SSG">SSG</option>
-            <option value="키움">키움</option>
-            <option value="KT">KT</option>
-            <option value="NC">NC</option>
-            <option value="LG">LG</option>
-            <option value="기아">기아</option>
-            <option value="한화">한화</option>
-          </select>
+              {isEmailVerified ? "완료" : "확인"}
+            </button>
+          </div>
         </label>
 
         {/* 비밀번호 */}
@@ -291,11 +214,11 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="비밀번호를 입력해주세요."
-              className="input-border pr-10"
+              className="input-border pr-10 h-11"
             />
             <button
               type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
+              onClick={() => setShowPassword((v) => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
             >
               {showPassword ? (
@@ -321,11 +244,11 @@ export default function SignupPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="비밀번호를 다시 입력해주세요."
-              className="input-border pr-10"
+              className="input-border pr-10 h-11"
             />
             <button
               type="button"
-              onClick={() => setShowConfirmPassword((prev) => !prev)}
+              onClick={() => setShowConfirmPassword((v) => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
             >
               {showConfirmPassword ? (
@@ -342,19 +265,64 @@ export default function SignupPage() {
           )}
         </label>
 
-        {/* 뒤로가기 */}
+        {/* 닉네임 */}
+        <label className="block mb-4">
+          <span className="block text-sm font-medium mb-1 text-gray-600">
+            닉네임*
+          </span>
+          <input
+            type="text"
+            value={nickname}
+            onChange={handleNicknameChange}
+            placeholder="닉네임을 입력해주세요."
+            className="input-border h-11"
+          />
+          {nicknameMessage && (
+            <p
+              className={`text-sm mt-1 ${
+                nicknameAvailable ? "text-green-600" : "text-red-500"
+              }`}
+            >
+              {nicknameMessage}
+            </p>
+          )}
+        </label>
+
+        {/* 구단 선택 */}
+        <label className="block mb-4">
+          <span className="block text-sm font-medium mb-1 text-gray-600">
+            좋아하는 구단 (선택)
+          </span>
+          <select
+            value={club}
+            onChange={(e) => setClub(e.target.value)}
+            className="input-border h-11"
+          >
+            <option value="">선택 안 함</option>
+            <option value="두산">두산 베어스</option>
+            <option value="롯데">롯데 자이언츠</option>
+            <option value="삼성">삼성 라이온즈</option>
+            <option value="SSG">SSG 랜더스</option>
+            <option value="키움">키움 히어로즈</option>
+            <option value="KT">KT 위즈</option>
+            <option value="NC">NC 다이노스</option>
+            <option value="LG">LG 트윈스</option>
+            <option value="기아">기아 타이거즈</option>
+            <option value="한화">한화 이글스</option>
+          </select>
+        </label>
+
         <button
           onClick={() => navigate("/login")}
-          className="button-border text-gray-600 hover:bg-gray-100 mb-4"
+          className="button-border text-gray-600 hover:bg-gray-100 mb-4 w-full h-11"
         >
           ← 로그인 화면으로 돌아가기
         </button>
 
-        {/* 회원가입 */}
         <button
           onClick={handleSignup}
           disabled={!isValid}
-          className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+          className={`w-full h-11 rounded-lg font-semibold transition-colors ${
             isValid
               ? "bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
               : "bg-gray-200 text-gray-400 cursor-not-allowed"
