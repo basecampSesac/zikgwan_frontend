@@ -19,3 +19,15 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   visibility: hidden;
   display: none !important;
 }
+
+/* 공통 input 스타일 */
+.input-border {
+  @apply w-full rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#6F00B6];
+  border: 1px solid rgba(112, 115, 124, 0.22);
+}
+
+/* 공통 버튼 스타일 */
+.button-border {
+  @apply w-full py-3 rounded-lg font-semibold transition-colors;
+  border: 1px solid rgba(112, 115, 124, 0.22);
+}
