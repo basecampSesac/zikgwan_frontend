@@ -165,7 +165,7 @@ export default function ProfileSection() {
             />
           )}
         </div>
-        <label className="px-3 py-1 rounded-md text-sm font-medium bg-[#6F00B6] text-white hover:bg-[#8A2BE2] cursor-pointer">
+        <label className="px-3 py-1 rounded-md text-sm font-medium bg-[#8A2BE2] text-white hover:bg-[#6F00B6] cursor-pointer">
           변경하기
           <input
             type="file"
@@ -315,7 +315,7 @@ export default function ProfileSection() {
       {/* 저장하기 */}
       <button
         onClick={handleSave}
-        className="w-full h-11 rounded-lg font-semibold bg-[#6F00B6] text-white hover:bg-[#8A2BE2] transition"
+        className="w-full h-11 rounded-lg font-semibold bg-[#8A2BE2] text-white hover:bg-[#6F00B6] transition"
       >
         저장하기
       </button>
