@@ -47,7 +47,7 @@ export function Navbar() {
           {/* 마이페이지 */}
           <button
             onClick={() =>
-              isAuthenticated ? navigate("/mypage/profile") : navigate("/login")
+              isAuthenticated ? navigate("/mypage") : navigate("/login")
             }
             className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
           >
