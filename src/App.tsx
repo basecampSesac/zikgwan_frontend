@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Layout from "./layouts/Layout";
 import TicketList from "./page/TicketList";
@@ -9,6 +10,9 @@ import PolicyPage from "./page/Policy";
 import TicketGuidePage from "./page/TicketGuide";
 import MainHome from "./page/MainHome";
 import MyPage from "./page/MyPage";
+import { useAuthStore } from "./store/authStore";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 const router = createBrowserRouter([
   {
@@ -28,5 +32,38 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
+  const setUser = useAuthStore((state) => state.setUser);
+  const setAccessToken = useAuthStore((state) => state.setAccessToken);
+  const setAuth = useAuthStore((state) => state.setAuth);
+
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/me`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        if (data.success && data.user) {
+          setUser(data.user);
+          setAuth(true);
+
+          // 새 토큰이 있으면 전역 상태 갱신
+          if (data.newAccessToken) {
+            setAccessToken(data.newAccessToken);
+          }
+        }
+      } catch (err) {
+        console.error("로그인 유저 정보 불러오기 실패:", err);
+      }
+    };
+
+    fetchMe();
+  }, [setUser, setAccessToken, setAuth]);
+
   return <RouterProvider router={router} />;
 }
