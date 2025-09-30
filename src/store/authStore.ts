@@ -1,3 +1,4 @@
+// src/store/authStore.ts
 import { create } from "zustand";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
@@ -8,6 +9,7 @@ interface User {
   nickname: string;
   club?: string;
   admin?: "Y" | "N" | "B";
+  profileImage?: string;
 }
 
 interface AuthState {
@@ -16,8 +18,15 @@ interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   accessToken: string | null;
+
+  // setters
   setEmail: (email: string) => void;
   setPassword: (password: string) => void;
+  setUser: (user: User | null) => void;
+  setAccessToken: (token: string | null) => void;
+  setAuth: (isAuth: boolean) => void;
+
+  // auth methods
   login: (user: User, accessToken: string) => void;
   logout: () => void;
   refreshAccessToken: () => Promise<void>;
@@ -30,9 +39,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   accessToken: null,
 
+  // setters
   setEmail: (email) => set({ email }),
   setPassword: (password) => set({ password }),
+  setUser: (user) => set({ user }),
+  setAccessToken: (token) => set({ accessToken: token }),
+  setAuth: (isAuth) => set({ isAuthenticated: isAuth }),
 
+  // 로그인
   login: (user, accessToken) =>
     set({
       isAuthenticated: true,
@@ -42,6 +56,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       password: "",
     }),
 
+  // 로그아웃
   logout: () =>
     set({
       isAuthenticated: false,
@@ -51,11 +66,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       password: "",
     }),
 
+  // 리프레시 토큰으로 accessToken 갱신
   refreshAccessToken: async () => {
     try {
       const res = await fetch(`${API_URL}/api/auth/refresh`, {
         method: "POST",
-        credentials: "include", // Refresh Token이 쿠키에 있다고 가정
+        credentials: "include",
       });
 
       if (!res.ok) throw new Error("토큰 갱신 실패");
@@ -68,8 +84,3 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 }));
-
-// 전역 노출 코드
-// if (typeof window !== "undefined") {
-//   (window as any).useAuthStore = useAuthStore;
-// }
