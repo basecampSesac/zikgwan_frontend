@@ -7,12 +7,14 @@ import SignupPage from "./page/SignUp";
 import SchedulePage from "./page/Schedule";
 import PolicyPage from "./page/Policy";
 import TicketGuidePage from "./page/TicketGuide";
+import MainHome from "./page/MainHome";
+import MyPage from "./page/MyPage";
 
 const router = createBrowserRouter([
   {
     Component: Layout,
     children: [
-      { path: "/", Component: TicketList },
+      { path: "/", Component: MainHome },
       { path: "/tickets", Component: TicketList },
       { path: "/groups", Component: GroupList },
       { path: "/login", Component: LoginPage },
@@ -20,6 +22,7 @@ const router = createBrowserRouter([
       { path: "/schedule", Component: SchedulePage },
       { path: "/policy", Component: PolicyPage },
       { path: "/ticket-guide", Component: TicketGuidePage },
+      { path: "/mypage", Component: MyPage },
     ],
   },
 ]);
