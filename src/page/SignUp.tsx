@@ -1,9 +1,8 @@
 // src/page/SignupPage.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+import axiosInstance from "../lib/axiosInstance";
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -13,6 +12,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
+
   const [nicknameMessage, setNicknameMessage] = useState("");
   const [nicknameAvailable, setNicknameAvailable] = useState(false);
 
@@ -23,32 +23,19 @@ export default function SignupPage() {
   const [emailMessage, setEmailMessage] = useState("");
   const [emailAvailable, setEmailAvailable] = useState(false);
 
-  // 이메일 중복 확인 + 인증번호 발송
+  // 이메일 인증번호 발송
   const handleSendCode = async () => {
     if (!email) return;
     try {
-      const chk = await fetch(`${API_URL}/api/auth/check-email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      }).then((r) => r.json());
-
-      if (!chk.success) {
-        setEmailMessage(chk.message || "이미 사용 중인 이메일입니다.");
+      const res = await axiosInstance.post("/api/email/send", { email });
+      if (res.data.status !== "success") {
+        setEmailMessage(res.data.message || "이미 사용 중인 이메일입니다.");
         setEmailAvailable(false);
         return;
       }
       setEmailMessage("가입이 가능한 이메일입니다.");
       setEmailAvailable(true);
-
-      const snd = await fetch(`${API_URL}/api/auth/send-code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      }).then((r) => r.json());
-
-      if (snd.success) alert("인증번호가 이메일로 발송되었습니다.");
-      else alert(snd.message || "인증번호 발송 실패");
+      alert(res.data.data || "인증번호가 이메일로 발송되었습니다.");
     } catch (e) {
       console.error(e);
       setEmailMessage("이메일 처리 중 오류가 발생했습니다.");
@@ -58,17 +45,15 @@ export default function SignupPage() {
   // 인증번호 검증
   const handleVerifyCode = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/verify-code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code: verificationCode }),
-      }).then((r) => r.json());
-
-      if (res.success) {
+      const res = await axiosInstance.post("/api/email/verify", {
+        email,
+        code: verificationCode,
+      });
+      if (res.data.status === "success") {
         alert("이메일 인증이 완료되었습니다.");
         setIsEmailVerified(true);
       } else {
-        alert("인증번호가 올바르지 않습니다.");
+        alert(res.data.message || "인증번호가 올바르지 않습니다.");
       }
     } catch (e) {
       console.error(e);
@@ -76,51 +61,58 @@ export default function SignupPage() {
     }
   };
 
-  // 닉네임 중복 확인
-  const handleNicknameChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const value = e.target.value;
-    setNickname(value);
-    if (!value) {
+  // 닉네임 입력 시 (즉시 상태 업데이트)
+  const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNickname(e.target.value);
+  };
+
+  // 닉네임 중복 확인 (디바운스: 2초)
+  useEffect(() => {
+    if (!nickname) {
       setNicknameMessage("");
       setNicknameAvailable(false);
       return;
     }
-    try {
-      const res = await fetch(`${API_URL}/api/auth/check-nickname`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nickname: value }),
-      }).then((r) => r.json());
 
-      if (res.success) {
-        setNicknameMessage("사용 가능한 닉네임입니다.");
-        setNicknameAvailable(true);
-      } else {
-        setNicknameMessage(res.message || "이미 사용 중인 닉네임입니다.");
+    const timer = setTimeout(async () => {
+      try {
+        const res = await axiosInstance.post("/api/user/chknickname", {
+          nickname,
+        });
+
+        if (res.data.status === "success" && res.data.data === false) {
+          setNicknameMessage("사용 가능한 닉네임입니다.");
+          setNicknameAvailable(true);
+        } else {
+          setNicknameMessage(
+            res.data.message || "이미 사용 중인 닉네임입니다."
+          );
+          setNicknameAvailable(false);
+        }
+      } catch (e) {
+        console.error(e);
+        setNicknameMessage("닉네임 확인 중 오류가 발생했습니다.");
         setNicknameAvailable(false);
       }
-    } catch (e) {
-      console.error(e);
-      setNicknameMessage("닉네임 확인 중 오류가 발생했습니다.");
-      setNicknameAvailable(false);
-    }
-  };
+    }, 2000); // 2초 대기 후 실행
 
+    return () => clearTimeout(timer); // cleanup
+  }, [nickname]);
+
+  // 회원가입
   const handleSignup = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, nickname, club, password }),
-      }).then((r) => r.json());
-
-      if (res.success) {
+      const res = await axiosInstance.post("/api/user/signup", {
+        email,
+        nickname,
+        club,
+        password,
+      });
+      if (res.data.status === "success") {
         alert("회원가입이 완료되었습니다. 로그인 해주세요.");
         navigate("/login");
       } else {
-        alert(res.message || "회원가입에 실패했습니다.");
+        alert(res.data.message || "회원가입에 실패했습니다.");
       }
     } catch (e) {
       console.error(e);
@@ -128,6 +120,7 @@ export default function SignupPage() {
     }
   };
 
+  // 비밀번호 정책
   const isPasswordValid =
     password.length >= 8 &&
     /[A-Z]/.test(password) &&
@@ -144,10 +137,6 @@ export default function SignupPage() {
     isPasswordValid &&
     isEmailVerified &&
     nicknameAvailable;
-
-  // 버튼 공통(라인·보라 텍스트)
-  const btnLine =
-    "rounded-lg border border-gray-300 text-[#6F00B6] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed";
 
   return (
     <main className="flex flex-1 justify-center bg-white min-h-screen pt-20">
@@ -177,6 +166,15 @@ export default function SignupPage() {
               {isEmailVerified ? "인증 완료" : "인증번호 받기"}
             </button>
           </div>
+          {emailMessage && (
+            <p
+              className={`text-sm mt-1 ${
+                emailAvailable ? "text-green-600" : "text-red-500"
+              }`}
+            >
+              {emailMessage}
+            </p>
+          )}
         </label>
 
         {/* 인증번호 */}
@@ -312,6 +310,7 @@ export default function SignupPage() {
           </select>
         </label>
 
+        {/* 로그인 이동 */}
         <button
           onClick={() => navigate("/login")}
           className="button-border text-gray-600 hover:bg-gray-100 mb-4 w-full h-11"
@@ -319,6 +318,7 @@ export default function SignupPage() {
           ← 로그인 화면으로 돌아가기
         </button>
 
+        {/* 가입 버튼 */}
         <button
           onClick={handleSignup}
           disabled={!isValid}

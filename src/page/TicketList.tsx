@@ -1,6 +1,6 @@
 import SearchPanel from "../components/SearchPanel";
 import { v4 as uuidv4 } from "uuid";
-import TicketCard from "../components/TicketCard";
+import TicketCard from "../components/tickets/TicketCard";
 import ListHeader from "../components/ListHeader";
 
 export default function List() {
