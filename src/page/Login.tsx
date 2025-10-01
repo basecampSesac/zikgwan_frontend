@@ -3,8 +3,7 @@ import { useAuthStore } from "../store/authStore";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+import axiosInstance from "../lib/axiosInstance";
 
 export default function LoginPage() {
   const { email, password, setEmail, setPassword, login } = useAuthStore();
@@ -14,15 +13,10 @@ export default function LoginPage() {
 
   const handleLogin = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
+      const { data } = await axiosInstance.post("/api/auth/login", {
+        email,
+        password,
       });
-
-      if (!res.ok) throw new Error("로그인 실패");
-      const data = await res.json();
 
       if (data.success) {
         login(data.user, data.accessToken);
