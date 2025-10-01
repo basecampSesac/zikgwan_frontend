@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import TicketDetails from "../components/tickets/TicketDetails";
 
 function ModalPortal({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -13,9 +12,11 @@ function ModalPortal({ children }: { children: React.ReactNode }) {
 export default function Modal({
   buttonText,
   classes,
+  children, // ✅ 이제 optional
 }: {
   buttonText: string;
   classes: string;
+  children?: React.ReactNode; // ✅ optional 로 변경
 }) {
   const [open, setOpen] = useState(false);
 
@@ -31,8 +32,6 @@ export default function Modal({
             className="fixed inset-0 z-[9999] flex items-center justify-center"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="modal-title"
-            aria-describedby="modal-description"
           >
             {/* backdrop */}
             <div
@@ -40,8 +39,8 @@ export default function Modal({
               onClick={() => setOpen(false)}
             />
             {/* content */}
-            <div className="relative bg-white w-96 p-6 rounded-md shadow-lg">
-              <TicketDetails />
+            <div className="relative bg-white w-[500px] max-w-full p-6 rounded-md shadow-lg">
+              {children ?? <div />}
               <button
                 className="absolute top-2 right-2 text-neutral-500 hover:text-neutral-800"
                 onClick={() => setOpen(false)}
