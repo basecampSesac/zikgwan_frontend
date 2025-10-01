@@ -1,6 +1,6 @@
 import SearchPanel from "../components/SearchPanel";
 import { v4 as uuidv4 } from "uuid";
-import GroupCard from "../components/GroupCard";
+import GroupCard from "../components/groups/GroupCard";
 import ListHeader from "../components/ListHeader";
 
 export default function GroupList() {
