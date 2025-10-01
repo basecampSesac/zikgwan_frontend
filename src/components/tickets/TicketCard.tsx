@@ -1,31 +1,17 @@
 import { Calendar, User } from "lucide-react";
 import Modal from "../Modal";
-
-type Ticket = {
-  title: string;
-  date: string;
-  price: string;
-  originalPrice?: string;
-  discount?: string;
-  location: string;
-  user: string;
-  rate: number;
-  status?: string; // 예: "급매"
-  imageUrl?: string;
-};
+import type { TicketUI } from "../../types/ticket";
 
 export default function TicketCard({
   title,
-  date,
+  gameDate,
   price,
-  originalPrice,
-  discount,
-  location,
-  user,
-  rate,
+  ticketCount,
+  stadiumName,
+  seller,
   status,
   imageUrl,
-}: Ticket) {
+}: TicketUI) {
   return (
     <article className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
       {/* 이미지 영역 */}
@@ -39,18 +25,25 @@ export default function TicketCard({
         ) : (
           <div className="w-full h-full bg-gray-200" />
         )}
-        {status && (
-          <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-semibold px-2 py-0.5 rounded">
-            {status}
+        {/* 상태 뱃지 */}
+        {status === "판매중" && (
+          <span className="absolute top-2 left-2 bg-[#6F00B6] text-white text-xs font-semibold px-2 py-0.5 rounded">
+            판매중
           </span>
         )}
+        {status === "판매완료" && (
+          <span className="absolute top-2 left-2 bg-gray-500 text-white text-xs font-semibold px-2 py-0.5 rounded">
+            판매완료
+          </span>
+        )}
+
+        {/* 구장명 뱃지 */}
         <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
-          {location}
+          {stadiumName}
         </span>
       </div>
-
       {/* 본문 */}
-      <div className="p-4 flex flex-col justify-between h-[calc(100%-10rem)]">
+      <div className="p-4 flex flex-col justify-between">
         {/* 제목 */}
         <h2 className="text-base font-bold leading-snug mb-2 line-clamp-2">
           {title}
@@ -59,31 +52,22 @@ export default function TicketCard({
         {/* 날짜 */}
         <div className="flex items-center gap-1 text-gray-500 text-sm mb-2">
           <Calendar size={16} />
-          <span>{date}</span>
+          <span>{gameDate}</span>
         </div>
 
-        {/* 가격 + 유저 + 버튼 */}
+        {/* 가격 + 매수 + 유저 */}
         <div className="flex items-end justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-lg font-extrabold  text-gray-700 hover:bg-gray-200">
-                {price}원
+              <span className="text-lg font-extrabold text-gray-700">
+                {price}
               </span>
-              {originalPrice && (
-                <span className="text-gray-400 line-through text-sm">
-                  {originalPrice}원
-                </span>
-              )}
-              {discount && (
-                <span className="text-green-600 text-sm font-semibold">
-                  {discount} 할인
-                </span>
-              )}
+              <span className="text-sm text-gray-500">· {ticketCount}매</span>
             </div>
             <div className="mt-1 flex items-center gap-1 text-gray-400 text-xs">
               <User size={14} />
-              <span>{user}</span>
-              <span>({rate})</span>
+              <span>{seller.nickname}</span>
+              <span>({seller.rate})</span>
             </div>
           </div>
 

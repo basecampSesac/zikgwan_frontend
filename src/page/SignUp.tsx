@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../lib/axiosInstance";
+import { TEAMS } from "../constants/teams";
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -297,16 +298,11 @@ export default function SignupPage() {
             className="input-border h-11"
           >
             <option value="">선택 안 함</option>
-            <option value="두산">두산 베어스</option>
-            <option value="롯데">롯데 자이언츠</option>
-            <option value="삼성">삼성 라이온즈</option>
-            <option value="SSG">SSG 랜더스</option>
-            <option value="키움">키움 히어로즈</option>
-            <option value="KT">KT 위즈</option>
-            <option value="NC">NC 다이노스</option>
-            <option value="LG">LG 트윈스</option>
-            <option value="기아">기아 타이거즈</option>
-            <option value="한화">한화 이글스</option>
+            {TEAMS.map((team) => (
+              <option key={team.value} value={team.value}>
+                {team.label}
+              </option>
+            ))}
           </select>
         </label>
 
