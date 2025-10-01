@@ -1,27 +1,17 @@
-import { Calendar, MapPin, User, UserRound } from "lucide-react";
+import { Calendar, User, UserRound } from "lucide-react";
 import Modal from "../Modal";
-
-interface Group {
-  title: string;
-  teams: string;
-  date: string;
-  location: string;
-  personnel: string;
-  leader: string;
-  imageUrl?: string;
-  status?: string; // 예: "모집중"
-}
+import type { GroupUI } from "../../types/group";
 
 export default function GroupCard({
   title,
   teams,
   date,
-  location,
+  stadiumName,
   personnel,
   leader,
-  imageUrl,
   status,
-}: Group) {
+  imageUrl,
+}: GroupUI) {
   return (
     <article className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
       {/* 이미지 영역 */}
@@ -36,18 +26,21 @@ export default function GroupCard({
           <div className="w-full h-full bg-gray-200" />
         )}
         {status && (
-          <span className="absolute top-2 left-2 bg-green-600 text-white text-xs font-semibold px-2 py-0.5 rounded">
+          <span
+            className={`absolute top-2 left-2 text-white text-xs font-semibold px-2 py-0.5 rounded ${
+              status === "모집중" ? "bg-[#6F00B6]" : "bg-gray-600"
+            }`}
+          >
             {status}
           </span>
         )}
         <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
-          {location}
+          {stadiumName}
         </span>
       </div>
 
       {/* 본문 */}
       <div className="p-4 flex flex-col justify-between h-[calc(100%-10rem)]">
-        {/* 제목 + 팀 */}
         <h2 className="text-base font-bold leading-snug mb-1 line-clamp-1">
           {title}
         </h2>
@@ -71,7 +64,7 @@ export default function GroupCard({
           </div>
         </div>
 
-        {/* 버튼 영역 */}
+        {/* 버튼 */}
         <div className="flex gap-2">
           <Modal
             buttonText="상세보기"
