@@ -1,23 +1,22 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import type { ReactNode } from "react"; // ✅ 타입 전용 import 추가
 
-function ModalPortal({ children }: { children: React.ReactNode }) {
+function ModalPortal({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
   return createPortal(children, document.body);
 }
 
-export default function Modal({
-  buttonText,
-  classes,
-  children, // ✅ 이제 optional
-}: {
+interface ModalProps {
   buttonText: string;
   classes: string;
-  children?: React.ReactNode; // ✅ optional 로 변경
-}) {
+  children?: ReactNode;
+}
+
+export default function Modal({ buttonText, classes, children }: ModalProps) {
   const [open, setOpen] = useState(false);
 
   return (
