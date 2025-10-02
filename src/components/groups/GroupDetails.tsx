@@ -76,7 +76,7 @@ export default function GroupDetails() {
         {/* 설명 */}
         <label className="block">
           <span className="block text-sm font-medium mb-1 text-gray-600">
-            모임 설명 (선택)
+            모임 설명*
           </span>
           <textarea
             name="description"

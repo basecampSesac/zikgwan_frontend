@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import ConfirmDeleteModal from "../../Modals/ConfirmDeleteModal";
+import ConfirmModal from "../../Modals/ConfirmModal";
 import { useAuthStore } from "../../store/authStore";
 import { TEAMS } from "../../constants/teams";
 
@@ -328,8 +328,13 @@ export default function ProfileSection() {
         를 눌러주세요.
       </p>
 
-      <ConfirmDeleteModal
+      <ConfirmModal
         isOpen={openModal}
+        title="회원탈퇴"
+        description="정말로 회원탈퇴를 하시겠습니까?
+        모든 데이터가 삭제되며 복구할 수 없습니다."
+        confirmText="탈퇴하기"
+        cancelText="취소"
         onClose={() => setOpenModal(false)}
         onConfirm={handleDelete}
       />

@@ -5,8 +5,11 @@ import { ko } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
 import { TEAMS } from "../../constants/teams";
 import { STADIUMS } from "../../constants/stadiums";
+import { useToastStore } from "../../store/toastStore";
 
-export default function TicketDetails() {
+export default function TicketForm({ onClose }: { onClose?: () => void }) {
+  const addToast = useToastStore((state) => state.addToast);
+
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -45,7 +48,6 @@ export default function TicketDetails() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (
       !form.title ||
       !form.price ||
@@ -55,20 +57,10 @@ export default function TicketDetails() {
       !form.away ||
       !form.stadium
     ) {
-      alert("해당 정보를 작성해야합니다.");
       return;
     }
-
-    const payload = {
-      ...form,
-      game_day: gameDay.toISOString(),
-      adjacent_seat: form.adjacent_seat ? "Y" : "N",
-    };
-
-    console.log("등록 데이터:", payload);
-    console.log("이미지:", images);
-
-    alert("작성이 완료 되었습니다.");
+    addToast("티켓이 등록되었습니다 🎉", "success");
+    onClose?.();
   };
 
   return (
@@ -139,7 +131,7 @@ export default function TicketDetails() {
           </label>
         </div>
 
-        {/* 홈/어웨이 팀 */}
+        {/* 홈/어웨이 */}
         <div className="grid grid-cols-2 gap-4">
           <label className="block">
             <span className="block text-sm font-medium mb-1 text-gray-600">
@@ -230,7 +222,7 @@ export default function TicketDetails() {
         {/* 상세 설명 */}
         <label className="block">
           <span className="block text-sm font-medium mb-1 text-gray-600">
-            상세 설명 (선택)
+            상세 설명*
           </span>
           <textarea
             name="description"

@@ -8,6 +8,9 @@
     font-family: "Pretendard Variable", system-ui, sans-serif;
   }
 }
+html {
+  @apply overflow-y-scroll;
+}
 
 /* 크롬, 사파리, 엣지에서 비밀번호 input의 기본 눈 아이콘 제거 */
 input[type="password"]::-ms-reveal,

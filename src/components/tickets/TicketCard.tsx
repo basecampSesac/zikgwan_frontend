@@ -1,8 +1,9 @@
 import { Calendar, User } from "lucide-react";
-import Modal from "../Modal";
+import { Link } from "react-router-dom";
 import type { TicketUI } from "../../types/ticket";
 
 export default function TicketCard({
+  id,
   title,
   gameDate,
   price,
@@ -25,6 +26,7 @@ export default function TicketCard({
         ) : (
           <div className="w-full h-full bg-gray-200" />
         )}
+
         {/* 상태 뱃지 */}
         {status === "판매중" && (
           <span className="absolute top-2 left-2 bg-[#6F00B6] text-white text-xs font-semibold px-2 py-0.5 rounded">
@@ -42,6 +44,7 @@ export default function TicketCard({
           {stadiumName}
         </span>
       </div>
+
       {/* 본문 */}
       <div className="p-4 flex flex-col justify-between">
         {/* 제목 */}
@@ -71,10 +74,13 @@ export default function TicketCard({
             </div>
           </div>
 
-          <Modal
-            buttonText="상세보기"
-            classes="text-sm px-4 py-2 rounded-md font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
-          />
+          {/* 상세보기 버튼 → 상세 페이지 이동 */}
+          <Link
+            to={`/tickets/${id}`}
+            className="text-sm px-4 py-2 rounded-md font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+          >
+            상세보기
+          </Link>
         </div>
       </div>
     </article>

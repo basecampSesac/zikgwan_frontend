@@ -20,7 +20,7 @@ export default function ListHeader({
   modalChildren,
 }: ListHeaderProps) {
   return (
-    <div className="flex justify-between items-center mb-6 w-full">
+    <div className="flex justify-between items-center mb-6 w-full border-b border-gray-200 pb-4">
       {/* 왼쪽: 총 개수 */}
       <p className="text-sm font-medium text-gray-600">
         총 {count}개의 {title}
