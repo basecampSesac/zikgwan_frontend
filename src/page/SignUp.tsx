@@ -1,4 +1,3 @@
-// src/page/SignupPage.tsx
 import { useState, useEffect } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
@@ -67,7 +66,7 @@ export default function SignupPage() {
     setNickname(e.target.value);
   };
 
-  // 닉네임 중복 확인 (디바운스: 2초)
+  // 닉네임 중복 확인 (디바운스: 1초)
   useEffect(() => {
     if (!nickname) {
       setNicknameMessage("");
@@ -95,7 +94,7 @@ export default function SignupPage() {
         setNicknameMessage("닉네임 확인 중 오류가 발생했습니다.");
         setNicknameAvailable(false);
       }
-    }, 2000); // 2초 대기 후 실행
+    }, 1000); // 1초 대기 후 실행
 
     return () => clearTimeout(timer); // cleanup
   }, [nickname]);
