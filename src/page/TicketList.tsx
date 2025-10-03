@@ -1,11 +1,14 @@
+import { useState } from "react";
 import SearchPanel from "../components/SearchPanel";
 import TicketCard from "../components/tickets/TicketCard";
-import TicketDetails from "../components/tickets/TicketForm";
+import TicketForm from "../components/tickets/TicketForm";
 import ListHeader from "../components/ListHeader";
+import Modal from "../components/Modal";
 import { ticketsMockResponse } from "../data/mock";
 
 export default function TicketList() {
   const tickets = ticketsMockResponse.data;
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   if (!tickets || tickets.length === 0) {
     return (
@@ -23,14 +26,14 @@ export default function TicketList() {
           <SearchPanel title="티켓 검색" showPrice={true} />
         </div>
 
-        {/* 리스트 헤더 + 티켓 등록 */}
+        {/* 리스트 헤더 + 티켓 등록 버튼 */}
         <div className="flex justify-between items-center mb-6">
           <ListHeader
             title="티켓"
             count={tickets.length}
             sortOptions={["최신순", "낮은 가격순", "높은 가격순"]}
             buttonText="+ 티켓 등록"
-            modalChildren={<TicketDetails />}
+            onButtonClick={() => setIsCreateOpen(true)} // ✅
           />
         </div>
 
@@ -41,6 +44,11 @@ export default function TicketList() {
           ))}
         </div>
       </div>
+
+      {/* 등록 모달 */}
+      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)}>
+        <TicketForm mode="create" onClose={() => setIsCreateOpen(false)} />
+      </Modal>
     </div>
   );
 }
