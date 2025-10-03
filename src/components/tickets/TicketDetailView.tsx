@@ -1,9 +1,12 @@
+import { useState } from "react";
 import type { TicketUI } from "../../types/ticket";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../lib/axiosInstance";
 import ShareButton from "../common/ShareButton";
 import { useToastStore } from "../../store/toastStore";
 import ConfirmModal from "../../Modals/ConfirmModal";
+import Modal from "../Modal"; // ✅ 공용 모달
+import TicketForm from "./TicketForm";
 import {
   FiCalendar,
   FiMapPin,
@@ -12,7 +15,6 @@ import {
   FiTrash2,
   FiArrowLeft,
 } from "react-icons/fi";
-import { useState } from "react";
 
 interface Props {
   ticket: TicketUI;
@@ -22,6 +24,7 @@ export default function TicketDetailView({ ticket }: Props) {
   const navigate = useNavigate();
   const addToast = useToastStore((state) => state.addToast);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   // 채팅 시작
   const handleChatStart = async () => {
@@ -62,7 +65,7 @@ export default function TicketDetailView({ ticket }: Props) {
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center py-10 px-4">
       <div className="relative w-full max-w-3xl">
-        {/* 🔙 왼쪽 바깥, 카드 상단 맞춤 */}
+        {/* 🔙 목록으로 돌아가기 */}
         <button
           onClick={() => navigate("/tickets")}
           className="absolute -left-55 top-0 flex items-center gap-3 text-1xl font-bold text-gray-700 hover:text-[#6F00B6] transition"
@@ -76,7 +79,10 @@ export default function TicketDetailView({ ticket }: Props) {
           <div className="flex justify-between items-center mb-6">
             <ShareButton />
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 text-base rounded border border-[#6F00B6] text-[#6F00B6] hover:bg-purple-50">
+              <button
+                onClick={() => setIsEditOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 text-base rounded border border-[#6F00B6] text-[#6F00B6] hover:bg-purple-50"
+              >
                 <FiEdit3 size={18} /> 수정
               </button>
               <button
@@ -181,6 +187,15 @@ export default function TicketDetailView({ ticket }: Props) {
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteTicket}
       />
+
+      {/* 수정 모달 */}
+      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)}>
+        <TicketForm
+          mode="edit"
+          initialValues={ticket}
+          onClose={() => setIsEditOpen(false)}
+        />
+      </Modal>
     </main>
   );
 }

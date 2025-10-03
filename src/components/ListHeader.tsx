@@ -1,13 +1,10 @@
-import Modal from "./Modal";
-
 type ListHeaderProps = {
   title: string;
   count: number;
   onSortChange?: (value: string) => void;
   sortOptions?: string[];
   buttonText: string;
-  modalClasses?: string;
-  modalChildren?: React.ReactNode;
+  onButtonClick?: () => void;
 };
 
 export default function ListHeader({
@@ -16,8 +13,7 @@ export default function ListHeader({
   onSortChange,
   sortOptions = ["최신순", "낮은 가격순", "높은 가격순"],
   buttonText,
-  modalClasses = "px-4 py-2 rounded-lg bg-[#8A2BE2] text-white hover:bg-[#6F00B6] text-sm",
-  modalChildren,
+  onButtonClick,
 }: ListHeaderProps) {
   return (
     <div className="flex justify-between items-center mb-6 w-full border-b border-gray-200 pb-4">
@@ -37,9 +33,12 @@ export default function ListHeader({
           ))}
         </select>
 
-        <Modal buttonText={buttonText} classes={modalClasses}>
-          {modalChildren}
-        </Modal>
+        <button
+          onClick={onButtonClick}
+          className="px-4 py-2 rounded-lg bg-[#8A2BE2] text-white hover:bg-[#6F00B6] text-sm"
+        >
+          {buttonText}
+        </button>
       </div>
     </div>
   );

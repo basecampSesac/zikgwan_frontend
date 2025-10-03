@@ -4,18 +4,31 @@ import { ko } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
 import { TEAMS } from "../../constants/teams";
 import { STADIUMS } from "../../constants/stadiums";
+import type { GroupUI } from "../../types/group";
 
-export default function GroupDetails() {
+interface GroupFormProps {
+  mode?: "create" | "edit";
+  initialValues?: Partial<GroupUI>;
+  onClose?: () => void;
+}
+
+export default function GroupForm({
+  mode = "create",
+  initialValues,
+  onClose,
+}: GroupFormProps) {
   const [form, setForm] = useState({
-    title: "",
-    description: "",
-    home: "",
-    away: "",
-    stadium: "",
-    personnel: "",
+    title: initialValues?.title || "",
+    content: initialValues?.content || "",
+    homeTeam: initialValues?.teams?.split(" vs ")[0] || "",
+    awayTeam: initialValues?.teams?.split(" vs ")[1] || "",
+    stadiumName: initialValues?.stadiumName || "",
+    personnel: initialValues?.personnel?.toString() || "",
   });
 
-  const [meetingDay, setMeetingDay] = useState<Date | null>(null);
+  const [meetingDate, setMeetingDate] = useState<Date | null>(
+    initialValues?.date ? new Date(initialValues.date) : null
+  );
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -34,28 +47,46 @@ export default function GroupDetails() {
 
     if (
       !form.title ||
-      !meetingDay ||
-      !form.home ||
-      !form.away ||
-      !form.stadium ||
+      !meetingDate ||
+      !form.homeTeam ||
+      !form.awayTeam ||
+      !form.stadiumName ||
       !form.personnel
     ) {
       alert("필수 정보를 모두 입력해주세요.");
       return;
     }
 
-    const payload = {
-      ...form,
-      meeting_day: meetingDay.toISOString(),
+    // GroupUI에 맞춘 payload
+    const payload: GroupUI = {
+      id: initialValues?.id || Date.now(),
+      title: form.title,
+      content: form.content,
+      date: meetingDate.toISOString(),
+      stadiumName: form.stadiumName,
+      teams: `${form.homeTeam} vs ${form.awayTeam}`,
+      personnel: Number(form.personnel),
+      leader: initialValues?.leader || "알 수 없음",
+      status: initialValues?.status || "모집중",
+      imageUrl: initialValues?.imageUrl,
     };
 
-    console.log("모임 등록 데이터:", payload);
-    alert("모임이 성공적으로 등록되었습니다.");
+    if (mode === "create") {
+      console.log("POST /api/groups", payload);
+      alert("모임이 등록되었습니다 🎉");
+    } else {
+      console.log("PUT /api/groups/:id", payload);
+      alert("모임이 수정되었습니다 ✨");
+    }
+
+    onClose?.();
   };
 
   return (
     <div className="flex flex-col w-full">
-      <h2 className="text-2xl font-bold mb-6 text-center">모임 등록</h2>
+      <h2 className="text-2xl font-bold mb-6 text-center">
+        {mode === "create" ? "모임 등록" : "모임 수정"}
+      </h2>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* 제목 */}
@@ -79,8 +110,8 @@ export default function GroupDetails() {
             모임 설명*
           </span>
           <textarea
-            name="description"
-            value={form.description}
+            name="content"
+            value={form.content}
             onChange={handleChange}
             placeholder="모임 목적, 분위기 등을 입력해주세요"
             className="input-border h-24"
@@ -93,8 +124,8 @@ export default function GroupDetails() {
             모임 일자 *
           </span>
           <DatePicker
-            selected={meetingDay}
-            onChange={(date) => setMeetingDay(date)}
+            selected={meetingDate}
+            onChange={(date) => setMeetingDate(date)}
             showTimeSelect
             timeFormat="HH:mm"
             timeIntervals={30}
@@ -112,8 +143,8 @@ export default function GroupDetails() {
               홈팀*
             </span>
             <select
-              name="home"
-              value={form.home}
+              name="homeTeam"
+              value={form.homeTeam}
               onChange={handleChange}
               className="input-border"
               required
@@ -125,7 +156,7 @@ export default function GroupDetails() {
                 <option
                   key={team.value}
                   value={team.value}
-                  disabled={form.away === team.value}
+                  disabled={form.awayTeam === team.value}
                 >
                   {team.label}
                 </option>
@@ -138,8 +169,8 @@ export default function GroupDetails() {
               원정팀*
             </span>
             <select
-              name="away"
-              value={form.away}
+              name="awayTeam"
+              value={form.awayTeam}
               onChange={handleChange}
               className="input-border"
               required
@@ -151,7 +182,7 @@ export default function GroupDetails() {
                 <option
                   key={team.value}
                   value={team.value}
-                  disabled={form.home === team.value}
+                  disabled={form.homeTeam === team.value}
                 >
                   {team.label}
                 </option>
@@ -166,8 +197,8 @@ export default function GroupDetails() {
             야구장*
           </span>
           <select
-            name="stadium"
-            value={form.stadium}
+            name="stadiumName"
+            value={form.stadiumName}
             onChange={handleChange}
             className="input-border"
             required
@@ -201,7 +232,7 @@ export default function GroupDetails() {
           type="submit"
           className="w-full py-3 rounded-lg font-semibold transition-colors bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
         >
-          등록하기
+          {mode === "create" ? "등록하기" : "수정 완료"}
         </button>
       </form>
     </div>

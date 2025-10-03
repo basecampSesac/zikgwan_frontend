@@ -1,6 +1,7 @@
 import { Calendar, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { TicketUI } from "../../types/ticket";
+import { formatDate, formatPrice } from "../../utils/format";
 
 export default function TicketCard({
   id,
@@ -55,7 +56,7 @@ export default function TicketCard({
         {/* 날짜 */}
         <div className="flex items-center gap-1 text-gray-500 text-sm mb-2">
           <Calendar size={16} />
-          <span>{gameDate}</span>
+          <span>{formatDate(gameDate)}</span>
         </div>
 
         {/* 가격 + 매수 + 유저 */}
@@ -63,7 +64,7 @@ export default function TicketCard({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-lg font-extrabold text-gray-700">
-                {price}
+                {formatPrice(price)}원
               </span>
               <span className="text-sm text-gray-500">· {ticketCount}매</span>
             </div>
@@ -77,7 +78,7 @@ export default function TicketCard({
           {/* 상세보기 버튼 → 상세 페이지 이동 */}
           <Link
             to={`/tickets/${id}`}
-            className="text-sm px-4 py-2 rounded-md font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+            className="text-sm px-4 py-2 rounded-md font-semibold bg-gray-200 text-gray-700 hover:bg-gray-200 transition"
           >
             상세보기
           </Link>

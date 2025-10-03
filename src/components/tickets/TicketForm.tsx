@@ -6,22 +6,35 @@ import "react-datepicker/dist/react-datepicker.css";
 import { TEAMS } from "../../constants/teams";
 import { STADIUMS } from "../../constants/stadiums";
 import { useToastStore } from "../../store/toastStore";
+import type { TicketUI } from "../../types/ticket";
 
-export default function TicketForm({ onClose }: { onClose?: () => void }) {
+interface TicketFormProps {
+  mode?: "create" | "edit";
+  initialValues?: Partial<TicketUI>;
+  onClose?: () => void;
+}
+
+export default function TicketForm({
+  mode = "create",
+  initialValues,
+  onClose,
+}: TicketFormProps) {
   const addToast = useToastStore((state) => state.addToast);
 
   const [form, setForm] = useState({
-    title: "",
-    description: "",
-    price: "",
-    ticket_count: "",
-    home: "",
-    away: "",
-    stadium: "",
-    adjacent_seat: false,
+    title: initialValues?.title || "",
+    content: initialValues?.content || "",
+    price: initialValues?.price?.toString() || "",
+    ticketCount: initialValues?.ticketCount?.toString() || "",
+    homeTeam: initialValues?.homeTeam || "",
+    awayTeam: initialValues?.awayTeam || "",
+    stadiumName: initialValues?.stadiumName || "",
+    adjacentSeat: initialValues?.adjacentSeat || false,
   });
 
-  const [gameDay, setGameDay] = useState<Date | null>(null);
+  const [gameDate, setGameDate] = useState<Date | null>(
+    initialValues?.gameDate ? new Date(initialValues.gameDate) : null
+  );
   const [images, setImages] = useState<File[]>([]);
 
   const handleChange = (
@@ -37,7 +50,7 @@ export default function TicketForm({ onClose }: { onClose?: () => void }) {
   };
 
   const handleCheckbox = () => {
-    setForm({ ...form, adjacent_seat: !form.adjacent_seat });
+    setForm({ ...form, adjacentSeat: !form.adjacentSeat });
   };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,24 +61,53 @@ export default function TicketForm({ onClose }: { onClose?: () => void }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (
       !form.title ||
       !form.price ||
-      !gameDay ||
-      !form.ticket_count ||
-      !form.home ||
-      !form.away ||
-      !form.stadium
+      !gameDate ||
+      !form.ticketCount ||
+      !form.homeTeam ||
+      !form.awayTeam ||
+      !form.stadiumName
     ) {
+      addToast("필수 항목을 모두 입력해주세요 ❌", "error");
       return;
     }
-    addToast("티켓이 등록되었습니다 🎉", "success");
+
+    // TicketUI에 맞춘 payload
+    const payload: TicketUI = {
+      id: initialValues?.id || Date.now(), // 더미용
+      title: form.title,
+      content: form.content,
+      price: Number(form.price),
+      gameDate: gameDate.toISOString(),
+      ticketCount: Number(form.ticketCount),
+      homeTeam: form.homeTeam,
+      awayTeam: form.awayTeam,
+      stadiumName: form.stadiumName,
+      adjacentSeat: form.adjacentSeat,
+      status: initialValues?.status || "판매중",
+      imageUrl: initialValues?.imageUrl,
+      seller: initialValues?.seller || { id: 0, nickname: "알 수 없음" },
+    };
+
+    if (mode === "create") {
+      console.log("POST /api/tickets", payload);
+      addToast("티켓이 등록되었습니다 🎉", "success");
+    } else {
+      console.log("PUT /api/tickets/:id", payload);
+      addToast("티켓이 수정되었습니다 ✨", "success");
+    }
+
     onClose?.();
   };
 
   return (
     <div className="flex flex-col w-full">
-      <h2 className="text-2xl font-bold mb-6 text-center">티켓 등록</h2>
+      <h2 className="text-2xl font-bold mb-6 text-center">
+        {mode === "create" ? "티켓 등록" : "티켓 수정"}
+      </h2>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* 제목 */}
@@ -89,8 +131,8 @@ export default function TicketForm({ onClose }: { onClose?: () => void }) {
             경기 일자*
           </span>
           <DatePicker
-            selected={gameDay}
-            onChange={(date) => setGameDay(date)}
+            selected={gameDate}
+            onChange={(date) => setGameDate(date)}
             showTimeSelect
             timeFormat="HH:mm"
             timeIntervals={30}
@@ -122,8 +164,8 @@ export default function TicketForm({ onClose }: { onClose?: () => void }) {
             </span>
             <input
               type="number"
-              name="ticket_count"
-              value={form.ticket_count}
+              name="ticketCount"
+              value={form.ticketCount}
               onChange={handleChange}
               placeholder="예: 2"
               className="input-border"
@@ -138,8 +180,8 @@ export default function TicketForm({ onClose }: { onClose?: () => void }) {
               홈팀*
             </span>
             <select
-              name="home"
-              value={form.home}
+              name="homeTeam"
+              value={form.homeTeam}
               onChange={handleChange}
               className="input-border"
               required
@@ -151,7 +193,7 @@ export default function TicketForm({ onClose }: { onClose?: () => void }) {
                 <option
                   key={team.value}
                   value={team.value}
-                  disabled={form.away === team.value}
+                  disabled={form.awayTeam === team.value}
                 >
                   {team.label}
                 </option>
@@ -164,8 +206,8 @@ export default function TicketForm({ onClose }: { onClose?: () => void }) {
               원정팀*
             </span>
             <select
-              name="away"
-              value={form.away}
+              name="awayTeam"
+              value={form.awayTeam}
               onChange={handleChange}
               className="input-border"
               required
@@ -177,7 +219,7 @@ export default function TicketForm({ onClose }: { onClose?: () => void }) {
                 <option
                   key={team.value}
                   value={team.value}
-                  disabled={form.home === team.value}
+                  disabled={form.homeTeam === team.value}
                 >
                   {team.label}
                 </option>
@@ -193,8 +235,8 @@ export default function TicketForm({ onClose }: { onClose?: () => void }) {
               야구장*
             </span>
             <select
-              name="stadium"
-              value={form.stadium}
+              name="stadiumName"
+              value={form.stadiumName}
               onChange={handleChange}
               className="input-border"
               required
@@ -211,7 +253,7 @@ export default function TicketForm({ onClose }: { onClose?: () => void }) {
           <label className="flex items-center gap-2 mt-6">
             <input
               type="checkbox"
-              checked={form.adjacent_seat}
+              checked={form.adjacentSeat}
               onChange={handleCheckbox}
               className="accent-[#6F00B6] hover:accent-[#8A2BE2]"
             />
@@ -222,11 +264,11 @@ export default function TicketForm({ onClose }: { onClose?: () => void }) {
         {/* 상세 설명 */}
         <label className="block">
           <span className="block text-sm font-medium mb-1 text-gray-600">
-            상세 설명*
+            상세 설명
           </span>
           <textarea
-            name="description"
-            value={form.description}
+            name="content"
+            value={form.content}
             onChange={handleChange}
             placeholder="좌석 위치, 전달 방법 등 추가 설명을 입력해주세요."
             className="input-border h-24"
@@ -263,7 +305,7 @@ export default function TicketForm({ onClose }: { onClose?: () => void }) {
           type="submit"
           className="w-full py-3 rounded-lg font-semibold transition-colors bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
         >
-          등록하기
+          {mode === "create" ? "등록하기" : "수정 완료"}
         </button>
       </form>
     </div>
