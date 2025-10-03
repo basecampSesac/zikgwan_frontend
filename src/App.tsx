@@ -12,6 +12,7 @@ import MainHome from "./page/MainHome";
 import MyPage from "./page/MyPage";
 import { useAuthStore } from "./store/authStore";
 import TicketDetail from "./page/TicketDetail";
+import GroupDetail from "./page/GroupDetail";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
@@ -29,6 +30,7 @@ const router = createBrowserRouter([
       { path: "/ticket-guide", Component: TicketGuidePage },
       { path: "/mypage", Component: MyPage },
       { path: "/tickets/:id", Component: TicketDetail },
+      { path: "/groups/:id", Component: GroupDetail },
     ],
   },
 ]);
