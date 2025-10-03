@@ -1,8 +1,10 @@
 import { Calendar, User, UserRound } from "lucide-react";
-import Modal from "../Modal";
 import type { GroupUI } from "../../types/group";
+import { useNavigate } from "react-router-dom";
+import { formatDate } from "../../utils/format";
 
 export default function GroupCard({
+  id,
   title,
   teams,
   date,
@@ -12,10 +14,15 @@ export default function GroupCard({
   status,
   imageUrl,
 }: GroupUI) {
+  const navigate = useNavigate();
+
   return (
     <article className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
       {/* 이미지 영역 */}
-      <div className="relative h-40">
+      <div
+        className="relative h-40 cursor-pointer"
+        onClick={() => navigate(`/groups/${id}`)}
+      >
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -49,14 +56,14 @@ export default function GroupCard({
         {/* 날짜 */}
         <div className="flex items-center gap-1 text-gray-500 text-sm mb-1">
           <Calendar size={16} />
-          <span>{date}</span>
+          <span>{formatDate(date)}</span>
         </div>
 
         {/* 인원 + 리더 */}
         <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
           <div className="flex items-center gap-1">
             <UserRound size={16} />
-            <span>{personnel}</span>
+            <span>{personnel}명 모집중</span>
           </div>
           <div className="flex items-center gap-1 text-gray-400 text-xs">
             <User size={14} />
@@ -66,14 +73,18 @@ export default function GroupCard({
 
         {/* 버튼 */}
         <div className="flex gap-2">
-          <Modal
-            buttonText="상세보기"
-            classes="flex-1 text-sm px-4 py-2 rounded-md font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition text-center"
-          />
-          <Modal
-            buttonText="참여하기"
-            classes="flex-1 text-sm px-4 py-2 rounded-md font-semibold bg-[#8A2BE2] text-white hover:bg-[#6F00B6] transition text-center"
-          />
+          <button
+            onClick={() => navigate(`/groups/${id}`)}
+            className="flex-1 text-sm px-4 py-2 rounded-md font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition text-center"
+          >
+            상세보기
+          </button>
+          <button
+            onClick={() => navigate(`/groups/${id}`)}
+            className="flex-1 text-sm px-4 py-2 rounded-md font-semibold bg-[#8A2BE2] text-white hover:bg-[#6F00B6] transition text-center"
+          >
+            참여하기
+          </button>
         </div>
       </div>
     </article>
