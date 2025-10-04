@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { useMatchStore } from "../store/mathStore";
+import { useMatchStore } from "../store/matchStore";
 import { TEAMS } from "../constants/teams";
 import { STADIUM_MAP } from "../constants/stadiums";
 import { AiOutlineLeft, AiOutlineRight } from "react-icons/ai";
