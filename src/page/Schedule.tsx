@@ -8,7 +8,11 @@ export default function SchedulePage() {
   useEffect(() => {
     const fetchMatches = async () => {
       try {
-        const res = await axiosInstance.post("/api/match/");
+        const res = await axiosInstance.post("/api/match/", {
+          "year": "2025",
+          "month": "9",
+          "day": "28"
+        });
         if (res.data.status === "success") {
           setMatches(res.data.data);
         }
