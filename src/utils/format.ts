@@ -15,3 +15,11 @@ export const formatDate = (dateStr: string | Date): string => {
 export const formatPrice = (price: number): string => {
   return price.toLocaleString("ko-KR");
 };
+
+/**
+ * 경기 일정 탭용 날짜 포맷 (20일 (월))
+ */
+export const formatTabDate = (dateStr: string | Date): string => {
+  const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+  return format(date, "d일 (EEE)", { locale: ko });
+};
