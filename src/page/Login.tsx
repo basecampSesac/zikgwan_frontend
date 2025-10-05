@@ -1,15 +1,18 @@
-// src/page/Login.tsx
 import { useAuthStore } from "../store/authStore";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import axiosInstance from "../lib/axiosInstance";
+import { useToastStore } from "../store/toastStore";
+import PasswordReset from "../components/auth/PasswordReset";
 
 export default function LoginPage() {
   const { email, password, setEmail, setPassword, login } = useAuthStore();
   const navigate = useNavigate();
+  const { addToast } = useToastStore();
   const isValid = email.trim() !== "" && password.trim() !== "";
   const [showPassword, setShowPassword] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
 
   const handleLogin = async () => {
     try {
@@ -20,15 +23,31 @@ export default function LoginPage() {
 
       if (data.success) {
         login(data.user, data.accessToken);
+        addToast(
+          `${data.user.nickname || "회원"}님, 환영합니다! 🎉`,
+          "success"
+        );
         navigate("/");
       } else {
-        alert("이메일 또는 비밀번호를 확인하세요.");
+        addToast("이메일 또는 비밀번호가 올바르지 않습니다.", "error");
       }
-    } catch (err) {
-      console.error("로그인 에러:", err);
-      alert("로그인 중 오류가 발생했습니다.");
+    } catch {
+      addToast(
+        "로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        "error"
+      );
     }
   };
+
+  if (isResetMode) {
+    return (
+      <main className="flex flex-1 justify-center bg-white min-h-screen pt-20">
+        <div className="w-full max-w-sm p-6 rounded-lg bg-white">
+          <PasswordReset onBack={() => setIsResetMode(false)} />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex flex-1 justify-center bg-white min-h-screen pt-20">
@@ -86,9 +105,13 @@ export default function LoginPage() {
             />
             로그인 유지
           </label>
-          <a href="#" className="hover:underline">
+          <button
+            type="button"
+            onClick={() => setIsResetMode(true)}
+            className="hover:underline"
+          >
             비밀번호 재설정
-          </a>
+          </button>
         </div>
 
         {/* 로그인 버튼 */}

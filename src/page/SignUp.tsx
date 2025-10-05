@@ -3,9 +3,11 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../lib/axiosInstance";
 import { TEAMS } from "../constants/teams";
+import { useToastStore } from "../store/toastStore";
 
 export default function SignupPage() {
   const navigate = useNavigate();
+  const { addToast } = useToastStore();
   const [email, setEmail] = useState("");
   const [nickname, setNickname] = useState("");
   const [club, setClub] = useState("");
@@ -35,10 +37,11 @@ export default function SignupPage() {
       }
       setEmailMessage("가입이 가능한 이메일입니다.");
       setEmailAvailable(true);
-      alert(res.data.data || "인증번호가 이메일로 발송되었습니다.");
+      addToast("인증번호가 이메일로 발송되었습니다.", "info");
     } catch (e) {
       console.error(e);
       setEmailMessage("이메일 처리 중 오류가 발생했습니다.");
+      addToast("이메일 처리 중 오류가 발생했습니다.", "error");
     }
   };
 
@@ -50,14 +53,14 @@ export default function SignupPage() {
         code: verificationCode,
       });
       if (res.data.status === "success") {
-        alert("이메일 인증이 완료되었습니다.");
         setIsEmailVerified(true);
+        addToast("이메일 인증이 완료되었습니다.", "success");
       } else {
-        alert(res.data.message || "인증번호가 올바르지 않습니다.");
+        addToast(res.data.message || "인증번호가 올바르지 않습니다.", "error");
       }
     } catch (e) {
       console.error(e);
-      alert("인증번호 확인 중 오류가 발생했습니다.");
+      addToast("인증번호 확인 중 오류가 발생했습니다.", "error");
     }
   };
 
@@ -94,9 +97,9 @@ export default function SignupPage() {
         setNicknameMessage("닉네임 확인 중 오류가 발생했습니다.");
         setNicknameAvailable(false);
       }
-    }, 1000); // 1초 대기 후 실행
+    }, 1000);
 
-    return () => clearTimeout(timer); // cleanup
+    return () => clearTimeout(timer);
   }, [nickname]);
 
   // 회원가입
@@ -109,17 +112,19 @@ export default function SignupPage() {
         password,
       });
       if (res.data.status === "success") {
-        alert("회원가입이 완료되었습니다. 로그인 해주세요.");
+        addToast(
+          "회원가입이 완료되었습니다! 🎉 로그인 후 이용해주세요.",
+          "success"
+        );
         navigate("/login");
       } else {
-        alert(res.data.message || "회원가입에 실패했습니다.");
+        addToast(res.data.message || "회원가입에 실패했습니다.", "error");
       }
     } catch (e) {
       console.error(e);
-      alert("회원가입 중 오류가 발생했습니다.");
+      addToast("회원가입 중 오류가 발생했습니다.", "error");
     }
   };
-
   // 비밀번호 정책
   const isPasswordValid =
     password.length >= 8 &&
@@ -305,14 +310,6 @@ export default function SignupPage() {
           </select>
         </label>
 
-        {/* 로그인 이동 */}
-        <button
-          onClick={() => navigate("/login")}
-          className="button-border text-gray-600 hover:bg-gray-100 mb-4 w-full h-11"
-        >
-          ← 로그인 화면으로 돌아가기
-        </button>
-
         {/* 가입 버튼 */}
         <button
           onClick={handleSignup}
@@ -324,6 +321,14 @@ export default function SignupPage() {
           }`}
         >
           가입하기
+        </button>
+
+        {/* 로그인 이동*/}
+        <button
+          onClick={() => navigate("/login")}
+          className="text-sm text-gray-500 hover:text-gray-700 mt-4 w-full text-center"
+        >
+          ← 로그인 화면으로 돌아가기
         </button>
       </div>
     </main>

@@ -142,7 +142,7 @@ export default function TicketDetailView({ ticket }: Props) {
             className={`w-full py-4 rounded-lg font-semibold text-lg transition mb-8
               ${
                 ticket.status === "판매중"
-                  ? "bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
+                  ? "bg-[#8A2BE2] text-white hover:bg-[#6F00B6]"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
           >

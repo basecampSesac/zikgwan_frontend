@@ -7,17 +7,17 @@ import {
 import { useToastStore } from "../../store/toastStore";
 
 const variantStyles = {
-  success: "border-green-200 text-green-700",
-  error: "border-red-200 text-red-700",
-  info: "border-blue-200 text-blue-700",
-  warning: "border-yellow-200 text-yellow-700",
+  success: "border-green-200 text-green-700 bg-green-50",
+  error: "border-red-200 text-red-700 bg-red-50",
+  info: "border-gray-200 text-gray-700 bg-gray-50",
+  warning: "border-gray-200 text-gray-700 bg-gray-50",
 };
 
 const icons = {
   success: <FiCheckCircle className="text-green-600 text-xl" />,
   error: <FiXCircle className="text-red-600 text-xl" />,
-  info: <FiInfo className="text-blue-600 text-xl" />,
-  warning: <FiAlertTriangle className="text-yellow-600 text-xl" />,
+  info: <FiInfo className="text-gray-600 text-xl" />,
+  warning: <FiAlertTriangle className="text-gray-600 text-xl" />,
 };
 
 export default function Toast() {

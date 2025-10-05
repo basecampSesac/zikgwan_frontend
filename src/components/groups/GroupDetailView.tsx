@@ -129,7 +129,7 @@ export default function GroupDetailView({ group }: Props) {
           {/* 참여 버튼 */}
           <button
             onClick={handleJoinGroup}
-            className="w-full py-4 rounded-lg font-semibold text-lg transition mb-8 bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
+            className="w-full py-4 rounded-lg font-semibold text-lg transition mb-8 bg-[#8A2BE2] text-white hover:bg-[#6F00B6]"
           >
             모임 참여하기
           </button>
