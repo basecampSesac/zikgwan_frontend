@@ -13,6 +13,7 @@ import MyPage from "./page/MyPage";
 import { useAuthStore } from "./store/authStore";
 import TicketDetail from "./page/TicketDetail";
 import GroupDetail from "./page/GroupDetail";
+import ResetPasswordPage from "./page/ResetPasswordPage";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
@@ -31,6 +32,7 @@ const router = createBrowserRouter([
       { path: "/mypage", Component: MyPage },
       { path: "/tickets/:id", Component: TicketDetail },
       { path: "/groups/:id", Component: GroupDetail },
+      { path: "/reset", Component: ResetPasswordPage },
     ],
   },
 ]);
