@@ -13,7 +13,7 @@ export function Navbar() {
           className="text-2xl font-bold text-[#6F00B6] cursor-pointer flex items-center gap-1"
           onClick={() => navigate("/")}
         >
-          <img src="/logo.png" alt="로고" className="h-8 w-auto" />
+          <img src="/logo.png" alt="로고" className="h-8 w-auto mb-1" />
           직관
         </div>
 
