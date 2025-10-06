@@ -16,22 +16,35 @@ export default function LoginPage() {
 
   const handleLogin = async () => {
     try {
-      const { data } = await axiosInstance.post("/api/auth/login", {
+      const res = await axiosInstance.post("/api/user/login", {
         email,
         password,
       });
 
-      if (data.success) {
-        login(data.user, data.accessToken);
-        addToast(
-          `${data.user.nickname || "회원"}님, 환영합니다! 🎉`,
-          "success"
-        );
+      const { status, message, data } = res.data;
+
+      if (status === "success" && data) {
+        // 응답 구조에서 data 안의 user 정보 + 토큰 추출
+        const userInfo = {
+          nickname: data.nickname,
+          email: data.email,
+          club: data.club,
+          userId: data.userId,
+        };
+
+        // Zustand login 함수에 저장
+        login(userInfo, data.token);
+
+        addToast(`${data.nickname || "회원"}님, 환영합니다! 🎉`, "success");
         navigate("/");
       } else {
-        addToast("이메일 또는 비밀번호가 올바르지 않습니다.", "error");
+        addToast(
+          message || "이메일 또는 비밀번호가 올바르지 않습니다.",
+          "error"
+        );
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       addToast(
         "로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
         "error"
@@ -52,7 +65,6 @@ export default function LoginPage() {
   return (
     <main className="flex flex-1 justify-center bg-white min-h-screen pt-20">
       <div className="w-full max-w-sm p-6 rounded-lg bg-white">
-        {/* 타이틀 */}
         <h1 className="text-2xl font-bold mb-8 text-center">이메일로 로그인</h1>
 
         {/* 이메일 */}
@@ -127,14 +139,13 @@ export default function LoginPage() {
           로그인
         </button>
 
-        {/* 구분선 */}
+        {/* 회원가입 이동 */}
         <div className="flex items-center mb-6">
           <div className="flex-grow h-px bg-gray-300"></div>
           <span className="px-3 text-gray-400 text-sm">또는</span>
           <div className="flex-grow h-px bg-gray-300"></div>
         </div>
 
-        {/* 회원가입 이동 버튼 */}
         <button
           className="button-border text-[#6F00B6] hover:bg-gray-50"
           onClick={() => navigate("/signup")}
@@ -142,7 +153,7 @@ export default function LoginPage() {
           이메일로 계속하기
         </button>
 
-        {/* 소셜 로그인 구분선 */}
+        {/* 소셜 로그인 */}
         <div className="flex items-center my-6">
           <div className="flex-grow h-px bg-gray-300"></div>
           <span className="px-3 text-gray-400 text-sm">
@@ -151,7 +162,6 @@ export default function LoginPage() {
           <div className="flex-grow h-px bg-gray-300"></div>
         </div>
 
-        {/* 소셜 로그인 버튼들 */}
         <div className="space-y-3">
           <button className="button-border text-black hover:bg-gray-50">
             카카오로 로그인
