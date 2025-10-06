@@ -8,12 +8,12 @@ import SignupPage from "./page/SignUp";
 import SchedulePage from "./page/Schedule";
 import PolicyPage from "./page/Policy";
 import TicketGuidePage from "./page/TicketGuide";
-import MainHome from "./page/MainHome";
 import MyPage from "./page/MyPage";
 import { useAuthStore } from "./store/authStore";
 import TicketDetail from "./page/TicketDetail";
 import GroupDetail from "./page/GroupDetail";
 import ResetPasswordPage from "./page/ResetPasswordPage";
+import HomePage from "./page/Home";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
@@ -21,7 +21,7 @@ const router = createBrowserRouter([
   {
     Component: Layout,
     children: [
-      { path: "/", Component: MainHome },
+      { path: "/", Component: HomePage },
       { path: "/tickets", Component: TicketList },
       { path: "/groups", Component: GroupList },
       { path: "/login", Component: LoginPage },
