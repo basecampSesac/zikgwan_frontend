@@ -1,10 +1,8 @@
-// src/store/authStore.ts
 import { create } from "zustand";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+import axiosInstance from "../lib/axiosInstance";
 
 interface User {
-  id: number;
+  userId: number;
   email: string;
   nickname: string;
   club?: string;
@@ -30,6 +28,7 @@ interface AuthState {
   login: (user: User, accessToken: string) => void;
   logout: () => void;
   refreshAccessToken: () => Promise<void>;
+  fetchUserInfo: (userId: number) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -66,18 +65,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       password: "",
     }),
 
+  // 회원정보 조회
+  fetchUserInfo: async (userId: number) => {
+    try {
+      const token = get().accessToken;
+      if (!token) throw new Error("토큰이 없습니다.");
+
+      const { data } = await axiosInstance.get(`/api/user/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (data.status === "success" && data.data) {
+        set({ user: data.data, isAuthenticated: true });
+      } else {
+        console.error("회원정보 조회 실패:", data.message);
+      }
+    } catch (err) {
+      console.error("회원정보 조회 오류:", err);
+      get().logout();
+    }
+  },
+
   // 리프레시 토큰으로 accessToken 갱신
   refreshAccessToken: async () => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/refresh`, {
-        method: "POST",
-        credentials: "include",
+      const { data } = await axiosInstance.post("/api/auth/refresh", null, {
+        withCredentials: true,
       });
 
-      if (!res.ok) throw new Error("토큰 갱신 실패");
-      const data = await res.json();
-
-      set({ accessToken: data.accessToken });
+      if (data.accessToken) {
+        set({ accessToken: data.accessToken });
+      } else {
+        throw new Error("토큰 응답이 올바르지 않습니다.");
+      }
     } catch (err) {
       console.error("토큰 갱신 에러:", err);
       get().logout();
