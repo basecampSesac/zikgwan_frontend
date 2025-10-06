@@ -24,6 +24,28 @@ export const groupsMock: GroupUI[] = [
     leader: "티켓나눔",
     status: "모집완료",
   },
+  {
+    id: 3,
+    title: "가족 야구 나들이 모임",
+    content: "가족 단위 직관 모임입니다. 아이 동반 환영이에요!",
+    date: "2024-06-10 (월) 17:00",
+    stadiumName: "수원 KT 위즈파크",
+    teams: "KT 위즈 vs 롯데 자이언츠",
+    personnel: 4,
+    leader: "패밀리직관러",
+    status: "모집중",
+  },
+  {
+    id: 4,
+    title: "혼직(혼자 직관) 모임",
+    content: "혼자 직관 오시는 분들 함께 관람해요!",
+    date: "2024-07-01 (월) 18:30",
+    stadiumName: "인천 SSG 랜더스필드",
+    teams: "SSG 랜더스 vs 한화 이글스",
+    personnel: 2,
+    leader: "솔로직관",
+    status: "모집중",
+  },
 ];
 
 export const ticketsMockResponse = {
@@ -43,7 +65,6 @@ export const ticketsMockResponse = {
       adjacentSeat: true,
       status: "판매중",
       imageUrl: "https://placehold.co/400x300",
-
       seller: {
         id: 101,
         nickname: "야구매니아",
@@ -64,7 +85,6 @@ export const ticketsMockResponse = {
       adjacentSeat: false,
       status: "판매완료",
       imageUrl: "https://placehold.co/400x300",
-
       seller: {
         id: 102,
         nickname: "부산야구짱",
@@ -74,6 +94,46 @@ export const ticketsMockResponse = {
         id: 202,
         nickname: "직관러",
       },
+    },
+    {
+      id: 3,
+      title: "한화 vs 키움",
+      content: "3루 블루존 좋은 자리 2매 있습니다.",
+      price: 28000,
+      gameDate: "2024-06-05T18:30:00",
+      ticketCount: 2,
+      homeTeam: "한화",
+      awayTeam: "키움",
+      stadiumName: "대전한화생명이글스파크",
+      adjacentSeat: true,
+      status: "판매중",
+      imageUrl: "https://placehold.co/400x300",
+      seller: {
+        id: 103,
+        nickname: "한화직관러",
+        rate: 4.6,
+      },
+      buyer: null,
+    },
+    {
+      id: 4,
+      title: "NC 다이노스 vs 롯데 자이언츠",
+      content: "1루 내야 R석 1매 팝니다.",
+      price: 25000,
+      gameDate: "2024-06-12T18:30:00",
+      ticketCount: 1,
+      homeTeam: "NC",
+      awayTeam: "롯데",
+      stadiumName: "창원NC파크",
+      adjacentSeat: false,
+      status: "판매중",
+      imageUrl: "https://placehold.co/400x300",
+      seller: {
+        id: 104,
+        nickname: "야구덕후",
+        rate: 4.9,
+      },
+      buyer: null,
     },
   ] as TicketUI[],
 };

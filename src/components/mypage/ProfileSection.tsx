@@ -2,14 +2,14 @@ import { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import ConfirmModal from "../../Modals/ConfirmModal";
 import { useAuthStore } from "../../store/authStore";
+import { useToastStore } from "../../store/toastStore";
 import { TEAMS } from "../../constants/teams";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+import axiosInstance from "../../lib/axiosInstance";
+import axios from "axios";
 
 export default function ProfileSection() {
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
-  const setUser = useAuthStore((state) => state.setUser);
+  const { user, logout, setUser } = useAuthStore();
+  const { addToast } = useToastStore();
 
   // 입력값 state
   const [nickname, setNickname] = useState(user?.nickname || "");
@@ -41,75 +41,94 @@ export default function ProfileSection() {
     /[0-9]/.test(newPassword) &&
     /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
 
-  // 저장하기
+  // 회원정보 수정
   const handleSave = async () => {
+    if (!user) return;
+
     if (newPassword && !currentPassword) {
-      alert("현재 비밀번호를 입력해야 새 비밀번호를 설정할 수 있습니다.");
-      return;
-    }
-    if (newPassword && !isPasswordValid) {
-      alert(
-        "비밀번호는 영문 대소문자, 숫자, 특수문자를 포함한 8~16자여야 합니다."
+      addToast(
+        "현재 비밀번호를 입력해야 새 비밀번호를 설정할 수 있습니다.",
+        "error"
       );
       return;
     }
-    if (newPassword !== confirmPassword) {
-      alert("새 비밀번호가 일치하지 않습니다.");
+    if (newPassword && !isPasswordValid) {
+      addToast(
+        "비밀번호는 영문 대소문자, 숫자, 특수문자를 포함한 8~16자여야 합니다.",
+        "error"
+      );
       return;
+    }
+    if (newPassword || confirmPassword) {
+      if (newPassword.trim() !== confirmPassword.trim()) {
+        addToast("새 비밀번호가 일치하지 않습니다.", "error");
+        return;
+      }
     }
 
     try {
-      const res = await fetch(`${API_URL}/api/user/profile`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          nickname: nickname || undefined,
-          club: club || undefined,
-          currentPassword: currentPassword || undefined,
-          newPassword: newPassword || undefined,
-        }),
+      const { data } = await axiosInstance.put(`/api/user/${user.userId}`, {
+        nickname,
+        email: user.email,
+        password: currentPassword,
+        newpassword: newPassword,
+        club,
       });
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        alert("회원 정보가 정상적으로 수정되었습니다.");
+      if (data.status === "success") {
+        addToast("회원 정보가 정상적으로 수정되었습니다.", "success");
         setUser({
-          ...user!,
-          nickname,
-          club,
+          ...user,
+          nickname: data.data.nickname || nickname,
+          club: data.data.club || club,
         });
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       } else {
-        alert(data?.message || "회원 정보 수정에 실패했습니다.");
+        addToast(data.message || "회원 정보 수정에 실패했습니다.", "error");
       }
-    } catch (err) {
-      console.error("회원정보 수정 오류:", err);
-      alert("회원 정보 수정 중 오류가 발생했습니다.");
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        console.error("회원정보 수정 오류:", err.response?.data || err.message);
+        if (err.response?.status === 401) {
+          addToast("세션이 만료되었습니다. 다시 로그인해주세요.", "error");
+          logout();
+          window.location.href = "/login";
+        } else {
+          addToast("회원 정보 수정 중 오류가 발생했습니다.", "error");
+        }
+      } else {
+        console.error("예상치 못한 오류:", err);
+        addToast("알 수 없는 오류가 발생했습니다.", "error");
+      }
     }
   };
 
   // 회원탈퇴
   const handleDelete = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/user`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      const data = await res.json();
+    if (!user) return;
 
-      if (res.ok && data.success) {
-        alert("회원탈퇴가 완료되었습니다.");
+    try {
+      const { data } = await axiosInstance.delete(
+        `/api/user/delete/${user.userId}`
+      );
+
+      if (data.status === "success" && data.data === true) {
+        addToast("회원탈퇴가 완료되었습니다.", "success");
         logout();
         window.location.href = "/";
       } else {
-        alert(data?.message || "회원탈퇴에 실패했습니다.");
+        addToast(data.message || "회원탈퇴에 실패했습니다.", "error");
       }
-    } catch (err) {
-      console.error("회원탈퇴 오류:", err);
-      alert("회원탈퇴 중 오류가 발생했습니다.");
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        console.error("회원탈퇴 오류:", err.response?.data || err.message);
+        addToast("회원탈퇴 중 오류가 발생했습니다.", "error");
+      } else {
+        console.error("예상치 못한 오류:", err);
+        addToast("알 수 없는 오류가 발생했습니다.", "error");
+      }
     } finally {
       setOpenModal(false);
     }
@@ -129,25 +148,32 @@ export default function ProfileSection() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch(`${API_URL}/api/user/profile-image`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
+      const { data } = await axiosInstance.post(
+        "/api/user/profile-image",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
 
-      const data = await res.json();
-      if (res.ok && data.success) {
+      if (data.status === "success") {
         setProfileImage(data.url);
         setUser({ ...user!, profileImage: data.url });
+        addToast("프로필 이미지가 변경되었습니다.", "success");
       } else {
         throw new Error(data.message || "업로드 실패");
       }
-    } catch (err) {
-      console.error("프로필 업로드 오류:", err);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        console.error("프로필 업로드 오류:", err.response?.data || err.message);
+      } else {
+        console.error("예상치 못한 오류:", err);
+      }
       setProfileImage(prevImage);
       setErrorMessage(
         "프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요."
       );
+      addToast("프로필 이미지 업로드 실패", "error");
     }
   };
 
@@ -331,8 +357,7 @@ export default function ProfileSection() {
       <ConfirmModal
         isOpen={openModal}
         title="회원탈퇴"
-        description="정말로 회원탈퇴를 하시겠습니까?
-        모든 데이터가 삭제되며 복구할 수 없습니다."
+        description="정말로 회원탈퇴를 하시겠습니까? 모든 데이터가 삭제되며 복구할 수 없습니다."
         confirmText="탈퇴하기"
         cancelText="취소"
         onClose={() => setOpenModal(false)}
