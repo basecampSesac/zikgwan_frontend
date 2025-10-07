@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Layout from "./layouts/Layout";
+import HomePage from "./page/Home";
 import TicketList from "./page/TicketList";
 import GroupList from "./page/GroupList";
 import LoginPage from "./page/Login";
@@ -9,13 +10,11 @@ import SchedulePage from "./page/Schedule";
 import PolicyPage from "./page/Policy";
 import TicketGuidePage from "./page/TicketGuide";
 import MyPage from "./page/MyPage";
-import { useAuthStore } from "./store/authStore";
 import TicketDetail from "./page/TicketDetail";
 import GroupDetail from "./page/GroupDetail";
 import ResetPasswordPage from "./page/ResetPasswordPage";
-import HomePage from "./page/Home";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+import { useAuthStore } from "./store/authStore";
+import axiosInstance from "./lib/axiosInstance";
 
 const router = createBrowserRouter([
   {
@@ -38,38 +37,47 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  const setUser = useAuthStore((state) => state.setUser);
-  const setAccessToken = useAuthStore((state) => state.setAccessToken);
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const { tryAutoLogin, setUser } = useAuthStore();
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const fetchMe = async () => {
+    const initAuth = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/auth/me`, {
-          method: "GET",
-          credentials: "include",
-        });
+        // refreshToken 쿠키 기반으로 자동 로그인 시도
+        await tryAutoLogin();
 
-        if (!res.ok) return;
+        // 로그인 상태라면 사용자 정보 다시 불러오기
+        const token = useAuthStore.getState().accessToken;
+        const userId = useAuthStore.getState().user?.userId;
 
-        const data = await res.json();
-
-        if (data.success && data.user) {
-          setUser(data.user);
-          setAuth(true);
-
-          // 새 토큰이 있으면 전역 상태 갱신
-          if (data.newAccessToken) {
-            setAccessToken(data.newAccessToken);
+        if (token && userId) {
+          const { data } = await axiosInstance.get(`/api/user/${userId}`);
+          if (data.status === "success" && data.data) {
+            setUser(data.data);
+          } else {
+            console.warn("⚠️ 사용자 정보 조회 실패:", data.message);
           }
         }
       } catch (err) {
-        console.error("로그인 유저 정보 불러오기 실패:", err);
+        console.error("자동 로그인/유저 정보 복원 중 오류:", err);
+      } finally {
+        // 모든 초기화 완료 후 렌더링 허용
+        setIsReady(true);
       }
     };
 
-    fetchMe();
-  }, [setUser, setAccessToken, setAuth]);
+    initAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 아직 로그인 복원 중일 땐 렌더링 지연 (깜박임 방지)
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-gray-500">
+        초기화 중...
+      </div>
+    );
+  }
 
   return <RouterProvider router={router} />;
 }
