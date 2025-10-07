@@ -10,5 +10,5 @@ export default function GroupDetail() {
     return <div className="p-10 text-center">존재하지 않는 모임입니다 ❌</div>;
   }
 
-  return <GroupDetailView group={group} />;
+  return <GroupDetailView />;
 }
