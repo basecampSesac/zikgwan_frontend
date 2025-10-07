@@ -22,7 +22,7 @@ export const groupsMock: GroupUI[] = [
     teams: "KIA 타이거즈 vs NC 다이노스",
     personnel: 3,
     leader: "티켓나눔",
-    status: "모집완료",
+    status: "모집마감",
   },
   {
     id: 3,
