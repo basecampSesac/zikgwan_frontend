@@ -38,9 +38,9 @@ export default function ResetPasswordPage() {
     }
 
     try {
-      const res = await axiosInstance.post("/api/auth/reset", {
+      const res = await axiosInstance.post("/api/user/pwResetConfirm", {
         token,
-        password,
+        newPassword: password,
       });
 
       if (res.data.status === "success") {

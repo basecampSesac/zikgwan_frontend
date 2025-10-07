@@ -7,6 +7,6 @@ export type GroupUI = {
   teams: string;
   personnel: number;
   leader: string;
-  status: "모집중" | "모집완료";
+  status: "모집중" | "모집마감";
   imageUrl?: string;
 };

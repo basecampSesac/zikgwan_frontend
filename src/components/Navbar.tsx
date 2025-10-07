@@ -1,9 +1,21 @@
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import { useToastStore } from "../store/toastStore";
 
 export function Navbar() {
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuthStore();
+  const { addToast } = useToastStore();
+
+  const handleLogout = async () => {
+    try {
+      await logout(); // 서버 로그아웃 + 상태 초기화
+      addToast("정상적으로 로그아웃되었습니다.", "success");
+      navigate("/login");
+    } catch {
+      addToast("로그아웃 중 오류가 발생했습니다.", "error");
+    }
+  };
 
   return (
     <header className="fixed top-0 left-0 w-full border-b border-gray-200 bg-white/95 backdrop-blur z-50">
@@ -17,7 +29,7 @@ export function Navbar() {
           직관
         </div>
 
-        {/* 가운데 메뉴 */}
+        {/* 메뉴 */}
         <nav className="hidden md:flex items-center gap-6 text-base font-semibold text-[#29292D] flex-grow ml-8">
           <button
             onClick={() => navigate("/tickets")}
@@ -25,14 +37,12 @@ export function Navbar() {
           >
             티켓 거래
           </button>
-
           <button
             onClick={() => navigate("/groups")}
             className="hover:text-[#6F00B6]"
           >
             직관 모임
           </button>
-
           <button
             onClick={() => navigate("/schedule")}
             className="hover:text-[#6F00B6]"
@@ -41,9 +51,8 @@ export function Navbar() {
           </button>
         </nav>
 
-        {/* 오른쪽 영역 */}
+        {/* 오른쪽 버튼 */}
         <div className="flex items-center gap-3 text-sm font-medium relative">
-          {/* 마이페이지 */}
           <button
             onClick={() =>
               isAuthenticated ? navigate("/mypage") : navigate("/login")
@@ -53,10 +62,9 @@ export function Navbar() {
             마이페이지
           </button>
 
-          {/* 로그인/회원가입 vs 로그아웃 */}
           {isAuthenticated ? (
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
             >
               로그아웃

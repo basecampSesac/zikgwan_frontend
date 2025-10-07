@@ -18,7 +18,7 @@ export default function PasswordReset({ onBack }: PasswordResetProps) {
     }
 
     try {
-      const res = await axiosInstance.post("/api/auth/reset-link", { email });
+      const res = await axiosInstance.post("/api/user/pwReset", { email });
 
       if (res.data.status === "success") {
         setIsSent(true);

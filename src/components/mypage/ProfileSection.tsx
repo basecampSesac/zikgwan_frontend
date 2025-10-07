@@ -5,34 +5,29 @@ import { useAuthStore } from "../../store/authStore";
 import { useToastStore } from "../../store/toastStore";
 import { TEAMS } from "../../constants/teams";
 import axiosInstance from "../../lib/axiosInstance";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 
 export default function ProfileSection() {
   const { user, logout, setUser } = useAuthStore();
   const { addToast } = useToastStore();
 
-  // 입력값 state
   const [nickname, setNickname] = useState(user?.nickname || "");
   const [club, setClub] = useState(user?.club || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // 비밀번호 표시 toggle
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
 
-  // 프로필 이미지
   const [profileImage, setProfileImage] = useState<string | null>(
     user?.profileImage || null
   );
   const [errorMessage, setErrorMessage] = useState("");
-
-  // 탈퇴 모달
   const [openModal, setOpenModal] = useState(false);
 
-  // 비밀번호 정책
+  // 비밀번호 형식 검사
   const isPasswordValid =
     newPassword.length >= 8 &&
     newPassword.length <= 16 &&
@@ -45,13 +40,12 @@ export default function ProfileSection() {
   const handleSave = async () => {
     if (!user) return;
 
-    if (newPassword && !currentPassword) {
-      addToast(
-        "현재 비밀번호를 입력해야 새 비밀번호를 설정할 수 있습니다.",
-        "error"
-      );
+    // 모든 수정 시 현재 비밀번호 필수
+    if (!currentPassword) {
+      addToast("회원 정보를 수정하려면 현재 비밀번호를 입력해주세요.", "error");
       return;
     }
+
     if (newPassword && !isPasswordValid) {
       addToast(
         "비밀번호는 영문 대소문자, 숫자, 특수문자를 포함한 8~16자여야 합니다.",
@@ -59,21 +53,36 @@ export default function ProfileSection() {
       );
       return;
     }
-    if (newPassword || confirmPassword) {
-      if (newPassword.trim() !== confirmPassword.trim()) {
-        addToast("새 비밀번호가 일치하지 않습니다.", "error");
-        return;
-      }
+
+    if (newPassword && newPassword !== confirmPassword) {
+      addToast("새 비밀번호가 일치하지 않습니다.", "error");
+      return;
     }
 
     try {
-      const { data } = await axiosInstance.put(`/api/user/${user.userId}`, {
+      const payload: {
+        nickname: string;
+        email: string;
+        club: string;
+        password: string;
+        newpassword?: string;
+        newpasswordconfirm?: string;
+      } = {
         nickname,
         email: user.email,
-        password: currentPassword,
-        newpassword: newPassword,
         club,
-      });
+        password: currentPassword,
+      };
+
+      if (newPassword) {
+        payload.newpassword = newPassword;
+        payload.newpasswordconfirm = confirmPassword;
+      }
+
+      const { data } = await axiosInstance.put(
+        `/api/user/${user.userId}`,
+        payload
+      );
 
       if (data.status === "success") {
         addToast("회원 정보가 정상적으로 수정되었습니다.", "success");
@@ -88,15 +97,27 @@ export default function ProfileSection() {
       } else {
         addToast(data.message || "회원 정보 수정에 실패했습니다.", "error");
       }
-    } catch (err: unknown) {
+    } catch (err) {
       if (axios.isAxiosError(err)) {
-        console.error("회원정보 수정 오류:", err.response?.data || err.message);
-        if (err.response?.status === 401) {
+        const axiosError = err as AxiosError<{
+          status: string;
+          message: string;
+        }>;
+        console.error(
+          "회원정보 수정 오류:",
+          axiosError.response?.data || axiosError.message
+        );
+
+        if (axiosError.response?.status === 401) {
           addToast("세션이 만료되었습니다. 다시 로그인해주세요.", "error");
           logout();
           window.location.href = "/login";
         } else {
-          addToast("회원 정보 수정 중 오류가 발생했습니다.", "error");
+          addToast(
+            axiosError.response?.data?.message ||
+              "회원정보 수정 중 오류가 발생했습니다.",
+            "error"
+          );
         }
       } else {
         console.error("예상치 못한 오류:", err);
@@ -108,12 +129,10 @@ export default function ProfileSection() {
   // 회원탈퇴
   const handleDelete = async () => {
     if (!user) return;
-
     try {
-      const { data } = await axiosInstance.delete(
+      const { data } = await axiosInstance.patch(
         `/api/user/delete/${user.userId}`
       );
-
       if (data.status === "success" && data.data === true) {
         addToast("회원탈퇴가 완료되었습니다.", "success");
         logout();
@@ -121,10 +140,21 @@ export default function ProfileSection() {
       } else {
         addToast(data.message || "회원탈퇴에 실패했습니다.", "error");
       }
-    } catch (err: unknown) {
+    } catch (err) {
       if (axios.isAxiosError(err)) {
-        console.error("회원탈퇴 오류:", err.response?.data || err.message);
-        addToast("회원탈퇴 중 오류가 발생했습니다.", "error");
+        const axiosError = err as AxiosError<{
+          status: string;
+          message: string;
+        }>;
+        console.error(
+          "회원탈퇴 오류:",
+          axiosError.response?.data || axiosError.message
+        );
+        addToast(
+          axiosError.response?.data?.message ||
+            "회원탈퇴 중 오류가 발생했습니다.",
+          "error"
+        );
       } else {
         console.error("예상치 못한 오류:", err);
         addToast("알 수 없는 오류가 발생했습니다.", "error");
@@ -163,9 +193,13 @@ export default function ProfileSection() {
       } else {
         throw new Error(data.message || "업로드 실패");
       }
-    } catch (err: unknown) {
+    } catch (err) {
       if (axios.isAxiosError(err)) {
-        console.error("프로필 업로드 오류:", err.response?.data || err.message);
+        const axiosError = err as AxiosError<{ message?: string }>;
+        console.error(
+          "프로필 업로드 오류:",
+          axiosError.response?.data || axiosError.message
+        );
       } else {
         console.error("예상치 못한 오류:", err);
       }
@@ -181,7 +215,7 @@ export default function ProfileSection() {
     <div>
       <h1 className="text-2xl font-bold mb-8 text-center">프로필 수정</h1>
 
-      {/* 프로필 섹션 */}
+      {/* 프로필 이미지 */}
       <div className="flex flex-col items-center mb-6">
         <div className="w-20 h-20 rounded-full bg-gray-300 mb-2 overflow-hidden">
           {(profileImage || user?.profileImage) && (
@@ -357,7 +391,9 @@ export default function ProfileSection() {
       <ConfirmModal
         isOpen={openModal}
         title="회원탈퇴"
-        description="정말로 회원탈퇴를 하시겠습니까? 모든 데이터가 삭제되며 복구할 수 없습니다."
+        description={
+          "정말로 회원탈퇴를 하시겠습니까?\n모든 데이터가 삭제되며 복구할 수 없습니다."
+        }
         confirmText="탈퇴하기"
         cancelText="취소"
         onClose={() => setOpenModal(false)}
