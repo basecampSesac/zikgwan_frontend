@@ -1,12 +1,13 @@
-import type { GroupUI } from "../../types/group";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import axiosInstance from "../../lib/axiosInstance";
 import ShareButton from "../common/ShareButton";
 import { useToastStore } from "../../store/toastStore";
 import ConfirmModal from "../../Modals/ConfirmModal";
 import GroupForm from "./GroupForm";
 import Modal from "../Modal";
-
+import ChatRoom from "../chat/ChatRoom";
+import { useAuthStore } from "../../store/authStore";
 import {
   FiCalendar,
   FiUser,
@@ -15,38 +16,82 @@ import {
   FiTrash2,
   FiEdit3,
 } from "react-icons/fi";
-import { useState } from "react";
+import type { GroupUI } from "../../types/group";
 
-interface Props {
-  group: GroupUI;
+interface CommunityDetailResponse {
+  communityId: number;
+  title: string;
+  description: string;
+  date: string;
+  memberCount: number;
+  stadium: string;
+  home: string;
+  away: string;
+  nickname: string;
+  state: "ING" | "DONE";
+  saveState: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export default function GroupDetailView({ group }: Props) {
+interface ApiResponse<T> {
+  status: "success" | "error";
+  message: string | null;
+  data: T;
+}
+
+export default function GroupDetailView() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const addToast = useToastStore((state) => state.addToast);
+  const { addToast } = useToastStore();
+  const { nickname } = useAuthStore();
+  const [group, setGroup] = useState<GroupUI | null>(null);
+
+  // 모달 상태
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [roomId, setRoomId] = useState<number | null>(null);
 
-  // 참여하기
-  const handleJoinGroup = async () => {
-    try {
-      const res = await axiosInstance.post(`/api/group/${group.id}/join`);
-      if (res.data.status === "success") {
-        addToast("모임에 참여했습니다 ✅", "success");
-      } else {
-        addToast(res.data.message || "참여 실패 ❌", "error");
+  // 상세 조회
+  useEffect(() => {
+    const fetchGroupDetail = async () => {
+      try {
+        const res = await axiosInstance.get<
+          ApiResponse<CommunityDetailResponse>
+        >(`/api/communities/${id}`);
+
+        if (res.data.status === "success" && res.data.data) {
+          const g = res.data.data;
+          const mapped: GroupUI = {
+            id: g.communityId,
+            title: g.title,
+            content: g.description,
+            date: g.date,
+            stadiumName: g.stadium,
+            teams: `${g.home} vs ${g.away}`,
+            personnel: g.memberCount,
+            leader: g.nickname,
+            status: g.state === "ING" ? "모집중" : "모집마감",
+          };
+          setGroup(mapped);
+        } else {
+          addToast("모임 정보를 불러오지 못했습니다.", "error");
+        }
+      } catch (err) {
+        console.error("모임 상세 조회 실패:", err);
+        addToast("서버 오류가 발생했습니다.", "error");
       }
-    } catch (err) {
-      console.error(err);
-      addToast("참여 중 오류가 발생했습니다.", "error");
-    }
-  };
+    };
 
-  // 모임 삭제
+    fetchGroupDetail();
+  }, [id, addToast]);
+
+  // 삭제
   const handleDeleteGroup = async () => {
     try {
-      const res = await axiosInstance.delete(`/api/group/${group.id}`);
-      if (res.data.success) {
+      const res = await axiosInstance.delete(`/api/group/${id}`);
+      if (res.data.status === "success") {
         addToast("모임이 삭제되었습니다 ✅", "success");
         navigate("/groups");
       } else {
@@ -60,20 +105,49 @@ export default function GroupDetailView({ group }: Props) {
     }
   };
 
+  // 채팅방 생성
+  const handleOpenChat = async () => {
+    try {
+      const res = await axiosInstance.post(
+        `/api/chatroom/community/${id}?roomName=${encodeURIComponent(
+          group?.title || "모임채팅방"
+        )}`
+      );
+
+      if (res.data.status === "success" && res.data.data.roomId) {
+        setRoomId(res.data.data.roomId);
+        setIsChatOpen(true);
+      } else {
+        addToast(res.data.message || "채팅방 생성 실패 ❌", "error");
+      }
+    } catch (err) {
+      console.error("채팅방 생성 오류:", err);
+      addToast("채팅방 생성 중 오류가 발생했습니다.", "error");
+    }
+  };
+
+  if (!group) {
+    return (
+      <main className="flex items-center justify-center min-h-screen text-gray-500">
+        모임 정보를 불러오는 중입니다...
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center py-10 px-4">
       <div className="relative w-full max-w-3xl">
         {/* 뒤로가기 */}
         <button
           onClick={() => navigate("/groups")}
-          className="absolute -left-55 top-0 flex items-center gap-3 text-1xl font-bold text-gray-700 hover:text-[#6F00B6] transition"
+          className="absolute -left-55 top-0 flex items-center gap-3 text-lg font-bold text-gray-700 hover:text-[#6F00B6] transition"
         >
           <FiArrowLeft size={28} />
           모임 목록으로 돌아가기
         </button>
 
         <div className="bg-white rounded-2xl shadow-lg p-10">
-          {/* 상단 버튼 라인 */}
+          {/* 상단 버튼 */}
           <div className="flex justify-between items-center mb-6">
             <ShareButton />
             <div className="flex gap-2">
@@ -128,8 +202,8 @@ export default function GroupDetailView({ group }: Props) {
 
           {/* 참여 버튼 */}
           <button
-            onClick={handleJoinGroup}
-            className="w-full py-4 rounded-lg font-semibold text-lg transition mb-8 bg-[#8A2BE2] text-white hover:bg-[#6F00B6]"
+            onClick={handleOpenChat}
+            className="w-full py-4 rounded-lg font-semibold text-lg transition mb-4 bg-[#8A2BE2] text-white hover:bg-[#6F00B6]"
           >
             모임 참여하기
           </button>
@@ -144,18 +218,17 @@ export default function GroupDetailView({ group }: Props) {
         </div>
       </div>
 
-      {/* 삭제 확인 모달 */}
+      {/* 삭제 모달 */}
       <ConfirmModal
         isOpen={isDeleteOpen}
         title="모임 삭제"
-        description={
-          "정말 이 모임을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다."
-        }
+        description="정말 이 모임을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다."
         confirmText="삭제하기"
         cancelText="취소"
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteGroup}
       />
+
       {/* 수정 모달 */}
       <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)}>
         <GroupForm
@@ -163,6 +236,19 @@ export default function GroupDetailView({ group }: Props) {
           initialValues={group}
           onClose={() => setIsEditOpen(false)}
         />
+      </Modal>
+
+      {/* 채팅 모달 */}
+      <Modal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)}>
+        {roomId && nickname ? (
+          <div className="w-[600px] h-[700px]">
+            <ChatRoom roomId={roomId} nickname={nickname} />
+          </div>
+        ) : (
+          <div className="p-10 text-center text-gray-500">
+            채팅방을 불러오는 중...
+          </div>
+        )}
       </Modal>
     </main>
   );
