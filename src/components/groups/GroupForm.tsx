@@ -4,6 +4,9 @@ import { ko } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
 import { TEAMS } from "../../constants/teams";
 import { STADIUMS } from "../../constants/stadiums";
+import axiosInstance from "../../lib/axiosInstance";
+import { useAuthStore } from "../../store/authStore";
+import { useToastStore } from "../../store/toastStore";
 import type { GroupUI } from "../../types/group";
 
 interface GroupFormProps {
@@ -30,19 +33,22 @@ export default function GroupForm({
     initialValues?.date ? new Date(initialValues.date) : null
   );
 
+  const { user } = useAuthStore();
+  const { addToast } = useToastStore();
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
-    const { name, value, type } = e.target;
+    const { name, value } = e.target;
     setForm({
       ...form,
-      [name]: type === "number" ? Number(value) : value,
+      [name]: value,
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
@@ -53,33 +59,55 @@ export default function GroupForm({
       !form.stadiumName ||
       !form.personnel
     ) {
-      alert("필수 정보를 모두 입력해주세요.");
+      addToast("필수 정보를 모두 입력해주세요.", "error");
       return;
     }
 
-    // GroupUI에 맞춘 payload
-    const payload: GroupUI = {
-      id: initialValues?.id || Date.now(),
-      title: form.title,
-      content: form.content,
-      date: meetingDate.toISOString(),
-      stadiumName: form.stadiumName,
-      teams: `${form.homeTeam} vs ${form.awayTeam}`,
-      personnel: Number(form.personnel),
-      leader: initialValues?.leader || "알 수 없음",
-      status: initialValues?.status || "모집중",
-      imageUrl: initialValues?.imageUrl,
-    };
-
-    if (mode === "create") {
-      console.log("POST /api/groups", payload);
-      alert("모임이 등록되었습니다 🎉");
-    } else {
-      console.log("PUT /api/groups/:id", payload);
-      alert("모임이 수정되었습니다 ✨");
+    if (!user?.userId) {
+      addToast("로그인이 필요합니다.", "error");
+      return;
     }
 
-    onClose?.();
+    const payload = {
+      title: form.title,
+      description: form.content,
+      date: meetingDate.toISOString().slice(0, 19).replace("T", " "), // "2025-10-06 00:00:00" 형식으로
+      stadium: form.stadiumName,
+      home: form.homeTeam,
+      away: form.awayTeam,
+      memberCount: Number(form.personnel),
+    };
+
+    try {
+      if (mode === "create") {
+        const res = await axiosInstance.post(
+          `/api/communities/${user.userId}`,
+          payload
+        );
+
+        if (res.data.status === "success") {
+          addToast("모임이 등록되었습니다 🎉", "success");
+        } else {
+          addToast(res.data.message || "모임 등록 실패", "error");
+        }
+      } else {
+        const res = await axiosInstance.put(
+          `/api/communities/${initialValues?.id}`,
+          payload
+        );
+
+        if (res.data.status === "success") {
+          addToast("모임이 수정되었습니다 ✨", "success");
+        } else {
+          addToast(res.data.message || "모임 수정 실패", "error");
+        }
+      }
+
+      onClose?.();
+    } catch (err) {
+      console.error("모임 등록/수정 오류:", err);
+      addToast("서버 오류가 발생했습니다.", "error");
+    }
   };
 
   return (
@@ -118,7 +146,7 @@ export default function GroupForm({
           />
         </label>
 
-        {/* 모임 일자 */}
+        {/* 날짜 */}
         <label className="block">
           <span className="block text-sm font-medium mb-1 text-gray-600">
             모임 일자 *
@@ -136,7 +164,8 @@ export default function GroupForm({
           />
         </label>
 
-        {/* 홈/어웨이 팀 */}
+        {/* 팀, 구장, 인원 */}
+        {/* 홈/어웨이 팀 선택 */}
         <div className="grid grid-cols-2 gap-4">
           <label className="block">
             <span className="block text-sm font-medium mb-1 text-gray-600">
@@ -149,9 +178,7 @@ export default function GroupForm({
               className="input-border"
               required
             >
-              <option value="" disabled>
-                선택
-              </option>
+              <option value="">선택</option>
               {TEAMS.map((team) => (
                 <option
                   key={team.value}
@@ -175,9 +202,7 @@ export default function GroupForm({
               className="input-border"
               required
             >
-              <option value="" disabled>
-                선택
-              </option>
+              <option value="">선택</option>
               {TEAMS.map((team) => (
                 <option
                   key={team.value}
@@ -191,7 +216,7 @@ export default function GroupForm({
           </label>
         </div>
 
-        {/* 구장 */}
+        {/* 구장 선택 */}
         <label className="block">
           <span className="block text-sm font-medium mb-1 text-gray-600">
             야구장*
@@ -227,7 +252,6 @@ export default function GroupForm({
           />
         </label>
 
-        {/* 버튼 */}
         <button
           type="submit"
           className="w-full py-3 rounded-lg font-semibold transition-colors bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
