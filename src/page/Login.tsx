@@ -5,15 +5,18 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import axiosInstance from "../lib/axiosInstance";
 import { useToastStore } from "../store/toastStore";
 import PasswordReset from "../components/auth/PasswordReset";
+import axios from "axios";
 
 export default function LoginPage() {
   const { email, password, setEmail, setPassword, login } = useAuthStore();
   const navigate = useNavigate();
   const { addToast } = useToastStore();
-  const isValid = email.trim() !== "" && password.trim() !== "";
   const [showPassword, setShowPassword] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
 
+  const isValid = email.trim() !== "" && password.trim() !== "";
+
+  // 로그인 요청
   const handleLogin = async () => {
     try {
       const res = await axiosInstance.post("/api/user/login", {
@@ -21,10 +24,9 @@ export default function LoginPage() {
         password,
       });
 
-      const { status, message, data } = res.data;
+      const { status, data } = res.data;
 
       if (status === "success" && data) {
-        // 응답 구조에서 data 안의 user 정보 + 토큰 추출
         const userInfo = {
           nickname: data.nickname,
           email: data.email,
@@ -32,26 +34,31 @@ export default function LoginPage() {
           userId: data.userId,
         };
 
-        // Zustand login 함수에 저장
-        login(userInfo, data.token);
-
+        login(userInfo, data.token, data.refreshToken);
         addToast(`${data.nickname || "회원"}님, 환영합니다! 🎉`, "success");
         navigate("/");
-      } else {
-        addToast(
-          message || "이메일 또는 비밀번호가 올바르지 않습니다.",
-          "error"
-        );
+        return;
       }
+
+      // 로그인 실패
+      addToast("이메일 또는 비밀번호가 올바르지 않습니다.", "error");
     } catch (err) {
-      console.error(err);
-      addToast(
-        "로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-        "error"
-      );
+      if (axios.isAxiosError(err)) {
+        const msg = err.response?.data?.message;
+        if (msg === "로그인 실패") {
+          addToast("이메일 또는 비밀번호가 올바르지 않습니다.", "error");
+        } else {
+          addToast("로그인 중 오류가 발생했습니다.", "error");
+        }
+      } else {
+        addToast("서버 연결 오류가 발생했습니다.", "error");
+      }
+
+      console.error("로그인 요청 오류:", err);
     }
   };
 
+  // 비밀번호 재설정 모드
   if (isResetMode) {
     return (
       <main className="flex flex-1 justify-center bg-white min-h-screen pt-20">
