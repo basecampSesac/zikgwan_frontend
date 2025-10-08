@@ -29,7 +29,10 @@ export default function SignupPage() {
   const handleSendCode = async () => {
     if (!email) return;
     try {
-      const res = await axiosInstance.post("/api/email/send", { email });
+      const res = await axiosInstance.post("/api/email/send", {
+        email,
+        verifiedType: "S",
+      });
       if (res.data.status !== "success") {
         setEmailMessage(res.data.message || "이미 사용 중인 이메일입니다.");
         setEmailAvailable(false);
@@ -159,14 +162,14 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="이메일을 입력해주세요."
-              className="input-border h-11"
+              className="input-border"
               disabled={isEmailVerified}
             />
             <button
               type="button"
               onClick={handleSendCode}
               disabled={isEmailVerified}
-              className="button-border min-w-[6rem] h-11 flex items-center justify-center text-sm font-medium text-[#6F00B6] hover:bg-gray-50"
+              className="button-border min-w-[6rem] h-12 flex items-center justify-center text-sm font-medium text-[#6F00B6] hover:bg-gray-50"
             >
               {isEmailVerified ? "인증 완료" : "인증번호 받기"}
             </button>
@@ -193,13 +196,13 @@ export default function SignupPage() {
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value)}
               placeholder="인증번호를 입력해주세요."
-              className="input-border h-11"
+              className="input-border"
               disabled={isEmailVerified}
             />
             <button
               type="button"
               onClick={handleVerifyCode}
-              className="button-border min-w-[6rem] h-11 flex items-center justify-center text-sm font-medium text-[#6F00B6] hover:bg-gray-50"
+              className="button-border min-w-[6rem] h-12 flex items-center justify-center text-sm font-medium text-[#6F00B6] hover:bg-gray-50"
             >
               {isEmailVerified ? "완료" : "확인"}
             </button>
@@ -217,7 +220,7 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="비밀번호를 입력해주세요."
-              className="input-border pr-10 h-11"
+              className="input-border"
             />
             <button
               type="button"
@@ -247,7 +250,7 @@ export default function SignupPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="비밀번호를 다시 입력해주세요."
-              className="input-border pr-10 h-11"
+              className="input-border "
             />
             <button
               type="button"
@@ -270,7 +273,7 @@ export default function SignupPage() {
 
         {/* 닉네임 */}
         <label className="block mb-4">
-          <span className="block text-sm font-medium mb-1 text-gray-600">
+          <span className="block text-sm font-medium -mt-2 mb-1 text-gray-600">
             닉네임*
           </span>
           <input
@@ -278,7 +281,7 @@ export default function SignupPage() {
             value={nickname}
             onChange={handleNicknameChange}
             placeholder="닉네임을 입력해주세요."
-            className="input-border h-11"
+            className="input-border"
           />
           {nicknameMessage && (
             <p
@@ -299,7 +302,7 @@ export default function SignupPage() {
           <select
             value={club}
             onChange={(e) => setClub(e.target.value)}
-            className="input-border h-11"
+            className="input-border"
           >
             <option value="">선택 안 함</option>
             {TEAMS.map((team) => (
@@ -314,7 +317,7 @@ export default function SignupPage() {
         <button
           onClick={handleSignup}
           disabled={!isValid}
-          className={`w-full h-11 rounded-lg font-semibold transition-colors ${
+          className={`w-full h-11 rounded-lg mt-2 font-semibold transition-colors ${
             isValid
               ? "bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
               : "bg-gray-200 text-gray-400 cursor-not-allowed"
@@ -326,7 +329,7 @@ export default function SignupPage() {
         {/* 로그인 이동*/}
         <button
           onClick={() => navigate("/login")}
-          className="text-sm text-gray-500 hover:text-gray-700 mt-4 w-full text-center"
+          className="text-sm text-gray-500 hover:text-gray-700 mt-5 w-full text-center"
         >
           ← 로그인 화면으로 돌아가기
         </button>
