@@ -12,7 +12,6 @@ import TicketGuidePage from "./page/TicketGuide";
 import MyPage from "./page/MyPage";
 import TicketDetail from "./page/TicketDetail";
 import GroupDetail from "./page/GroupDetail";
-import ResetPasswordPage from "./page/ResetPasswordPage";
 import { useAuthStore } from "./store/authStore";
 import axiosInstance from "./lib/axiosInstance";
 
@@ -31,7 +30,6 @@ const router = createBrowserRouter([
       { path: "/mypage", Component: MyPage },
       { path: "/tickets/:id", Component: TicketDetail },
       { path: "/groups/:id", Component: GroupDetail },
-      { path: "/reset", Component: ResetPasswordPage },
     ],
   },
 ]);
