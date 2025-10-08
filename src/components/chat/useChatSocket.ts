@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import { Client } from "@stomp/stompjs";
+import { useEffect, useRef } from "react";
 import SockJS from "sockjs-client";
 import { useAuthStore } from "../../store/authStore";
 
@@ -9,52 +9,45 @@ interface ChatMessage {
   sentAt: string;
 }
 
-export function useChatSocket(roomId: number, nickname: string) {
+export function useChatSocket(
+  roomId: number,
+  nickname: string,
+  onMessage: (msg: ChatMessage) => void
+) {
   const { accessToken } = useAuthStore();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const clientRef = useRef<Client | null>(null);
 
   useEffect(() => {
     if (!roomId || !nickname) return;
 
-    // STOMP Client 생성
     const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/ws/chat"),
+      webSocketFactory: () => new SockJS("http://localhost:8080/ws-connect"),
       connectHeaders: {
-        Authorization: `Bearer ${accessToken}`, // 토큰 헤더 추가
+        Authorization: `Bearer ${accessToken}`,
       },
       reconnectDelay: 5000,
-      debug: () => {}, // 콘솔로그 끄기
+      debug: () => {},
       onConnect: () => {
         console.log("✅ STOMP connected");
 
-        // 메시지 구독
+        // 실시간 메시지 구독
         client.subscribe(`/sub/chat.${roomId}`, (msg) => {
           const body: ChatMessage = JSON.parse(msg.body);
-          setMessages((prev) => [...prev, body]);
+          onMessage(body);
         });
-
-        // 입장 메시지
-        client.publish({
-          destination: `/pub/chat.enter.${roomId}`,
-          body: JSON.stringify({ nickname }),
-        });
-      },
-      onStompError: (frame) => {
-        console.error("❌ STOMP error", frame.headers["message"]);
       },
     });
 
-    client.activate(); // 연결 시작
+    client.activate();
     clientRef.current = client;
 
     return () => {
       client.deactivate();
       console.log("🛑 STOMP disconnected");
     };
-  }, [roomId, nickname, accessToken]);
+  }, [roomId, nickname, accessToken]); // ✅ onMessage 제거 (안정화)
 
-  // 메시지 전송 함수
+  // 메시지 전송
   const sendMessage = (message: string) => {
     if (!clientRef.current || !clientRef.current.connected) return;
     clientRef.current.publish({
@@ -63,5 +56,5 @@ export function useChatSocket(roomId: number, nickname: string) {
     });
   };
 
-  return { messages, sendMessage };
+  return { sendMessage };
 }

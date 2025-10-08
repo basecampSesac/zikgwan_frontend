@@ -87,6 +87,14 @@ export default function GroupForm({
 
         if (res.data.status === "success") {
           addToast("모임이 등록되었습니다 🎉", "success");
+
+          // 모임 등록 성공 시 채팅방도 생성
+          const communityId = res.data.data.communityId;
+          await axiosInstance.post(
+            `/api/chatroom/community/${communityId}?roomName=${encodeURIComponent(
+              form.title
+            )} `
+          );
         } else {
           addToast(res.data.message || "모임 등록 실패", "error");
         }
