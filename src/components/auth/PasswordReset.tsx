@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import axiosInstance from "../../lib/axiosInstance";
 import { useToastStore } from "../../store/toastStore";
 
@@ -7,98 +8,246 @@ interface PasswordResetProps {
 }
 
 export default function PasswordReset({ onBack }: PasswordResetProps) {
-  const [email, setEmail] = useState("");
-  const [isSent, setIsSent] = useState(false);
   const { addToast } = useToastStore();
 
-  const handleSendLink = async () => {
+  const [email, setEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [emailMessage, setEmailMessage] = useState("");
+  const [emailAvailable, setEmailAvailable] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+
+  // 이메일 인증번호 발송
+  const handleSendCode = async () => {
     if (!email.trim()) {
       addToast("이메일을 입력해주세요.", "error");
       return;
     }
-
     try {
-      const res = await axiosInstance.post("/api/user/pwReset", { email });
-
+      const res = await axiosInstance.post("/api/email/send", {
+        email,
+        verifiedType: "P",
+      });
       if (res.data.status === "success") {
-        setIsSent(true);
-        addToast(
-          "비밀번호 재설정 링크가 이메일로 발송되었습니다. ✉️",
-          "success"
-        );
+        setEmailMessage("인증번호가 이메일로 발송되었습니다.");
+        setEmailAvailable(true);
+        addToast("인증번호가 이메일로 발송되었습니다. ✉️", "info");
       } else {
-        addToast(res.data.message || "등록되지 않은 이메일입니다.", "error");
+        setEmailMessage(res.data.message || "이메일 전송에 실패했습니다.");
+        setEmailAvailable(false);
       }
     } catch (error) {
-      console.error("비밀번호 재설정 요청 실패:", error);
-      addToast("서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.", "error");
+      console.error("이메일 인증 요청 실패:", error);
+      setEmailMessage("이메일 처리 중 오류가 발생했습니다.");
+      addToast("이메일 처리 중 오류가 발생했습니다.", "error");
+    }
+  };
+
+  // 인증번호 검증
+  const handleVerifyCode = async () => {
+    if (!verificationCode.trim()) {
+      addToast("인증번호를 입력해주세요.", "error");
+      return;
+    }
+    try {
+      const res = await axiosInstance.post("/api/email/verify", {
+        email,
+        code: verificationCode,
+        verifiedType: "P",
+      });
+      if (res.data.status === "success") {
+        setIsEmailVerified(true);
+        addToast("이메일 인증이 완료되었습니다.", "success");
+      } else {
+        addToast(res.data.message || "인증번호가 올바르지 않습니다.", "error");
+      }
+    } catch (error) {
+      console.error("인증번호 확인 실패:", error);
+      addToast("인증번호 확인 중 오류가 발생했습니다.", "error");
+    }
+  };
+
+  // 비밀번호 재설정
+  const handleResetPassword = async () => {
+    if (!isEmailVerified) {
+      addToast("이메일 인증을 먼저 완료해주세요.", "error");
+      return;
+    }
+    if (password !== confirmPassword) {
+      addToast("비밀번호가 일치하지 않습니다.", "error");
+      return;
+    }
+
+    try {
+      const res = await axiosInstance.post("/api/user/pwReset", {
+        email,
+        newpassword: password,
+        newpasswordconfirm: confirmPassword,
+      });
+
+      if (res.data.status === "success") {
+        addToast("비밀번호가 성공적으로 변경되었습니다. 🎉", "success");
+        onBack();
+      } else {
+        addToast(res.data.message || "비밀번호 변경에 실패했습니다.", "error");
+      }
+    } catch (error) {
+      console.error("비밀번호 재설정 오류:", error);
+      addToast("서버 오류가 발생했습니다.", "error");
     }
   };
 
   return (
     <div className="flex flex-col gap-4">
       {/* 타이틀 */}
-      <h1 className="text-2xl font-bold text-center mb-2">비밀번호 재설정</h1>
+      <h1 className="text-2xl font-bold text-center mb-4">비밀번호 재설정</h1>
 
-      {/* 설명문 */}
-      {!isSent ? (
-        <p className="text-sm text-gray-600 text-center leading-relaxed mb-2">
-          가입하신 이메일 주소를 입력하시면
-          <br />
-          비밀번호 재설정 링크를 보내드립니다.
+      {/* 이메일 */}
+      <label className="block mb-2">
+        <span className="block text-sm font-medium mb-1 text-gray-600">
+          이메일*
+        </span>
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="이메일을 입력해주세요."
+            className="input-border"
+            disabled={isEmailVerified}
+          />
+          <button
+            type="button"
+            onClick={handleSendCode}
+            disabled={isEmailVerified}
+            className="button-border min-w-[6rem] h-12 flex items-center justify-center text-sm font-medium text-[#6F00B6] hover:bg-gray-50"
+          >
+            {isEmailVerified ? "인증 완료" : "인증번호 받기"}
+          </button>
+        </div>
+        {emailMessage && (
+          <p
+            className={`text-sm mt-1 ${
+              emailAvailable ? "text-green-600" : "text-red-500"
+            }`}
+          >
+            {emailMessage}
+          </p>
+        )}
+      </label>
+
+      {/* 인증번호 */}
+      <label className="block mb-2">
+        <span className="block text-sm font-medium mb-1 -mt-2 text-gray-600">
+          인증번호*
+        </span>
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <input
+            type="text"
+            value={verificationCode}
+            onChange={(e) => setVerificationCode(e.target.value)}
+            placeholder="인증번호를 입력해주세요."
+            className="input-border"
+            disabled={isEmailVerified}
+          />
+          <button
+            type="button"
+            onClick={handleVerifyCode}
+            className="button-border min-w-[6rem] h-12 flex items-center justify-center text-sm font-medium text-[#6F00B6] hover:bg-gray-50"
+          >
+            {isEmailVerified ? "완료" : "확인"}
+          </button>
+        </div>
+      </label>
+
+      {/* 새 비밀번호 */}
+      <label className="block mb-2">
+        <span className="block text-sm font-medium mb-1 -mt-2 text-gray-600">
+          새 비밀번호*
+        </span>
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="새 비밀번호를 입력해주세요."
+            className="input-border"
+            disabled={!isEmailVerified}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+          >
+            {showPassword ? (
+              <AiOutlineEyeInvisible size={20} />
+            ) : (
+              <AiOutlineEye size={20} />
+            )}
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 mt-1">
+          영문 대소문자, 숫자, 특수문자를 포함해 8~16자로 입력해주세요.
         </p>
-      ) : (
-        <p className="text-sm text-gray-600 text-center leading-relaxed">
-          비밀번호 재설정 링크가 발송되었습니다.
-          <br />
-          이메일을 확인해주세요 ✉️
-        </p>
-      )}
+      </label>
 
-      {/* 입력 필드 */}
-      {!isSent && (
-        <label className="block py-2">
-          <span className="block text-sm font-medium mb-1 text-gray-600">
-            이메일 주소
-          </span>
-          <div className="relative">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="이메일 주소를 입력해주세요."
-              className="input-border pl-10"
-            />
-          </div>
-        </label>
-      )}
+      {/* 비밀번호 확인 */}
+      <label className="block mb-2">
+        <span className="block text-sm font-medium mb-1 -mt-2 text-gray-600">
+          비밀번호 확인*
+        </span>
+        <div className="relative">
+          <input
+            type={showConfirmPassword ? "text" : "password"}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="비밀번호를 다시 입력해주세요."
+            className="input-border"
+            disabled={!isEmailVerified}
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+          >
+            {showConfirmPassword ? (
+              <AiOutlineEyeInvisible size={20} />
+            ) : (
+              <AiOutlineEye size={20} />
+            )}
+          </button>
+        </div>
+        {password !== confirmPassword && confirmPassword !== "" && (
+          <p className="text-sm text-red-500 mt-1">
+            비밀번호가 일치하지 않습니다.
+          </p>
+        )}
+      </label>
 
-      {/* 버튼 영역 */}
-      {!isSent ? (
-        <button
-          onClick={handleSendLink}
-          className="w-full h-11 rounded-lg font-semibold transition-colors bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
-        >
-          재설정 링크 보내기
-        </button>
-      ) : (
-        <button
-          onClick={onBack}
-          className="w-full h-11 rounded-lg font-semibold transition-colors bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
-        >
-          로그인 화면으로 돌아가기
-        </button>
-      )}
+      {/* 버튼 */}
+      <button
+        onClick={handleResetPassword}
+        disabled={!isEmailVerified}
+        className={`w-full h-11 rounded-lg font-semibold transition-colors ${
+          isEmailVerified
+            ? "bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
+            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+        }`}
+      >
+        비밀번호 재설정하기
+      </button>
 
-      {/* 하단 돌아가기 버튼 (아직 미전송 상태일 때만 표시) */}
-      {!isSent && (
-        <button
-          onClick={onBack}
-          className="text-sm text-gray-500 hover:text-gray-700 mt-1"
-        >
-          ← 로그인 화면으로 돌아가기
-        </button>
-      )}
+      <button
+        onClick={onBack}
+        className="text-sm text-gray-500 hover:text-gray-700 mt-1"
+      >
+        ← 로그인 화면으로 돌아가기
+      </button>
     </div>
   );
 }

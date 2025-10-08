@@ -35,7 +35,7 @@ export default function SearchPanel({ title, onSearch }: SearchPanelProps) {
       if (keyword.trim()) params.title = keyword.trim();
       if (team) params.team = team;
       if (stadium) params.stadium = stadium;
-      if (date) params.date = `${date}T00:00:00`;
+      if (date) params.date = date;
 
       const res = await axiosInstance.get<{
         status: string;
