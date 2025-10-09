@@ -13,6 +13,7 @@ export default function LoginPage() {
   const { addToast } = useToastStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const isValid = email.trim() !== "" && password.trim() !== "";
 
@@ -34,7 +35,7 @@ export default function LoginPage() {
           userId: data.userId,
         };
 
-        login(userInfo, data.token, data.refreshToken);
+        login(userInfo, data.token, data.refreshToken, rememberMe);
         addToast(`${data.nickname || "회원"}님, 환영합니다! 🎉`, "success");
         navigate("/");
         return;
@@ -120,6 +121,8 @@ export default function LoginPage() {
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
               className="accent-[#6F00B6] hover:accent-[#8A2BE2]"
             />
             로그인 유지

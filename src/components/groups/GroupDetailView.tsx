@@ -16,29 +16,7 @@ import {
   FiTrash2,
   FiEdit3,
 } from "react-icons/fi";
-import type { GroupUI } from "../../types/group";
-
-interface CommunityDetailResponse {
-  communityId: number;
-  title: string;
-  description: string;
-  date: string;
-  memberCount: number;
-  stadium: string;
-  home: string;
-  away: string;
-  nickname: string;
-  state: "ING" | "DONE";
-  saveState: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ApiResponse<T> {
-  status: "success" | "error";
-  message: string | null;
-  data: T;
-}
+import type { CommunityDetail, GroupUI, ApiResponse } from "../../types/group";
 
 export default function GroupDetailView() {
   const { id } = useParams<{ id: string }>();
@@ -59,9 +37,9 @@ export default function GroupDetailView() {
   useEffect(() => {
     const fetchGroupDetail = async () => {
       try {
-        const res = await axiosInstance.get<
-          ApiResponse<CommunityDetailResponse>
-        >(`/api/communities/${id}`);
+        const res = await axiosInstance.get<ApiResponse<CommunityDetail>>(
+          `/api/communities/${id}`
+        );
 
         if (res.data.status === "success" && res.data.data) {
           const g = res.data.data;
@@ -75,6 +53,7 @@ export default function GroupDetailView() {
             personnel: g.memberCount,
             leader: g.nickname,
             status: g.state === "ING" ? "모집중" : "모집마감",
+            userId: g.userId ?? undefined,
           };
           setGroup(mapped);
         } else {
@@ -87,7 +66,7 @@ export default function GroupDetailView() {
     };
 
     fetchGroupDetail();
-  }, [id, addToast]);
+  }, [id, addToast, user?.nickname]);
 
   // 삭제
   const handleDeleteGroup = async () => {
@@ -126,27 +105,6 @@ export default function GroupDetailView() {
     }
   };
 
-  // 채팅방 생성은 모임 생성 시 동시에 1번만 실행
-  // const handleOpenChat = async () => {
-  //   try {
-  //     const res = await axiosInstance.post(
-  //       `/api/chatroom/community/${id}?roomName=${encodeURIComponent(
-  //         group?.title || "모임채팅방"
-  //       )}`
-  //     );
-
-  //     if (res.data.status === "success" && res.data.data.roomId) {
-  //       setRoomId(res.data.data.roomId);
-  //       setIsChatOpen(true);
-  //     } else {
-  //       addToast(res.data.message || "채팅방 생성 실패 ❌", "error");
-  //     }
-  //   } catch (err) {
-  //     console.error("채팅방 생성 오류:", err);
-  //     addToast("채팅방 생성 중 오류가 발생했습니다.", "error");
-  //   }
-  // };
-
   if (!group) {
     return (
       <main className="flex items-center justify-center min-h-screen text-gray-500">
@@ -171,20 +129,25 @@ export default function GroupDetailView() {
           {/* 상단 버튼 */}
           <div className="flex justify-between items-center mb-6">
             <ShareButton />
-            <div className="flex gap-2">
-              <button
-                onClick={() => setIsEditOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 text-base rounded border border-[#6F00B6] text-[#6F00B6] hover:bg-purple-50"
-              >
-                <FiEdit3 size={18} /> 수정
-              </button>
-              <button
-                onClick={() => setIsDeleteOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 text-base rounded bg-red-600 text-white hover:bg-red-700"
-              >
-                <FiTrash2 size={18} /> 삭제
-              </button>
-            </div>
+            {user?.nickname && group?.leader === user.nickname && (
+              <div className="flex gap-2">
+                {/* 수정 */}
+                <button
+                  onClick={() => setIsEditOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-base rounded border border-[#6F00B6] text-[#6F00B6] hover:bg-purple-50"
+                >
+                  <FiEdit3 size={18} /> 수정
+                </button>
+
+                {/* 삭제 */}
+                <button
+                  onClick={() => setIsDeleteOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-base rounded bg-red-600 text-white hover:bg-red-700"
+                >
+                  <FiTrash2 size={18} /> 삭제
+                </button>
+              </div>
+            )}
           </div>
 
           {/* 이미지 */}
@@ -243,7 +206,9 @@ export default function GroupDetailView() {
       <ConfirmModal
         isOpen={isDeleteOpen}
         title="모임 삭제"
-        description="정말 이 모임을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다."
+        description={
+          "정말 이 모임을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다."
+        }
         confirmText="삭제하기"
         cancelText="취소"
         onClose={() => setIsDeleteOpen(false)}
