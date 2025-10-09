@@ -14,6 +14,7 @@ import TicketDetail from "./page/TicketDetail";
 import GroupDetail from "./page/GroupDetail";
 import { useAuthStore } from "./store/authStore";
 import axiosInstance from "./lib/axiosInstance";
+import NotificationSSE from "./components/notification/NotificationSse";
 
 const router = createBrowserRouter([
   {
@@ -77,5 +78,13 @@ export default function App() {
     );
   }
 
-  return <RouterProvider router={router} />;
+  // return <RouterProvider router={router} />;
+
+  return (
+    <>
+      {/* 로그인 상태일 때만 SSE 구독 (코드 수정 필요) */}
+      <NotificationSSE />
+      <RouterProvider router={router} />
+    </>
+  );
 }
