@@ -1,12 +1,21 @@
 import { create } from "zustand";
 import axiosInstance from "../lib/axiosInstance";
 
-interface User {
+export interface User {
   userId: number;
   email: string;
   nickname: string;
   club?: string;
   profileImage?: string;
+}
+
+export interface AuthResponse {
+  userId: number;
+  email: string;
+  nickname: string;
+  club?: string;
+  token: string; // accessToken
+  refreshToken: string;
 }
 
 interface AuthState {
@@ -16,11 +25,18 @@ interface AuthState {
   email: string;
   password: string;
   nickname: string | null;
+
   setEmail: (email: string) => void;
   setPassword: (pw: string) => void;
   setUser: (user: User | null) => void;
   setNickname: (nickname: string | null) => void;
-  login: (user: User, accessToken: string, refreshToken: string) => void;
+
+  login: (
+    user: User,
+    accessToken: string,
+    refreshToken: string,
+    rememberMe: boolean
+  ) => void;
   logout: () => Promise<void>;
   tryAutoLogin: () => Promise<void>;
   refreshAccessToken: () => Promise<void>;
@@ -38,9 +54,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setPassword: (pw) => set({ password: pw }),
   setUser: (user) => set({ user }),
   setNickname: (nickname) => set({ nickname }),
-  // 로그인 (refreshToken 로컬에 저장)
-  login: (user, accessToken, refreshToken) => {
-    localStorage.setItem("refreshToken", refreshToken);
+
+  // 로그인
+  login: (user, accessToken, refreshToken, rememberMe) => {
+    const storage = rememberMe ? localStorage : sessionStorage;
+    storage.setItem("refreshToken", refreshToken);
+
     set({
       isAuthenticated: true,
       user,
@@ -48,15 +67,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 
-  // 로그아웃 (서버 + 로컬 초기화)
+  // 로그아웃
   logout: async () => {
-    const user = get().user;
-    const token = get().accessToken;
+    const { user, accessToken } = get();
 
     try {
-      if (user && token) {
-        const res = await axiosInstance.get(`/api/user/logout`, {
-          headers: { Authorization: `Bearer ${token}` },
+      if (user && accessToken) {
+        const res = await axiosInstance.get("/api/user/logout", {
+          headers: { Authorization: `Bearer ${accessToken}` },
         });
         if (res.data.status === "success") {
           console.log("✅ 서버 로그아웃 완료");
@@ -66,66 +84,88 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error("❌ 로그아웃 중 오류:", err);
     } finally {
       localStorage.removeItem("refreshToken");
+      sessionStorage.removeItem("refreshToken");
       set({ isAuthenticated: false, user: null, accessToken: null });
     }
   },
 
-  // 자동 로그인 (로컬 refreshToken → body로 전송)
+  // 자동 로그인 (refreshToken 기반)
   tryAutoLogin: async () => {
-    const refreshToken = localStorage.getItem("refreshToken");
+    // localStorage > sessionStorage 우선순위
+    const refreshToken =
+      localStorage.getItem("refreshToken") ||
+      sessionStorage.getItem("refreshToken");
+
     if (!refreshToken) return;
 
     try {
-      const res = await axiosInstance.post("/api/user/refresh/login", {
-        refreshToken,
-      });
-      const { status, data } = res.data;
+      const res = await axiosInstance.post<{
+        status: string;
+        data: AuthResponse;
+      }>("/api/user/refresh/login", { refreshToken });
 
+      const { status, data } = res.data;
       if (status === "success" && data) {
-        const userInfo = {
+        const userInfo: User = {
           userId: data.userId,
           email: data.email,
           nickname: data.nickname,
           club: data.club,
         };
+
         set({
           isAuthenticated: true,
           user: userInfo,
           accessToken: data.token,
         });
-        // 새 refreshToken 재발급 시 업데이트
-        localStorage.setItem("refreshToken", data.refreshToken);
+
+        // 새 refreshToken 저장
+        if (localStorage.getItem("refreshToken")) {
+          localStorage.setItem("refreshToken", data.refreshToken);
+        } else {
+          sessionStorage.setItem("refreshToken", data.refreshToken);
+        }
+
         console.log("✅ 자동 로그인 성공");
       } else {
-        get().logout();
+        await get().logout();
       }
     } catch (err) {
       console.warn("자동 로그인 실패:", err);
-      get().logout();
+      await get().logout();
     }
   },
 
-  // 토큰 갱신 (401 시 재요청)
+  // 액세스 토큰 재발급
   refreshAccessToken: async () => {
-    const refreshToken = localStorage.getItem("refreshToken");
+    const refreshToken =
+      localStorage.getItem("refreshToken") ||
+      sessionStorage.getItem("refreshToken");
     if (!refreshToken) return;
 
     try {
-      const res = await axiosInstance.post("/api/user/refresh/login", {
-        refreshToken,
-      });
-      const { status, data } = res.data;
+      const res = await axiosInstance.post<{
+        status: string;
+        data: AuthResponse;
+      }>("/api/user/refresh/login", { refreshToken });
 
+      const { status, data } = res.data;
       if (status === "success" && data?.token) {
         set({ accessToken: data.token });
-        localStorage.setItem("refreshToken", data.refreshToken);
+
+        if (localStorage.getItem("refreshToken")) {
+          localStorage.setItem("refreshToken", data.refreshToken);
+        } else {
+          sessionStorage.setItem("refreshToken", data.refreshToken);
+        }
+
         console.log("🔄 액세스 토큰 갱신 완료");
       } else {
-        get().logout();
+        await get().logout();
       }
     } catch (err) {
       console.error("토큰 갱신 실패:", err);
-      get().logout();
+      await get().logout();
     }
   },
 }));
