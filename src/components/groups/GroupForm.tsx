@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Upload } from "lucide-react";
 import DatePicker from "react-datepicker";
 import { ko } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
@@ -32,6 +33,13 @@ export default function GroupForm({
   const [meetingDate, setMeetingDate] = useState<Date | null>(
     initialValues?.date ? new Date(initialValues.date) : null
   );
+
+  const [images, setImages] = useState<File[]>([]);
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setImages(Array.from(e.target.files));
+    }
+  };
 
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
@@ -71,7 +79,7 @@ export default function GroupForm({
     const payload = {
       title: form.title,
       description: form.content,
-      date: meetingDate.toISOString().slice(0, 19).replace("T", " "), // "2025-10-06 00:00:00" 형식으로
+      date: meetingDate.toISOString().slice(0, 19).replace("T", " "),
       stadium: form.stadiumName,
       home: form.homeTeam,
       away: form.awayTeam,
@@ -88,7 +96,7 @@ export default function GroupForm({
         if (res.data.status === "success") {
           addToast("모임이 등록되었습니다 🎉", "success");
 
-          // 모임 등록 성공 시 채팅방도 생성
+          // 채팅방 생성
           const communityId = res.data.data.communityId;
           await axiosInstance.post(
             `/api/chatroom/community/${communityId}?roomName=${encodeURIComponent(
@@ -173,8 +181,8 @@ export default function GroupForm({
         </label>
 
         {/* 팀, 구장, 인원 */}
-        {/* 홈/어웨이 팀 선택 */}
         <div className="grid grid-cols-2 gap-4">
+          {/* 홈팀 */}
           <label className="block">
             <span className="block text-sm font-medium mb-1 text-gray-600">
               홈팀*
@@ -199,6 +207,7 @@ export default function GroupForm({
             </select>
           </label>
 
+          {/* 원정팀 */}
           <label className="block">
             <span className="block text-sm font-medium mb-1 text-gray-600">
               원정팀*
@@ -224,7 +233,7 @@ export default function GroupForm({
           </label>
         </div>
 
-        {/* 구장 선택 */}
+        {/* 구장 */}
         <label className="block">
           <span className="block text-sm font-medium mb-1 text-gray-600">
             야구장*
@@ -258,6 +267,64 @@ export default function GroupForm({
             placeholder="예: 5"
             className="input-border"
           />
+        </label>
+
+        {/* 이미지 업로드 */}
+        <label className="block">
+          <span className="block text-sm font-medium mb-1 text-gray-600">
+            이미지 업로드 (선택)
+          </span>
+
+          <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer hover:bg-gray-50 overflow-hidden relative">
+            {images.length > 0 ? (
+              <div className="flex gap-2 overflow-x-auto p-2 w-full h-full">
+                {images.map((img, i) => (
+                  <div
+                    key={i}
+                    className="relative h-full aspect-[4/3] flex-shrink-0"
+                  >
+                    <img
+                      src={URL.createObjectURL(img)}
+                      alt={`preview-${i}`}
+                      className="h-full w-auto object-cover rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setImages((prev) => prev.filter((_, idx) => idx !== i));
+                      }}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs z-10 transition"
+                      title="삭제"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-gray-400 h-full">
+                <Upload className="w-6 h-6" />
+                <span className="text-xs text-gray-500">
+                  클릭 또는 드래그하여 업로드
+                </span>
+              </div>
+            )}
+
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFile}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+          </div>
+
+          {images.length > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              선택된 파일 {images.length}개
+            </p>
+          )}
         </label>
 
         <button
