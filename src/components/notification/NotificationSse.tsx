@@ -6,10 +6,10 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 interface Notification {
   roomId: number; // 알림이 온 채팅방의 id
-  message: string;  // 알림 메시지
+  message: string; // 알림 메시지
 }
 
-export default function NotificationSSE() {
+export default function NotificationSse() {
   const { user, accessToken } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -35,26 +35,26 @@ export default function NotificationSSE() {
 
     eventSourceRef.current = eventSource;
 
+    eventSource.addEventListener("connect", (event: any) => {
+      // any 부분 타입 변경 필요?
+      console.log("SSE 연결 성공:", event.data);
+    });
 
-    eventSource.addEventListener("connect", (event: any) => {   // any 부분 타입 변경 필요?
-    console.log("SSE 연결 성공:", event.data);
-  });
+    eventSource.addEventListener("chat-notification", (event: any) => {
+      const data: Notification = JSON.parse(event.data);
+      console.log("채팅 알림 수신:", data);
+      setNotifications((prev) => [...prev, data]);
+    });
 
-  eventSource.addEventListener("chat-notification", (event: any) => {
-    const data: Notification = JSON.parse(event.data);
-    console.log("채팅 알림 수신:", data);
-    setNotifications((prev) => [...prev, data]);
-  });
+    eventSource.onerror = (err) => {
+      console.error("SSE 연결 오류:", err);
+      eventSource.close();
+    };
 
-  eventSource.onerror = (err) => {
-    console.error("SSE 연결 오류:", err);
-    eventSource.close();
-  };
-
-  return () => {
-    console.log("SSE 연결 해제");
-    eventSource.close();
-  };
+    return () => {
+      console.log("SSE 연결 해제");
+      eventSource.close();
+    };
   }, [user?.userId]);
 
   return (
