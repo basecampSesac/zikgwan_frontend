@@ -1,5 +1,13 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useChatSocket } from "./useChatSocket";
+import { useAuthStore } from "../../store/authStore";
+import axiosInstance from "../../lib/axiosInstance";
+
+interface ChatMessage {
+  nickname: string;
+  message: string;
+  sentAt: string;
+}
 
 interface ChatRoomProps {
   roomId: number;
@@ -7,8 +15,34 @@ interface ChatRoomProps {
 }
 
 export default function ChatRoom({ roomId, nickname }: ChatRoomProps) {
-  const { messages, sendMessage } = useChatSocket(roomId, nickname);
+  const { user } = useAuthStore();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+
+  // 과거 채팅 불러오기
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const res = await axiosInstance.get(
+          `/api/chatroom/chat/${roomId}/${user?.userId}`
+        );
+        if (res.data.status === "success") {
+          setMessages(res.data.data);
+        }
+      } catch (err) {
+        console.error("과거 채팅 불러오기 실패:", err);
+      }
+    };
+    if (roomId && user?.userId) fetchMessages();
+  }, [roomId, user?.userId]);
+
+  // ✅ 메시지 핸들러 (useCallback으로 고정 → 의존성 문제 해결)
+  const handleMessage = useCallback((msg: ChatMessage) => {
+    setMessages((prev) => [...prev, msg]);
+  }, []);
+
+  // 소켓 연결
+  const { sendMessage } = useChatSocket(roomId, nickname, handleMessage);
 
   const handleSend = () => {
     if (!input.trim()) return;

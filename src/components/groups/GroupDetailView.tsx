@@ -43,8 +43,10 @@ interface ApiResponse<T> {
 export default function GroupDetailView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+
+  const [nickname] = useState(user?.nickname || "");
   const { addToast } = useToastStore();
-  const { nickname } = useAuthStore();
   const [group, setGroup] = useState<GroupUI | null>(null);
 
   // 모달 상태
@@ -105,26 +107,45 @@ export default function GroupDetailView() {
     }
   };
 
-  // 채팅방 생성
-  const handleOpenChat = async () => {
+  // 채팅방 입장
+  const handleJoinChat = async () => {
     try {
-      const res = await axiosInstance.post(
-        `/api/chatroom/community/${id}?roomName=${encodeURIComponent(
-          group?.title || "모임채팅방"
-        )}`
+      const res = await axiosInstance.patch(
+        `/api/chatroom/${group?.id}/join/${user?.userId}`
       );
 
-      if (res.data.status === "success" && res.data.data.roomId) {
-        setRoomId(res.data.data.roomId);
+      if (res.data.status === "success" && res.data.data) {
+        setRoomId(group!.id);
         setIsChatOpen(true);
       } else {
-        addToast(res.data.message || "채팅방 생성 실패 ❌", "error");
+        addToast(res.data.message || "채팅방 입장 실패 ❌", "error");
       }
     } catch (err) {
-      console.error("채팅방 생성 오류:", err);
-      addToast("채팅방 생성 중 오류가 발생했습니다.", "error");
+      console.error("채팅방 입장 오류:", err);
+      addToast("채팅방 입장 중 오류가 발생했습니다.", "error");
     }
   };
+
+  // 채팅방 생성은 모임 생성 시 동시에 1번만 실행
+  // const handleOpenChat = async () => {
+  //   try {
+  //     const res = await axiosInstance.post(
+  //       `/api/chatroom/community/${id}?roomName=${encodeURIComponent(
+  //         group?.title || "모임채팅방"
+  //       )}`
+  //     );
+
+  //     if (res.data.status === "success" && res.data.data.roomId) {
+  //       setRoomId(res.data.data.roomId);
+  //       setIsChatOpen(true);
+  //     } else {
+  //       addToast(res.data.message || "채팅방 생성 실패 ❌", "error");
+  //     }
+  //   } catch (err) {
+  //     console.error("채팅방 생성 오류:", err);
+  //     addToast("채팅방 생성 중 오류가 발생했습니다.", "error");
+  //   }
+  // };
 
   if (!group) {
     return (
@@ -202,7 +223,7 @@ export default function GroupDetailView() {
 
           {/* 참여 버튼 */}
           <button
-            onClick={handleOpenChat}
+            onClick={handleJoinChat}
             className="w-full py-4 rounded-lg font-semibold text-lg transition mb-4 bg-[#8A2BE2] text-white hover:bg-[#6F00B6]"
           >
             모임 참여하기
