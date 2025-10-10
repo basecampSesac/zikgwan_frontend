@@ -28,12 +28,16 @@ export default function NotificationSse() {
         // headers: {
         //   Authorization: `Bearer ${accessToken}`, // JWT 토큰 헤더
         // },
-        heartbeatTimeout: 120000, // 서버와의 연결 유지 간격 2분
-        // withCredentials: true, // (필요 시 주석 해제)
+        heartbeatTimeout: 300000, // 서버와의 연결 유지 간격 5분
+        withCredentials: false, // (필요 시 주석 해제)
       }
     );
 
     eventSourceRef.current = eventSource;
+
+    eventSource.addEventListener("ping", (event: any) => {
+      console.log("서버 heartbeat:", event.data);
+    });
 
     eventSource.addEventListener("connect", (event: any) => {
       // any 부분 타입 변경 필요?
