@@ -30,11 +30,20 @@ export function useChatSocket(
       onConnect: () => {
         console.log("✅ STOMP connected");
 
-        // 실시간 메시지 구독
+        // 메시지 수신 구독
         client.subscribe(`/sub/chat.${roomId}`, (msg) => {
           const body: ChatMessage = JSON.parse(msg.body);
           onMessage(body);
         });
+
+        // 입장 메시지 전송 (한 번만)
+        client.publish({
+          destination: `/pub/chat.enter.${roomId}`,
+          body: JSON.stringify({ nickname }),
+        });
+
+        console.log("채팅방 입장 메시지 전송 완료");
+        
       },
     });
 
@@ -43,11 +52,11 @@ export function useChatSocket(
 
     return () => {
       client.deactivate();
-      console.log("🛑 STOMP disconnected");
+      console.log("STOMP disconnected");
     };
-  }, [roomId, nickname, accessToken]); // ✅ onMessage 제거 (안정화)
+  }, [roomId, nickname, accessToken]); // onMessage는 useCallback으로 감싸놨으니 제외
 
-  // 메시지 전송
+  // 일반 메시지 전송
   const sendMessage = (message: string) => {
     if (!clientRef.current || !clientRef.current.connected) return;
     clientRef.current.publish({
