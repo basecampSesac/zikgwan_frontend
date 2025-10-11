@@ -72,7 +72,7 @@ export default function SignupPage() {
     setNickname(e.target.value);
   };
 
-  // 닉네임 중복 확인 (디바운스: 1초)
+  // 닉네임 중복 확인 (디바운스: 0.5초)
   useEffect(() => {
     if (!nickname) {
       setNicknameMessage("");
@@ -100,7 +100,7 @@ export default function SignupPage() {
         setNicknameMessage("닉네임 확인 중 오류가 발생했습니다.");
         setNicknameAvailable(false);
       }
-    }, 1000);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [nickname]);

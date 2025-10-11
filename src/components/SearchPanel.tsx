@@ -155,6 +155,7 @@ export default function SearchPanel({
               <option value="한화">한화 이글스</option>
               <option value="KT">KT 위즈</option>
               <option value="롯데">롯데 자이언츠</option>
+              <option value="키움">키움 히어로즈</option>
             </select>
 
             <FiChevronDown

@@ -2,6 +2,7 @@ import { Calendar, User, UserRound } from "lucide-react";
 import type { GroupUI } from "../../types/group";
 import { useNavigate } from "react-router-dom";
 import { formatDate } from "../../utils/format";
+import { getDefaultStadiumImage } from "../../constants/stadiums";
 
 export default function GroupCard({
   id,
@@ -23,15 +24,12 @@ export default function GroupCard({
         className="relative h-40 cursor-pointer"
         onClick={() => navigate(`/groups/${id}`)}
       >
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gray-200" />
-        )}
+        <img
+          src={imageUrl || getDefaultStadiumImage(stadiumName)}
+          alt={title}
+          className="w-full h-full object-cover"
+        />
+
         {status && (
           <span
             className={`absolute top-2 left-2 text-white text-xs font-semibold px-2 py-0.5 rounded ${

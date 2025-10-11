@@ -7,16 +7,14 @@ import ConfirmModal from "../../Modals/ConfirmModal";
 import GroupForm from "./GroupForm";
 import Modal from "../Modal";
 import ChatRoom from "../chat/ChatRoom";
+import { formatDate } from "../../utils/format";
 import { useAuthStore } from "../../store/authStore";
-import {
-  FiCalendar,
-  FiUser,
-  FiMapPin,
-  FiArrowLeft,
-  FiTrash2,
-  FiEdit3,
-} from "react-icons/fi";
+import { FiCalendar, FiMapPin, FiTrash2, FiEdit3 } from "react-icons/fi";
+import { FaRegUserCircle } from "react-icons/fa";
+import { HiOutlineUsers } from "react-icons/hi";
+import { BiBaseball } from "react-icons/bi";
 import type { CommunityDetail, GroupUI, ApiResponse } from "../../types/group";
+import { getDefaultStadiumImage } from "../../constants/stadiums";
 
 export default function GroupDetailView() {
   const { id } = useParams<{ id: string }>();
@@ -47,13 +45,15 @@ export default function GroupDetailView() {
             id: g.communityId,
             title: g.title,
             content: g.description,
-            date: g.date,
+            date: formatDate(g.date),
             stadiumName: g.stadium,
             teams: `${g.home} vs ${g.away}`,
             personnel: g.memberCount,
             leader: g.nickname,
             status: g.state === "ING" ? "모집중" : "모집마감",
             userId: g.userId ?? undefined,
+            createdAt: g.createdAt,
+            updatedAt: g.updatedAt,
           };
           setGroup(mapped);
         } else {
@@ -114,90 +114,131 @@ export default function GroupDetailView() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center py-10 px-4">
-      <div className="relative w-full max-w-3xl">
-        {/* 뒤로가기 */}
-        <button
-          onClick={() => navigate("/groups")}
-          className="absolute -left-55 top-0 flex items-center gap-3 text-lg font-bold text-gray-700 hover:text-[#6F00B6] transition"
-        >
-          <FiArrowLeft size={28} />
-          모임 목록으로 돌아가기
-        </button>
-
-        <div className="bg-white rounded-2xl shadow-lg p-10">
-          {/* 상단 버튼 */}
-          <div className="flex justify-between items-center mb-6">
-            <ShareButton />
-            {user?.nickname && group?.leader === user.nickname && (
-              <div className="flex gap-2">
-                {/* 수정 */}
-                <button
-                  onClick={() => setIsEditOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-base rounded border border-[#6F00B6] text-[#6F00B6] hover:bg-purple-50"
+    <main className="bg-white flex items-center justify-center py-10 px-4">
+      <div className="relative w-full max-w-7xl">
+        <div className="bg-white rounded-2xl p-10 border border-gray-200">
+          {/* 메인 콘텐츠 영역 */}
+          <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-10">
+            {/* 이미지 영역 */}
+            <div className="flex flex-col relative">
+              <div className="relative w-full h-[450px] bg-gray-100 flex items-center justify-center rounded-2xl overflow-hidden border border-gray-100">
+                {/* 모집 상태 배지 */}
+                <span
+                  className={`absolute top-3 left-3 px-3 py-1.5 text-sm font-semibold rounded-md text-white ${
+                    group.status === "모집중" ? "bg-[#6F00B6]" : "bg-gray-400"
+                  }`}
                 >
-                  <FiEdit3 size={18} /> 수정
-                </button>
+                  {group.status}
+                </span>
 
-                {/* 삭제 */}
-                <button
-                  onClick={() => setIsDeleteOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-base rounded bg-red-600 text-white hover:bg-red-700"
-                >
-                  <FiTrash2 size={18} /> 삭제
-                </button>
+                {/* 이미지 표시 */}
+                <img
+                  src={
+                    group.imageUrl
+                      ? group.imageUrl
+                      : getDefaultStadiumImage(group.stadiumName)
+                  }
+                  alt="모임 이미지"
+                  className="w-full h-full object-cover"
+                />
               </div>
-            )}
+            </div>
+
+            {/* 오른쪽 정보 영역 */}
+            <div className="flex flex-col justify-between">
+              <div>
+                {/* 제목 */}
+                <h2 className="text-3xl font-bold mt-5 mb-6 text-gray-900 tracking-tight">
+                  {group.title}
+                </h2>
+                {/* 모임 정보 */}
+                <div className="text-gray-700 mb-4 divide-y divide-gray-100">
+                  {[
+                    {
+                      icon: <FiCalendar className="text-gray-500" size={22} />,
+                      text: group.date,
+                    },
+                    {
+                      icon: <BiBaseball className="text-gray-500" size={22} />,
+                      text: group.teams,
+                    },
+                    {
+                      icon: <FiMapPin className="text-gray-500" size={22} />,
+                      text: group.stadiumName,
+                    },
+                    {
+                      icon: (
+                        <HiOutlineUsers className="text-gray-500" size={22} />
+                      ),
+                      text: `모집 인원: ${group.personnel}명`,
+                    },
+                    {
+                      icon: (
+                        <FaRegUserCircle className="text-gray-500" size={22} />
+                      ),
+                      text: `모임장: ${group.leader}`,
+                    },
+                  ].map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-4 py-3 transition rounded-md"
+                    >
+                      {item.icon}
+                      <span className="text-lg">{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 모집 참여 버튼 */}
+                <div className="mb-8">
+                  <button
+                    onClick={handleJoinChat}
+                    className="w-full px-6 py-3 rounded-lg font-semibold text-lg bg-gradient-to-r from-[#8A2BE2] to-[#6F00B6] text-white hover:opacity-90 transition cursor-pointer"
+                  >
+                    모임 참여하기
+                  </button>
+                </div>
+
+                {/* 버튼 묶음 */}
+                <div className="flex items-center justify-end gap-3 mt-8">
+                  {/* 공유 버튼 */}
+                  <div className="cursor-pointer">
+                    <ShareButton />
+                  </div>
+
+                  {/* 수정 / 삭제 버튼 */}
+                  {user?.nickname && group?.leader === user.nickname && (
+                    <>
+                      <button
+                        onClick={() => setIsEditOpen(true)}
+                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition cursor-pointer"
+                      >
+                        <FiEdit3 size={16} />
+                        수정
+                      </button>
+
+                      <button
+                        onClick={() => setIsDeleteOpen(true)}
+                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-red-600 transition cursor-pointer"
+                      >
+                        <FiTrash2 size={16} />
+                        삭제
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* 이미지 */}
-          <div className="w-full h-[400px] bg-gray-200 flex items-center justify-center rounded-lg mb-8">
-            {group.imageUrl ? (
-              <img
-                src={group.imageUrl}
-                alt="모임 이미지"
-                className="w-full h-full object-cover rounded-lg"
-              />
-            ) : (
-              <span className="text-gray-500">모임 이미지</span>
-            )}
-          </div>
-
-          {/* 제목 */}
-          <h2 className="text-3xl font-bold mb-5">{group.title}</h2>
-
-          {/* 모임 정보 */}
-          <div className="space-y-2 text-gray-600 mb-6">
-            <p className="flex items-center gap-2 text-lg">
-              <FiCalendar /> {group.date}
-            </p>
-            <p className="flex items-center gap-2 text-lg">
-              <FiMapPin /> {group.stadiumName}
-            </p>
-            <p className="flex items-center gap-2 text-lg">
-              <FiUser /> 모집 인원: {group.personnel}
-            </p>
-            <p className="flex items-center gap-2 text-lg">
-              <FiUser /> 모임장: {group.leader}
-            </p>
-          </div>
-
-          <hr className="my-6 border-gray-200" />
-
-          {/* 참여 버튼 */}
-          <button
-            onClick={handleJoinChat}
-            className="w-full py-4 rounded-lg font-semibold text-lg transition mb-4 bg-[#8A2BE2] text-white hover:bg-[#6F00B6]"
-          >
-            모임 참여하기
-          </button>
-
-          {/* 상세 설명 */}
-          <div className="mb-8 min-h-[150px]">
-            <h3 className="text-xl font-semibold mb-3">모임 설명</h3>
-            <p className="text-lg text-gray-700 leading-relaxed">
-              {group.content}
-            </p>
+          {/* 상세 설명 (이미지 하단 전체 너비) */}
+          <div className="mt-8 pt-8 border-t border-gray-100">
+            <h3 className="text-xl font-bold mb-4 text-gray-900">모임 설명</h3>
+            <div className="bg-gray-50 rounded-xl p-5 min-h-[200px] max-h-[400px] overflow-y-auto">
+              <p className="text-[17px] md:text-lg text-gray-800 leading-[1.9] whitespace-pre-line">
+                {group.content || "모임에 대한 설명이 없습니다."}
+              </p>
+            </div>
           </div>
         </div>
       </div>

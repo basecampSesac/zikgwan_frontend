@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { useToastStore } from "../store/toastStore";
+import NotificationDropdown from "../components/NotificationDropdown";
 
 export function Navbar() {
   const navigate = useNavigate();
@@ -85,6 +86,8 @@ export function Navbar() {
               </button>
             </>
           )}
+          {/* 알림 */}
+          {isAuthenticated && <NotificationDropdown />}
         </div>
       </div>
     </header>
