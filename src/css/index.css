@@ -35,6 +35,11 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   border: 1px solid rgba(112, 115, 124, 0.22);
 }
 
+/* 모든 <button> 요소에 기본적으로 pointer 커서 적용 */
+button {
+  @apply cursor-pointer;
+}
+
 /* ============================== */
 /* DatePicker B2C 스타일 커스터마이징 */
 /* ============================== */

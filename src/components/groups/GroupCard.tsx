@@ -20,10 +20,7 @@ export default function GroupCard({
   return (
     <article className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
       {/* 이미지 영역 */}
-      <div
-        className="relative h-40 cursor-pointer"
-        onClick={() => navigate(`/groups/${id}`)}
-      >
+      <div className="relative h-40" onClick={() => navigate(`/groups/${id}`)}>
         <img
           src={imageUrl || getDefaultStadiumImage(stadiumName)}
           alt={title}

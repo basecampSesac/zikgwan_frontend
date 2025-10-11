@@ -226,7 +226,7 @@ export default function ProfileSection() {
             />
           )}
         </div>
-        <label className="px-3 py-1 rounded-md text-sm font-medium bg-[#8A2BE2] text-white hover:bg-[#6F00B6] cursor-pointer">
+        <label className="px-3 py-1 rounded-md text-sm font-medium bg-[#8A2BE2] text-white hover:bg-[#6F00B6]">
           변경하기
           <input
             type="file"
@@ -380,7 +380,7 @@ export default function ProfileSection() {
       <p className="text-xs text-center text-gray-500 mt-4">
         회원탈퇴를 원하신다면{" "}
         <span
-          className="underline cursor-pointer text-red-600"
+          className="underline text-red-600"
           onClick={() => setOpenModal(true)}
         >
           여기

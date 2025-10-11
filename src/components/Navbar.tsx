@@ -23,7 +23,7 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* 로고 */}
         <div
-          className="text-2xl font-bold text-[#6F00B6] cursor-pointer flex items-center gap-1"
+          className="text-2xl font-bold text-[#6F00B6] flex items-center gap-1 cursor-pointer"
           onClick={() => navigate("/")}
         >
           <img src="/logo.png" alt="로고" className="h-8 w-auto mb-1" />

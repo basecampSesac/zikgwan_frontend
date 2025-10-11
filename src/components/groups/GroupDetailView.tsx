@@ -15,6 +15,7 @@ import { HiOutlineUsers } from "react-icons/hi";
 import { BiBaseball } from "react-icons/bi";
 import type { CommunityDetail, GroupUI, ApiResponse } from "../../types/group";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
+import { MOCK_MEMBERS } from "../../data/members";
 
 export default function GroupDetailView() {
   const { id } = useParams<{ id: string }>();
@@ -193,7 +194,7 @@ export default function GroupDetailView() {
                 <div className="mb-8">
                   <button
                     onClick={handleJoinChat}
-                    className="w-full px-6 py-3 rounded-lg font-semibold text-lg bg-gradient-to-r from-[#8A2BE2] to-[#6F00B6] text-white hover:opacity-90 transition cursor-pointer"
+                    className="w-full px-6 py-3 rounded-lg font-semibold text-lg bg-gradient-to-r from-[#8A2BE2] to-[#6F00B6] text-white hover:opacity-90 transition"
                   >
                     모임 참여하기
                   </button>
@@ -202,7 +203,7 @@ export default function GroupDetailView() {
                 {/* 버튼 묶음 */}
                 <div className="flex items-center justify-end gap-3 mt-8">
                   {/* 공유 버튼 */}
-                  <div className="cursor-pointer">
+                  <div>
                     <ShareButton />
                   </div>
 
@@ -211,7 +212,7 @@ export default function GroupDetailView() {
                     <>
                       <button
                         onClick={() => setIsEditOpen(true)}
-                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition cursor-pointer"
+                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition"
                       >
                         <FiEdit3 size={16} />
                         수정
@@ -219,7 +220,7 @@ export default function GroupDetailView() {
 
                       <button
                         onClick={() => setIsDeleteOpen(true)}
-                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-red-600 transition cursor-pointer"
+                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-red-600 transition"
                       >
                         <FiTrash2 size={16} />
                         삭제
@@ -230,14 +231,65 @@ export default function GroupDetailView() {
               </div>
             </div>
           </div>
-
-          {/* 상세 설명 (이미지 하단 전체 너비) */}
-          <div className="mt-8 pt-8 border-t border-gray-100">
-            <h3 className="text-xl font-bold mb-4 text-gray-900">모임 설명</h3>
-            <div className="bg-gray-50 rounded-xl p-5 min-h-[200px] max-h-[400px] overflow-y-auto">
-              <p className="text-[17px] md:text-lg text-gray-800 leading-[1.9] whitespace-pre-line">
+          {/* 상세 설명 + 사이드 정보 */}
+          <div className="mt-8 pt-8 border-t border-gray-100 grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-8 items-stretch">
+            {/* 왼쪽: 상세 설명 */}
+            <div className="bg-gray-50 rounded-xl p-6 min-h-[370px] flex flex-col overflow-y-auto border border-gray-100">
+              <h3 className="font-semibold text-gray-800 mb-2 text-lg">
+                모임 설명
+              </h3>
+              <p className="text-[17px] md:text-lg text-gray-800 leading-[1.9] whitespace-pre-line flex-1">
                 {group.content || "모임에 대한 설명이 없습니다."}
               </p>
+            </div>
+
+            {/* 오른쪽: 안내 카드 */}
+            <div className="space-y-6">
+              {/* 모임 매너 가이드 */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 ">
+                <h4 className="font-semibold text-gray-800 mb-2 text-lg">
+                  모임 매너 가이드
+                </h4>
+                <ul className="list-disc pl-5 text-gray-600 text-sm leading-relaxed">
+                  <li>약속된 시간과 장소를 지켜주세요</li>
+                  <li>참석이 어려울 땐 미리 모임원들에게 알려주세요.</li>
+                  <li>
+                    응원 스타일이 달라도 서로 존중하는 마음을 잊지 마세요.
+                  </li>
+                  <li>
+                    즐겁고 편안한 분위기를 위해 예의 있는 대화를 부탁드려요.
+                  </li>
+                </ul>
+              </div>
+
+              {/* 함께하는 멤버 */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 ">
+                <h4 className="font-semibold text-gray-800 mb-3 text-lg">
+                  👥 함께하는 멤버
+                </h4>
+
+                <ul className="space-y-2">
+                  {MOCK_MEMBERS.map((m) => (
+                    <li
+                      key={m.id}
+                      className="flex items-center justify-between bg-white border border-gray-100 rounded-lg px-4 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-50 transition"
+                    >
+                      <span className="font-medium text-gray-800">
+                        {m.nickname}
+                      </span>
+                      <span className="text-xs text-gray-500">{m.team}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="mt-3 text-xs text-gray-500 text-right">
+                  현재{" "}
+                  <span className="text-[#6F00B6] font-semibold">
+                    {MOCK_MEMBERS.length}명
+                  </span>{" "}
+                  이 참여 중이에요.
+                </p>
+              </div>
             </div>
           </div>
         </div>
