@@ -1,4 +1,4 @@
-import { FiShare2 } from "react-icons/fi";
+import { BiShareAlt } from "react-icons/bi";
 
 export default function ShareButton() {
   const handleShare = async () => {
@@ -22,9 +22,10 @@ export default function ShareButton() {
   return (
     <button
       onClick={handleShare}
-      className="flex items-center gap-2 px-4 py-2 text-base rounded-lg border border-[#6F00B6] text-[#6F00B6] font-semibold hover:bg-purple-50 transition"
+      className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#6F00B6] transition"
     >
-      <FiShare2 size={18} /> 공유
+      <BiShareAlt size={16} />
+      공유
     </button>
   );
 }
