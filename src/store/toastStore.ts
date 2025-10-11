@@ -20,7 +20,7 @@ export const useToastStore = create<ToastState>((set) => ({
     const id = Date.now().toString();
     const newToast = { id, message, type };
 
-    set({ toasts: [newToast] }); // ✅ 항상 하나만 유지
+    set({ toasts: [newToast] });
 
     setTimeout(() => {
       set((state) => ({
