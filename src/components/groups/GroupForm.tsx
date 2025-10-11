@@ -275,7 +275,7 @@ export default function GroupForm({
             이미지 업로드 (선택)
           </span>
 
-          <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer hover:bg-gray-50 overflow-hidden relative">
+          <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 hover:bg-gray-50 overflow-hidden relative">
             {images.length > 0 ? (
               <div className="flex gap-2 overflow-x-auto p-2 w-full h-full">
                 {images.map((img, i) => (
@@ -316,7 +316,7 @@ export default function GroupForm({
               accept="image/*"
               multiple
               onChange={handleFile}
-              className="absolute inset-0 opacity-0 cursor-pointer"
+              className="absolute inset-0 opacity-0"
             />
           </div>
 

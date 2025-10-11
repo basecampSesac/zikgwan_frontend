@@ -280,7 +280,7 @@ export default function TicketForm({
           <span className="block text-sm font-medium mb-1 text-gray-600">
             이미지 업로드 (선택)
           </span>
-          <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 cursor-pointer hover:bg-gray-50">
+          <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 hover:bg-gray-50">
             <Upload className="w-6 h-6 text-gray-400" />
             <span className="text-xs text-gray-500">
               클릭 또는 드래그하여 업로드
