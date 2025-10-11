@@ -23,12 +23,13 @@ export interface CommunityDetail extends CommunityBase {
   updatedAt: string;
 }
 
-// 프론트엔드 UI용 (GroupCard, GroupList, GroupForm) 서버 데이터를 프론트에서 표시하기 위한 구조
+// 프론트 UI 전용 타입
 export interface GroupUI {
   id: number;
   title: string;
   content?: string;
   date: string;
+  time?: string;
   stadiumName?: string;
   teams: string;
   personnel: number;
@@ -36,6 +37,8 @@ export interface GroupUI {
   status: "모집중" | "모집마감";
   imageUrl?: string;
   userId?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // 공통 API 응답 타입 모든 axios 요청에서 재사용 가능
