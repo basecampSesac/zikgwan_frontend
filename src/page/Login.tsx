@@ -1,12 +1,11 @@
 import { useAuthStore } from "../store/authStore";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import axiosInstance from "../lib/axiosInstance";
 import { useToastStore } from "../store/toastStore";
 import PasswordReset from "../components/auth/PasswordReset";
 import axios from "axios";
-import { useEffect } from "react";
 
 export default function LoginPage() {
   const { email, password, setEmail, setPassword, login } = useAuthStore();
@@ -18,7 +17,7 @@ export default function LoginPage() {
 
   const isValid = email.trim() !== "" && password.trim() !== "";
 
-  // 로그인 요청
+  //  이메일 로그인
   const handleLogin = async () => {
     try {
       const res = await axiosInstance.post("/api/user/login", {
@@ -34,6 +33,7 @@ export default function LoginPage() {
           email: data.email,
           club: data.club,
           userId: data.userId,
+          provider: "LOCAL" as const,
         };
 
         login(userInfo, data.token, data.refreshToken, rememberMe);
@@ -44,14 +44,13 @@ export default function LoginPage() {
           );
           if (imgRes.data.status === "success" && imgRes.data.data) {
             const imageUrl = `http://localhost:8080${imgRes.data.data}`;
-            // Zustand user 업데이트 (profileImage 반영)
             useAuthStore.getState().setUser({
               ...userInfo,
               profileImage: imageUrl,
             });
           }
         } catch {
-          console.log("⚠️ 프로필 이미지 없음 (기본 회색 표시)");
+          console.log("⚠️ 프로필 이미지 없음 (기본 표시)");
         }
         addToast(`${data.nickname || "회원"}님, 환영합니다! 🎉`, "success");
         navigate("/");
@@ -82,7 +81,6 @@ export default function LoginPage() {
       const res = await axiosInstance.get("/api/socialLogin/kakao/loginUrl");
       const { status, data } = res.data;
       if (status === "success" && data) {
-        // 카카오 로그인 URL로 이동
         window.location.href = data;
       } else {
         addToast("카카오 로그인 URL을 불러오지 못했습니다.", "error");
@@ -92,26 +90,74 @@ export default function LoginPage() {
       console.error(err);
     }
   };
+
+  // 네이버 로그인
+  const handleNaverLogin = async () => {
+    try {
+      const res = await axiosInstance.get("/api/socialLogin/naver/loginUrl");
+      const { status, data } = res.data;
+      if (status === "success" && data) {
+        window.location.href = data;
+      } else {
+        addToast("네이버 로그인 URL을 불러오지 못했습니다.", "error");
+      }
+    } catch (err) {
+      addToast("네이버 로그인 중 오류가 발생했습니다.", "error");
+      console.error(err);
+    }
+  };
+
+  // 구글 로그인
+  const handleGoogleLogin = async () => {
+    try {
+      const res = await axiosInstance.get("/api/socialLogin/google/loginUrl");
+      const { status, data } = res.data;
+      if (status === "success" && data) {
+        window.location.href = data;
+      } else {
+        addToast("구글 로그인 URL을 불러오지 못했습니다.", "error");
+      }
+    } catch (err) {
+      addToast("구글 로그인 중 오류가 발생했습니다.", "error");
+      console.error(err);
+    }
+  };
+
+  // 소셜 로그인 콜백 처리
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const nickname = params.get("nickname");
     const email = params.get("email");
+    const provider = params.get("provider") as
+      | "KAKAO"
+      | "NAVER"
+      | "GOOGLE"
+      | null;
 
-    // 백엔드에서 토큰을 쿠키(HttpOnly)로 심었으니 accessToken은 프론트에서 안 받음
-    if (nickname && email) {
+    // 백엔드에서 redirectAfterLogin 시 accessToken, refreshToken도 전달해야 함
+    const accessToken = params.get("accessToken");
+    const refreshToken = params.get("refreshToken");
+
+    if (nickname && email && provider) {
       const userInfo = {
         userId: 0,
         email,
         nickname,
         club: undefined,
+        provider,
       };
 
-      // 토큰은 없지만 "로그인 성공" 상태로 전환 (세션 유지)
-      login(userInfo, "", "", true);
+      // 토큰 함께 저장
+      login(userInfo, accessToken || "", refreshToken || "", true);
       addToast(`${nickname}님, 환영합니다! 🎉`, "success");
       navigate("/");
     }
   }, [login, addToast, navigate]);
+
+  // 자동 로그인 시도 (페이지 새로고침 시)
+  useEffect(() => {
+    useAuthStore.getState().tryAutoLogin();
+  }, []);
 
   // 비밀번호 재설정 모드
   if (isResetMode) {
@@ -230,21 +276,34 @@ export default function LoginPage() {
           {/* 카카오 로그인 */}
           <button
             onClick={handleKakaoLogin}
-            className="relative flex items-center justify-center w-full rounded-lg overflow-hidden"
-            style={{
-              backgroundImage: "url('/kakao_login.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              height: "50px",
-            }}
+            className="flex items-center justify-center w-full h-[50px] rounded-lg bg-[#FEE500] hover:brightness-95 transition"
           >
-            <span className="sr-only">카카오로 로그인</span>
+            <img src="/kakao_icon.svg" alt="kakao" className="w-5 h-5 mr-2" />
+            <span className="text-[#3A1D1D] font-medium text-[15px]">
+              카카오로 로그인
+            </span>
           </button>
-          <button className="button-border text-black hover:bg-gray-50">
-            네이버로 로그인
+
+          {/* 네이버 로그인 */}
+          <button
+            onClick={handleNaverLogin}
+            className="flex items-center justify-center w-full h-[50px] rounded-lg bg-[#03C75A] hover:brightness-95 transition"
+          >
+            <img src="/naver_icon.svg" alt="naver" className="w-5 h-5 mr-2" />
+            <span className="text-white font-medium text-[15px]">
+              네이버로 로그인
+            </span>
           </button>
-          <button className="button-border text-black hover:bg-gray-50">
-            구글로 로그인
+
+          {/* 구글 로그인 */}
+          <button
+            onClick={handleGoogleLogin}
+            className="flex items-center justify-center w-full h-[50px] rounded-lg border border-gray-300 hover:bg-gray-50 transition"
+          >
+            <img src="/google_icon.svg" alt="google" className="w-5 h-5 mr-2" />
+            <span className="text-gray-700 font-medium text-[15px]">
+              Google 계정으로 로그인
+            </span>
           </button>
         </div>
       </div>
