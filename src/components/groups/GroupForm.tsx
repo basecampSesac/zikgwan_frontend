@@ -9,6 +9,7 @@ import axiosInstance from "../../lib/axiosInstance";
 import { useAuthStore } from "../../store/authStore";
 import { useToastStore } from "../../store/toastStore";
 import type { GroupUI } from "../../types/group";
+import { uploadImage } from "../../api/imageApi";
 
 interface GroupFormProps {
   mode?: "create" | "edit";
@@ -95,6 +96,10 @@ export default function GroupForm({
 
         if (res.data.status === "success") {
           addToast("모임이 등록되었습니다 🎉", "success");
+
+          if (images.length > 0) {
+            await Promise.all(images.map((file) => uploadImage("C", file)));
+          }
 
           // 채팅방 생성
           const communityId = res.data.data.communityId;
