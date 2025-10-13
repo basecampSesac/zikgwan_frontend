@@ -27,6 +27,10 @@ export default function ProfileSection() {
   const [openModal, setOpenModal] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  // 소셜 로그인 여부 판별
+  const isSocialLogin =
+    user?.provider && user.provider !== "LOCAL" && user.provider !== "EMAIL";
+
   // 비밀번호 형식 검사
   const isPasswordValid =
     newPassword.length >= 8 &&
@@ -36,6 +40,7 @@ export default function ProfileSection() {
     /[0-9]/.test(newPassword) &&
     /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
 
+  // 프로필 이미지 변경
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -77,12 +82,14 @@ export default function ProfileSection() {
   // 회원정보 수정
   const handleSave = async () => {
     if (!user) return;
-    if (!currentPassword) {
+
+    // 소셜 로그인은 비밀번호 입력 불필요
+    if (!isSocialLogin && !currentPassword) {
       addToast("회원 정보를 수정하려면 현재 비밀번호를 입력해주세요.", "error");
       return;
     }
 
-    if (newPassword && !isPasswordValid) {
+    if (!isSocialLogin && newPassword && !isPasswordValid) {
       addToast(
         "비밀번호는 영문 대소문자, 숫자, 특수문자를 포함한 8~16자여야 합니다.",
         "error"
@@ -90,24 +97,28 @@ export default function ProfileSection() {
       return;
     }
 
-    if (newPassword && newPassword !== confirmPassword) {
+    if (!isSocialLogin && newPassword && newPassword !== confirmPassword) {
       addToast("새 비밀번호가 일치하지 않습니다.", "error");
       return;
     }
 
-    try {
-      const payload = {
-        nickname,
-        email: user.email,
-        club,
-        password: currentPassword,
-        provider: user.provider || "LOCAL",
-        ...(newPassword && {
-          newpassword: newPassword,
-          newpasswordconfirm: confirmPassword,
-        }),
-      };
+    const payload = {
+      nickname,
+      email: user.email,
+      club,
+      provider: user.provider,
+      ...(isSocialLogin
+        ? {}
+        : {
+            password: currentPassword,
+            ...(newPassword && {
+              newpassword: newPassword,
+              newpasswordconfirm: confirmPassword,
+            }),
+          }),
+    };
 
+    try {
       const { data } = await axiosInstance.put(
         `/api/user/${user.userId}`,
         payload
@@ -120,9 +131,6 @@ export default function ProfileSection() {
           nickname: data.data.nickname || nickname,
           club: data.data.club || club,
         });
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
       } else {
         addToast(data.message || "회원 정보 수정에 실패했습니다.", "error");
       }
@@ -238,12 +246,16 @@ export default function ProfileSection() {
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             placeholder="현재 비밀번호를 입력해주세요."
-            className="input-border h-11 pr-10"
+            className={`input-border h-11 pr-10 ${
+              isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""
+            }`}
+            disabled={isSocialLogin}
           />
           <button
             type="button"
-            onClick={() => setShowCurrentPw((v) => !v)}
+            onClick={() => !isSocialLogin && setShowCurrentPw((v) => !v)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+            disabled={isSocialLogin}
           >
             {showCurrentPw ? (
               <AiOutlineEyeInvisible size={20} />
@@ -262,12 +274,16 @@ export default function ProfileSection() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="새 비밀번호를 입력해주세요."
-            className="input-border h-11 pr-10"
+            className={`input-border h-11 pr-10 ${
+              isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""
+            }`}
+            disabled={isSocialLogin}
           />
           <button
             type="button"
-            onClick={() => setShowNewPw((v) => !v)}
+            onClick={() => !isSocialLogin && setShowNewPw((v) => !v)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+            disabled={isSocialLogin}
           >
             {showNewPw ? (
               <AiOutlineEyeInvisible size={20} />
@@ -276,11 +292,6 @@ export default function ProfileSection() {
             )}
           </button>
         </div>
-        {newPassword && !isPasswordValid && (
-          <p className="text-xs text-red-500 mt-1">
-            비밀번호는 영문 대소문자, 숫자, 특수문자를 포함한 8~16자여야 합니다.
-          </p>
-        )}
       </label>
 
       {/* 새 비밀번호 확인 */}
@@ -291,12 +302,16 @@ export default function ProfileSection() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="새 비밀번호를 확인해주세요."
-            className="input-border h-11 pr-10"
+            className={`input-border h-11 pr-10 ${
+              isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""
+            }`}
+            disabled={isSocialLogin}
           />
           <button
             type="button"
-            onClick={() => setShowConfirmPw((v) => !v)}
+            onClick={() => !isSocialLogin && setShowConfirmPw((v) => !v)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+            disabled={isSocialLogin}
           >
             {showConfirmPw ? (
               <AiOutlineEyeInvisible size={20} />
@@ -316,8 +331,11 @@ export default function ProfileSection() {
           type="text"
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
-          className="input-border h-11"
+          className={`input-border h-11 ${
+            isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""
+          }`}
           placeholder={user?.nickname || "닉네임 입력"}
+          disabled={isSocialLogin}
         />
       </label>
 
@@ -352,7 +370,7 @@ export default function ProfileSection() {
       <p className="text-xs text-center text-gray-500 mt-4">
         회원탈퇴를 원하신다면{" "}
         <span
-          className="underline text-red-600"
+          className="underline text-red-600 cursor-pointer"
           onClick={() => setOpenModal(true)}
         >
           여기
