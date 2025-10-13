@@ -7,6 +7,7 @@ export interface User {
   nickname: string;
   club?: string;
   profileImage?: string;
+  provider?: "LOCAL" | "KAKAO" | "GOOGLE" | "NAVER";
 }
 
 export interface AuthResponse {
