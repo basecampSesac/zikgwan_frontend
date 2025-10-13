@@ -54,6 +54,7 @@ export default function SignupPage() {
       const res = await axiosInstance.post("/api/email/verify", {
         email,
         code: verificationCode,
+        verifiedType: "S",
       });
       if (res.data.status === "success") {
         setIsEmailVerified(true);
@@ -62,7 +63,7 @@ export default function SignupPage() {
         addToast(res.data.message || "인증번호가 올바르지 않습니다.", "error");
       }
     } catch (e) {
-      console.error(e);
+      console.error(e, verificationCode);
       addToast("인증번호 확인 중 오류가 발생했습니다.", "error");
     }
   };
