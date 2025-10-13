@@ -7,7 +7,7 @@ export interface User {
   nickname: string;
   club?: string;
   profileImage?: string;
-  provider?: "LOCAL" | "KAKAO" | "GOOGLE" | "NAVER";
+  provider?: "LOCAL" | "KAKAO" | "GOOGLE" | "NAVER" | "EMAIL";
 }
 
 export interface AuthResponse {
@@ -15,8 +15,9 @@ export interface AuthResponse {
   email: string;
   nickname: string;
   club?: string;
-  token: string; // accessToken
+  token: string;
   refreshToken: string;
+  provider?: "LOCAL" | "KAKAO" | "GOOGLE" | "NAVER";
 }
 
 interface AuthState {
@@ -56,7 +57,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setUser: (user) => set({ user }),
   setNickname: (nickname) => set({ nickname }),
 
-  // 로그인
+  /** 로그인 **/
   login: (user, accessToken, refreshToken, rememberMe) => {
     const storage = rememberMe ? localStorage : sessionStorage;
     storage.setItem("refreshToken", refreshToken);
@@ -68,7 +69,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 
-  // 로그아웃
+  /** 로그아웃 **/
   logout: async () => {
     const { user, accessToken } = get();
 
@@ -90,9 +91,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  // 자동 로그인 (refreshToken 기반)
+  /** 자동 로그인 **/
   tryAutoLogin: async () => {
-    // localStorage > sessionStorage 우선순위
     const refreshToken =
       localStorage.getItem("refreshToken") ||
       sessionStorage.getItem("refreshToken");
@@ -112,6 +112,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           email: data.email,
           nickname: data.nickname,
           club: data.club,
+          provider: data.provider || "LOCAL",
         };
 
         set({
@@ -137,7 +138,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  // 액세스 토큰 재발급
+  /** 토큰 재발급 **/
   refreshAccessToken: async () => {
     const refreshToken =
       localStorage.getItem("refreshToken") ||
