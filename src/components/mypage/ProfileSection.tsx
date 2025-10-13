@@ -6,6 +6,7 @@ import { useToastStore } from "../../store/toastStore";
 import { TEAMS } from "../../constants/teams";
 import axiosInstance from "../../lib/axiosInstance";
 import axios, { AxiosError } from "axios";
+import { uploadImage } from "../../api/imageApi";
 
 export default function ProfileSection() {
   const { user, logout, setUser } = useAuthStore();
@@ -16,16 +17,15 @@ export default function ProfileSection() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
-
   const [profileImage, setProfileImage] = useState<string | null>(
     user?.profileImage || null
   );
   const [errorMessage, setErrorMessage] = useState("");
   const [openModal, setOpenModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // 비밀번호 형식 검사
   const isPasswordValid =
@@ -36,11 +36,47 @@ export default function ProfileSection() {
     /[0-9]/.test(newPassword) &&
     /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
 
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    const prevImage = profileImage;
+    const previewUrl = URL.createObjectURL(file);
+    setProfileImage(previewUrl);
+    setErrorMessage("");
+    setUploading(true);
+
+    try {
+      await uploadImage("U", file, user.userId);
+
+      const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
+
+      if (data.status === "success" && data.data) {
+        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
+        const path = data.data.startsWith("/") ? data.data : `/${data.data}`;
+        const imageUrl = `${baseUrl}${path}`;
+
+        setProfileImage(imageUrl);
+        setUser({ ...user, profileImage: imageUrl });
+        addToast("프로필 이미지가 변경되었습니다.", "success");
+      } else {
+        throw new Error(data.message || "이미지 조회 실패");
+      }
+    } catch (err) {
+      console.error("🚨 프로필 업로드 오류:", err);
+      setProfileImage(prevImage);
+      setErrorMessage(
+        "프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요."
+      );
+      addToast("프로필 이미지 업로드 실패", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   // 회원정보 수정
   const handleSave = async () => {
     if (!user) return;
-
-    // 모든 수정 시 현재 비밀번호 필수
     if (!currentPassword) {
       addToast("회원 정보를 수정하려면 현재 비밀번호를 입력해주세요.", "error");
       return;
@@ -60,24 +96,17 @@ export default function ProfileSection() {
     }
 
     try {
-      const payload: {
-        nickname: string;
-        email: string;
-        club: string;
-        password: string;
-        newpassword?: string;
-        newpasswordconfirm?: string;
-      } = {
+      const payload = {
         nickname,
         email: user.email,
         club,
         password: currentPassword,
+        provider: user.provider || "LOCAL",
+        ...(newPassword && {
+          newpassword: newPassword,
+          newpasswordconfirm: confirmPassword,
+        }),
       };
-
-      if (newPassword) {
-        payload.newpassword = newPassword;
-        payload.newpasswordconfirm = confirmPassword;
-      }
 
       const { data } = await axiosInstance.put(
         `/api/user/${user.userId}`,
@@ -141,76 +170,12 @@ export default function ProfileSection() {
         addToast(data.message || "회원탈퇴에 실패했습니다.", "error");
       }
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const axiosError = err as AxiosError<{
-          status: string;
-          message: string;
-        }>;
-        console.error(
-          "회원탈퇴 오류:",
-          axiosError.response?.data || axiosError.message
-        );
-        addToast(
-          axiosError.response?.data?.message ||
-            "회원탈퇴 중 오류가 발생했습니다.",
-          "error"
-        );
-      } else {
-        console.error("예상치 못한 오류:", err);
-        addToast("알 수 없는 오류가 발생했습니다.", "error");
-      }
+      console.error("회원탈퇴 오류:", err);
+      addToast("회원탈퇴 중 오류가 발생했습니다.", "error");
     } finally {
       setOpenModal(false);
     }
   };
-
-  // 프로필 이미지 업로드
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const prevImage = profileImage;
-    const previewUrl = URL.createObjectURL(file);
-    setProfileImage(previewUrl);
-    setErrorMessage("");
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const { data } = await axiosInstance.post(
-        "/api/user/profile-image",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
-
-      if (data.status === "success") {
-        setProfileImage(data.url);
-        setUser({ ...user!, profileImage: data.url });
-        addToast("프로필 이미지가 변경되었습니다.", "success");
-      } else {
-        throw new Error(data.message || "업로드 실패");
-      }
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const axiosError = err as AxiosError<{ message?: string }>;
-        console.error(
-          "프로필 업로드 오류:",
-          axiosError.response?.data || axiosError.message
-        );
-      } else {
-        console.error("예상치 못한 오류:", err);
-      }
-      setProfileImage(prevImage);
-      setErrorMessage(
-        "프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요."
-      );
-      addToast("프로필 이미지 업로드 실패", "error");
-    }
-  };
-
   return (
     <div>
       <h1 className="text-2xl font-bold mb-8 text-center">프로필 수정</h1>
@@ -226,13 +191,20 @@ export default function ProfileSection() {
             />
           )}
         </div>
-        <label className="px-3 py-1 rounded-md text-sm font-medium bg-[#8A2BE2] text-white hover:bg-[#6F00B6]">
-          변경하기
+        <label
+          className={`px-3 py-1 rounded-md text-sm font-medium text-white cursor-pointer ${
+            uploading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-[#8A2BE2] hover:bg-[#6F00B6]"
+          }`}
+        >
+          {uploading ? "업로드 중..." : "변경하기"}
           <input
             type="file"
             accept="image/*"
             className="hidden"
             onChange={handleImageChange}
+            disabled={uploading}
           />
         </label>
         {errorMessage && (

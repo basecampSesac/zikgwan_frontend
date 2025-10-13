@@ -37,6 +37,22 @@ export default function LoginPage() {
         };
 
         login(userInfo, data.token, data.refreshToken, rememberMe);
+        // 로그인 후 프로필 이미지 조회
+        try {
+          const imgRes = await axiosInstance.get(
+            `/api/images/U/${data.userId}`
+          );
+          if (imgRes.data.status === "success" && imgRes.data.data) {
+            const imageUrl = `http://localhost:8080${imgRes.data.data}`;
+            // Zustand user 업데이트 (profileImage 반영)
+            useAuthStore.getState().setUser({
+              ...userInfo,
+              profileImage: imageUrl,
+            });
+          }
+        } catch {
+          console.log("⚠️ 프로필 이미지 없음 (기본 회색 표시)");
+        }
         addToast(`${data.nickname || "회원"}님, 환영합니다! 🎉`, "success");
         navigate("/");
         return;
