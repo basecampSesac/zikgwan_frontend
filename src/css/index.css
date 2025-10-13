@@ -106,3 +106,21 @@ button {
   @apply w-full rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#6F00B6];
   border: 1px solid rgba(112, 115, 124, 0.22);
 }
+
+/* 스크롤바 연하게 커스터마이징 */
+::-webkit-scrollbar {
+  width: 6px; /* 얇게 */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
