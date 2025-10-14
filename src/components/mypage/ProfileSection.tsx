@@ -28,8 +28,12 @@ export default function ProfileSection() {
   const [uploading, setUploading] = useState(false);
 
   // 소셜 로그인 여부 판별
-  const isSocialLogin =
-    user?.provider && user.provider !== "LOCAL" && user.provider !== "EMAIL";
+  const provider = user?.provider?.toLowerCase();
+  const isSocialLogin = !!(
+    provider &&
+    provider !== "local" &&
+    provider !== "email"
+  );
 
   // 비밀번호 형식 검사
   const isPasswordValid =
@@ -83,8 +87,11 @@ export default function ProfileSection() {
   const handleSave = async () => {
     if (!user) return;
 
+    setErrorMessage("");
+
     // 소셜 로그인은 비밀번호 입력 불필요
     if (!isSocialLogin && !currentPassword) {
+      setErrorMessage("현재 비밀번호를 입력해주세요.");
       addToast("회원 정보를 수정하려면 현재 비밀번호를 입력해주세요.", "error");
       return;
     }
@@ -113,7 +120,7 @@ export default function ProfileSection() {
             password: currentPassword,
             ...(newPassword && {
               newpassword: newPassword,
-              newpasswordconfirm: confirmPassword,
+              newpasswordConfirm: confirmPassword,
             }),
           }),
     };
@@ -125,12 +132,17 @@ export default function ProfileSection() {
       );
 
       if (data.status === "success") {
-        addToast("회원 정보가 정상적으로 수정되었습니다.", "success");
-        setUser({
+        const updated = {
           ...user,
           nickname: data.data.nickname || nickname,
           club: data.data.club || club,
-        });
+        };
+
+        setUser(updated);
+        setNickname(updated.nickname);
+        setClub(updated.club);
+
+        addToast("회원 정보가 정상적으로 수정되었습니다.", "success");
       } else {
         addToast(data.message || "회원 정보 수정에 실패했습니다.", "error");
       }
@@ -167,9 +179,7 @@ export default function ProfileSection() {
   const handleDelete = async () => {
     if (!user) return;
     try {
-      const { data } = await axiosInstance.patch(
-        `/api/user/delete/${user.userId}`
-      );
+      const { data } = await axiosInstance.delete(`/api/user/${user.userId}`);
       if (data.status === "success" && data.data === true) {
         addToast("회원탈퇴가 완료되었습니다.", "success");
         logout();
@@ -184,6 +194,7 @@ export default function ProfileSection() {
       setOpenModal(false);
     }
   };
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-8 text-center">프로필 수정</h1>
@@ -264,6 +275,9 @@ export default function ProfileSection() {
             )}
           </button>
         </div>
+        {!isSocialLogin && errorMessage && (
+          <p className="text-xs text-red-500 mt-1">{errorMessage}</p>
+        )}
       </label>
 
       {/* 새 비밀번호 */}
