@@ -14,7 +14,6 @@ import {
   FiTrash2,
   FiCreditCard,
 } from "react-icons/fi";
-import { BiBaseball } from "react-icons/bi";
 import { HiOutlineUsers } from "react-icons/hi";
 
 interface Props {
@@ -95,21 +94,15 @@ export default function TicketDetailView({ ticket }: Props) {
             {/* 오른쪽 정보 영역 */}
             <div className="flex flex-col justify-between">
               <div>
-                {/* 제목 */}
                 <h2 className="text-3xl font-bold mt-5 mb-6 text-gray-900 tracking-tight">
                   {ticket.title}
                 </h2>
 
-                {/* 티켓 정보 */}
                 <div className="text-gray-700 mb-4 divide-y divide-gray-100">
                   {[
                     {
                       icon: <FiCalendar className="text-gray-500" size={22} />,
-                      text: ticket.gameDate,
-                    },
-                    {
-                      icon: <BiBaseball className="text-gray-500" size={22} />,
-                      text: `${ticket.homeTeam} vs ${ticket.awayTeam}`,
+                      text: new Date(ticket.gameDate).toLocaleString(),
                     },
                     {
                       icon: <FiMapPin className="text-gray-500" size={22} />,
@@ -125,7 +118,9 @@ export default function TicketDetailView({ ticket }: Props) {
                       icon: (
                         <FiCreditCard className="text-gray-500" size={22} />
                       ),
-                      text: `가격: ${ticket.price.toLocaleString()}원`,
+                      text: `가격: ${ticket.price.toLocaleString()}원 (${
+                        ticket.ticketCount
+                      }매)`,
                     },
                   ].map((item, idx) => (
                     <div
@@ -177,49 +172,33 @@ export default function TicketDetailView({ ticket }: Props) {
 
           {/* 상세 설명 + 사이드 정보 */}
           <div className="mt-8 pt-8 border-t border-gray-100 grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-8 items-stretch">
-            {/* 왼쪽: 상세 설명 */}
             <div className="bg-gray-50 rounded-xl p-6 min-h-[370px] flex flex-col overflow-y-auto border border-gray-100">
               <h3 className="font-semibold text-gray-800 mb-2 text-lg">
                 티켓 상세 설명
               </h3>
               <p className="text-[17px] md:text-lg text-gray-800 leading-[1.9] whitespace-pre-line flex-1">
-                {ticket.content || "판매자가 작성한 상세 설명이 없습니다."}
+                {ticket.description || "판매자가 작성한 상세 설명이 없습니다."}
               </p>
             </div>
 
             {/* 오른쪽: 안내 카드 + 거래자 목록 */}
             <div className="space-y-6">
-              {/* 거래 매너 가이드 */}
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
-                <h4 className="font-semibold text-gray-800 mb-2 text-lg">
-                  거래 매너 가이드
-                </h4>
-                <ul className="list-disc pl-5 text-gray-600 text-sm leading-relaxed">
-                  <li>직거래 시 반드시 공공장소에서 만나세요.</li>
-                  <li>QR 티켓은 거래 완료 후 즉시 전송을 권장합니다.</li>
-                  <li>선입금 요청 시 신중하게 확인해주세요.</li>
-                  <li>예의 있는 대화와 신뢰를 지켜주세요.</li>
-                </ul>
-              </div>
-              {/* 판매자 정보 */}
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                 <h4 className="font-semibold text-gray-800 mb-3 text-lg">
                   💁 판매자 정보
                 </h4>
 
                 <div className="flex items-center gap-4 mt-8 mb-8">
-                  {/* 프로필 이미지 */}
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8A2BE2] to-[#6F00B6] flex items-center justify-center text-white text-xl font-bold shadow-sm flex-shrink-0">
                     {ticket.seller.nickname.charAt(0).toUpperCase()}
                   </div>
 
-                  {/* 닉네임 + 평점 */}
                   <div className="flex flex-col justify-center leading-tight">
                     <p className="text-[15px] font-semibold text-gray-900">
                       {ticket.seller.nickname}
                     </p>
                     <p className="text-sm text-gray-600 flex items-center gap-1 mt-[2px]">
-                      ⭐ {ticket.seller.rate.toFixed(1)} / 5.0
+                      ⭐ {(ticket.seller.rate ?? 0).toFixed(1)} / 5.0
                     </p>
                   </div>
                 </div>
@@ -229,7 +208,6 @@ export default function TicketDetailView({ ticket }: Props) {
         </div>
       </div>
 
-      {/* 삭제 확인 모달 */}
       <ConfirmModal
         isOpen={isDeleteOpen}
         title="티켓 삭제"
@@ -242,7 +220,6 @@ export default function TicketDetailView({ ticket }: Props) {
         onConfirm={handleDeleteTicket}
       />
 
-      {/* 수정 모달 */}
       <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)}>
         <TicketForm
           mode="edit"
