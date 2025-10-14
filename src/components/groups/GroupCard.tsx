@@ -6,6 +6,7 @@ import axios, { AxiosError } from "axios";
 import type { GroupUI } from "../../types/group";
 import { formatDate } from "../../utils/format";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
+import { useAuthStore } from "../../store/authStore";
 
 const imageCache = new Map<number, string>();
 
@@ -21,6 +22,7 @@ export default function GroupCard({
 }: GroupUI) {
   const navigate = useNavigate();
   const [imageUrl, setImageUrl] = useState<string | undefined>();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     const fetchImage = async () => {
@@ -49,10 +51,18 @@ export default function GroupCard({
     fetchImage();
   }, [id]);
 
+  const isEnded = status === "모집마감";
+  const isLeader = user?.nickname === leader;
+
+  const handleClick = () => {
+    if (isEnded && !isLeader) return; // 모집마감 + 작성자 아님 → 이동 차단
+    navigate(`/groups/${id}`);
+  };
+
   return (
     <article
-      className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition"
-      onClick={() => navigate(`/groups/${id}`)}
+      onClick={handleClick}
+      className="bg-white rounded-xl shadow-md overflow-hidden transition hover:shadow-lg cursor-pointer relative"
     >
       {/* 이미지 영역 */}
       <div className="relative h-44">
@@ -62,20 +72,28 @@ export default function GroupCard({
           className="w-full h-full object-cover transition-transform duration-200 hover:scale-[1.02]"
         />
 
-        {/* 상태 뱃지 */}
-        {status && (
-          <span
-            className={`absolute top-2 left-2 text-white text-xs font-semibold px-2 py-0.5 rounded-md shadow ${
-              status === "모집중" ? "bg-[#6F00B6]" : "bg-gray-500"
-            }`}
-          >
-            {status}
+        {/* 모집마감 시 블랙 오버레이 + 중앙 문구 */}
+        {isEnded && (
+          <div className="absolute inset-0 bg-black/55 z-10 flex items-center justify-center">
+            <span className="text-white text-lg font-bold tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+              모집 완료
+            </span>
+          </div>
+        )}
+
+        {/* 상태 뱃지 (모집중일 때만 표시) */}
+        {!isEnded && (
+          <span className="absolute top-2 left-2 text-white text-xs font-semibold px-2 py-0.5 rounded-md shadow bg-[#6F00B6] z-20">
+            모집중
           </span>
         )}
-        {/* 구장명 뱃지 */}
-        <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
-          {stadiumName}
-        </span>
+
+        {/* 구장명 뱃지 (모집중일 때만 표시) */}
+        {!isEnded && (
+          <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded z-20">
+            {stadiumName}
+          </span>
+        )}
       </div>
 
       {/* 본문 */}
@@ -84,6 +102,7 @@ export default function GroupCard({
         <h3 className="text-[17px] font-bold text-gray-900 line-clamp-1">
           {title}
         </h3>
+
         {/* 경기 정보 */}
         <p className="text-sm text-gray-500 line-clamp-1">{teams}</p>
 
@@ -97,7 +116,10 @@ export default function GroupCard({
         <div className="flex items-center justify-between text-sm text-gray-600 mt-1">
           <div className="flex items-center gap-1">
             <UserRound size={15} />
-            <span>{personnel}명 모집중</span>
+            <span>
+              {personnel}
+              {isEnded ? "명 모집완료" : "명 모집중"}
+            </span>
           </div>
           <div className="flex items-center gap-1 text-gray-400 text-xs">
             <User size={13} />
@@ -106,8 +128,15 @@ export default function GroupCard({
         </div>
 
         {/* 버튼 */}
-        <button className="w-full mt-3 py-2 text-sm font-semibold rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">
-          상세보기
+        <button
+          disabled={isEnded && !isLeader}
+          className={`w-full mt-3 py-2 text-sm font-semibold rounded-lg transition ${
+            isEnded && !isLeader
+              ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+          }`}
+        >
+          {isEnded ? (isLeader ? "모임 관리하기" : "모집 완료") : "상세보기"}
         </button>
       </div>
     </article>
