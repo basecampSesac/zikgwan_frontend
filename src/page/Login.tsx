@@ -5,7 +5,6 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import axiosInstance from "../lib/axiosInstance";
 import { useToastStore } from "../store/toastStore";
 import PasswordReset from "../components/auth/PasswordReset";
-import axios from "axios";
 
 export default function LoginPage() {
   const { email, password, setEmail, setPassword, login } = useAuthStore();
@@ -36,7 +35,7 @@ export default function LoginPage() {
           provider: "LOCAL" as const,
         };
 
-        login(userInfo, data.token, data.refreshToken, rememberMe);
+        login(userInfo, data.token, rememberMe);
         // 로그인 후 프로필 이미지 조회
         try {
           const imgRes = await axiosInstance.get(
@@ -57,21 +56,10 @@ export default function LoginPage() {
         return;
       }
 
-      // 로그인 실패
       addToast("이메일 또는 비밀번호가 올바르지 않습니다.", "error");
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const msg = err.response?.data?.message;
-        if (msg === "로그인 실패") {
-          addToast("이메일 또는 비밀번호가 올바르지 않습니다.", "error");
-        } else {
-          addToast("로그인 중 오류가 발생했습니다.", "error");
-        }
-      } else {
-        addToast("서버 연결 오류가 발생했습니다.", "error");
-      }
-
       console.error("로그인 요청 오류:", err);
+      addToast("로그인 중 오류가 발생했습니다.", "error");
     }
   };
 
@@ -128,36 +116,39 @@ export default function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     const nickname = params.get("nickname");
     const email = params.get("email");
-    const provider = params.get("provider") as
-      | "KAKAO"
-      | "NAVER"
-      | "GOOGLE"
-      | null;
 
-    // 백엔드에서 redirectAfterLogin 시 accessToken, refreshToken도 전달해야 함
-    const accessToken = params.get("accessToken");
-    const refreshToken = params.get("refreshToken");
+    if (nickname && email) {
+      (async () => {
+        try {
+          const res = await axiosInstance.post(
+            "/api/user/refresh/login",
+            {},
+            { withCredentials: true }
+          );
+          const { status, data } = res.data;
 
-    if (nickname && email && provider) {
-      const userInfo = {
-        userId: 0,
-        email,
-        nickname,
-        club: undefined,
-        provider,
-      };
+          if (status === "success" && data) {
+            const userInfo = {
+              userId: data.userId,
+              email: data.email,
+              nickname: data.nickname,
+              club: data.club,
+              provider: data.provider || "LOCAL",
+            };
 
-      // 토큰 함께 저장
-      login(userInfo, accessToken || "", refreshToken || "", true);
-      addToast(`${nickname}님, 환영합니다! 🎉`, "success");
-      navigate("/");
+            useAuthStore.getState().login(userInfo, data.token, true);
+            addToast(`${data.nickname}님, 환영합니다! 🎉`, "success");
+            navigate("/");
+          } else {
+            addToast("자동 로그인에 실패했습니다.", "error");
+          }
+        } catch (err) {
+          console.error("소셜 로그인 처리 중 오류:", err);
+          addToast("로그인 중 오류가 발생했습니다.", "error");
+        }
+      })();
     }
-  }, [login, addToast, navigate]);
-
-  // 자동 로그인 시도 (페이지 새로고침 시)
-  useEffect(() => {
-    useAuthStore.getState().tryAutoLogin();
-  }, []);
+  }, [addToast, navigate]);
 
   // 비밀번호 재설정 모드
   if (isResetMode) {

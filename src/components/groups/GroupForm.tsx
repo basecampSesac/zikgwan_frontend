@@ -34,8 +34,9 @@ export default function GroupForm({
   const [meetingDate, setMeetingDate] = useState<Date | null>(
     initialValues?.date ? new Date(initialValues.date) : null
   );
-
   const [images, setImages] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setImages(Array.from(e.target.files));
@@ -59,6 +60,7 @@ export default function GroupForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     if (
       !form.title ||
@@ -86,27 +88,44 @@ export default function GroupForm({
       away: form.awayTeam,
       memberCount: Number(form.personnel),
     };
+    setIsSubmitting(true);
 
     try {
       if (mode === "create") {
+        // 모임 생성
         const res = await axiosInstance.post(
           `/api/communities/${user.userId}`,
           payload
         );
 
         if (res.data.status === "success") {
+          const communityId = res.data.data.communityId;
           addToast("모임이 등록되었습니다 🎉", "success");
 
+          // 이미지 업로드
           if (images.length > 0) {
-            await Promise.all(images.map((file) => uploadImage("C", file)));
+            await Promise.all(
+              images.map((file) => uploadImage("C", file, communityId))
+            );
+
+            // 업로드 후 이미지 확인 (썸네일 반영)
+            try {
+              const imgRes = await axiosInstance.get(
+                `/api/images/C/${communityId}`
+              );
+              if (imgRes.data.status === "success" && imgRes.data.data) {
+                console.log("✅ 모임 썸네일 업로드 성공:", imgRes.data.data);
+              }
+            } catch (err) {
+              console.warn("⚠️ 썸네일 조회 실패:", err);
+            }
           }
 
           // 채팅방 생성
-          const communityId = res.data.data.communityId;
           await axiosInstance.post(
             `/api/chatroom/community/${communityId}?roomName=${encodeURIComponent(
               form.title
-            )} `
+            )}`
           );
         } else {
           addToast(res.data.message || "모임 등록 실패", "error");
@@ -116,7 +135,6 @@ export default function GroupForm({
           `/api/communities/${initialValues?.id}`,
           payload
         );
-
         if (res.data.status === "success") {
           addToast("모임이 수정되었습니다 ✨", "success");
         } else {
@@ -128,6 +146,8 @@ export default function GroupForm({
     } catch (err) {
       console.error("모임 등록/수정 오류:", err);
       addToast("서버 오류가 발생했습니다.", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -187,7 +207,6 @@ export default function GroupForm({
 
         {/* 팀, 구장, 인원 */}
         <div className="grid grid-cols-2 gap-4">
-          {/* 홈팀 */}
           <label className="block">
             <span className="block text-sm font-medium mb-1 text-gray-600">
               홈팀*
@@ -197,7 +216,6 @@ export default function GroupForm({
               value={form.homeTeam}
               onChange={handleChange}
               className="input-border"
-              required
             >
               <option value="">선택</option>
               {TEAMS.map((team) => (
@@ -212,7 +230,6 @@ export default function GroupForm({
             </select>
           </label>
 
-          {/* 원정팀 */}
           <label className="block">
             <span className="block text-sm font-medium mb-1 text-gray-600">
               원정팀*
@@ -222,7 +239,6 @@ export default function GroupForm({
               value={form.awayTeam}
               onChange={handleChange}
               className="input-border"
-              required
             >
               <option value="">선택</option>
               {TEAMS.map((team) => (
@@ -248,7 +264,6 @@ export default function GroupForm({
             value={form.stadiumName}
             onChange={handleChange}
             className="input-border"
-            required
           >
             <option value="">야구장 선택</option>
             {STADIUMS.map((stadium) => (
@@ -300,7 +315,6 @@ export default function GroupForm({
                         setImages((prev) => prev.filter((_, idx) => idx !== i));
                       }}
                       className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs z-10 transition"
-                      title="삭제"
                     >
                       ×
                     </button>
@@ -315,7 +329,6 @@ export default function GroupForm({
                 </span>
               </div>
             )}
-
             <input
               type="file"
               accept="image/*"
@@ -324,7 +337,6 @@ export default function GroupForm({
               className="absolute inset-0 opacity-0"
             />
           </div>
-
           {images.length > 0 && (
             <p className="text-xs text-gray-500 mt-1">
               선택된 파일 {images.length}개
@@ -334,7 +346,12 @@ export default function GroupForm({
 
         <button
           type="submit"
-          className="w-full py-3 rounded-lg font-semibold transition-colors bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
+          disabled={isSubmitting}
+          className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+            isSubmitting
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
+          }`}
         >
           {mode === "create" ? "등록하기" : "수정 완료"}
         </button>

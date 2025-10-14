@@ -16,7 +16,6 @@ export interface AuthResponse {
   nickname: string;
   club?: string;
   token: string;
-  refreshToken: string;
   provider?: "LOCAL" | "KAKAO" | "GOOGLE" | "NAVER";
 }
 
@@ -33,18 +32,13 @@ interface AuthState {
   setUser: (user: User | null) => void;
   setNickname: (nickname: string | null) => void;
 
-  login: (
-    user: User,
-    accessToken: string,
-    refreshToken: string,
-    rememberMe: boolean
-  ) => void;
+  login: (user: User, accessToken: string, rememberMe: boolean) => void;
   logout: () => Promise<void>;
   tryAutoLogin: () => Promise<void>;
   refreshAccessToken: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set, _get) => ({
   isAuthenticated: false,
   user: null,
   accessToken: null,
@@ -58,9 +52,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setNickname: (nickname) => set({ nickname }),
 
   /** 로그인 **/
-  login: (user, accessToken, refreshToken, rememberMe) => {
+  login: (user, accessToken, rememberMe) => {
     const storage = rememberMe ? localStorage : sessionStorage;
-    storage.setItem("refreshToken", refreshToken);
+    storage.setItem("accessToken", accessToken);
 
     set({
       isAuthenticated: true,
@@ -71,40 +65,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /** 로그아웃 **/
   logout: async () => {
-    const { user, accessToken } = get();
-
     try {
-      if (user && accessToken) {
-        const res = await axiosInstance.get("/api/user/logout", {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        if (res.data.status === "success") {
-          console.log("✅ 서버 로그아웃 완료");
-        }
-      }
+      await axiosInstance.get("/api/user/logout");
+      console.log("✅ 서버 로그아웃 완료");
     } catch (err) {
       console.error("❌ 로그아웃 중 오류:", err);
     } finally {
-      localStorage.removeItem("refreshToken");
-      sessionStorage.removeItem("refreshToken");
+      localStorage.removeItem("accessToken");
+      sessionStorage.removeItem("accessToken");
       set({ isAuthenticated: false, user: null, accessToken: null });
     }
   },
 
   /** 자동 로그인 **/
   tryAutoLogin: async () => {
-    const refreshToken =
-      localStorage.getItem("refreshToken") ||
-      sessionStorage.getItem("refreshToken");
-
-    if (!refreshToken) return;
-
     try {
-      const res = await axiosInstance.post<{
-        status: string;
-        data: AuthResponse;
-      }>("/api/user/refresh/login", { refreshToken });
-
+      const res = await axiosInstance.post("/api/user/refresh/login");
       const { status, data } = res.data;
       if (status === "success" && data) {
         const userInfo: User = {
@@ -121,53 +97,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           accessToken: data.token,
         });
 
-        // 새 refreshToken 저장
-        if (localStorage.getItem("refreshToken")) {
-          localStorage.setItem("refreshToken", data.refreshToken);
-        } else {
-          sessionStorage.setItem("refreshToken", data.refreshToken);
-        }
-
+        localStorage.setItem("accessToken", data.token);
         console.log("✅ 자동 로그인 성공");
       } else {
-        await get().logout();
+        console.warn("자동 로그인 실패: 서버 응답 오류");
+        set({ isAuthenticated: false, user: null, accessToken: null });
       }
     } catch (err) {
       console.warn("자동 로그인 실패:", err);
-      await get().logout();
+      set({ isAuthenticated: false, user: null, accessToken: null });
     }
   },
 
   /** 토큰 재발급 **/
   refreshAccessToken: async () => {
-    const refreshToken =
-      localStorage.getItem("refreshToken") ||
-      sessionStorage.getItem("refreshToken");
-    if (!refreshToken) return;
-
     try {
-      const res = await axiosInstance.post<{
-        status: string;
-        data: AuthResponse;
-      }>("/api/user/refresh/login", { refreshToken });
-
+      const res = await axiosInstance.post("/api/user/refresh/login");
       const { status, data } = res.data;
+
       if (status === "success" && data?.token) {
         set({ accessToken: data.token });
-
-        if (localStorage.getItem("refreshToken")) {
-          localStorage.setItem("refreshToken", data.refreshToken);
-        } else {
-          sessionStorage.setItem("refreshToken", data.refreshToken);
-        }
-
+        localStorage.setItem("accessToken", data.token);
         console.log("🔄 액세스 토큰 갱신 완료");
       } else {
-        await get().logout();
+        console.warn("토큰 갱신 실패: 서버 응답 오류");
+        set({ isAuthenticated: false, user: null, accessToken: null });
       }
     } catch (err) {
       console.error("토큰 갱신 실패:", err);
-      await get().logout();
+      set({ isAuthenticated: false, user: null, accessToken: null });
     }
   },
 }));

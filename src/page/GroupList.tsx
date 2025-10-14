@@ -7,6 +7,10 @@ import GroupForm from "../components/groups/GroupForm";
 import Modal from "../components/Modal";
 import axiosInstance from "../lib/axiosInstance";
 import type { CommunityItem, ApiResponse, GroupUI } from "../types/group";
+import { useAuthStore } from "../store/authStore";
+import { useToastStore } from "../store/toastStore";
+
+const imageCache = new Map<number, string>();
 
 type SortType = "RECENT" | "MOST" | "LEAST";
 
@@ -25,12 +29,17 @@ export default function GroupList() {
   const [sortType, setSortType] = useState<SortType>("RECENT");
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  // 모임 목록 조회
+  const { isAuthenticated } = useAuthStore();
+  const { addToast } = useToastStore();
+
+  // 모임 목록 + 이미지 불러오기
   const fetchGroups = async (
     sort: SortType = "RECENT",
     pageNum: number = 0
   ) => {
+    setLoading(true);
     try {
       const res = await axiosInstance.get<
         ApiResponse<PageResponse<CommunityItem>>
@@ -39,26 +48,52 @@ export default function GroupList() {
       if (res.data.status === "success" && res.data.data) {
         const { content, totalPages } = res.data.data;
 
-        const mapped: GroupUI[] = content.map((g) => ({
-          id: g.communityId,
-          title: g.title,
-          content: g.description,
-          date: g.date,
-          stadiumName: g.stadium,
-          teams: `${g.home} vs ${g.away}`,
-          personnel: g.memberCount,
-          leader: g.nickname,
-          status: g.state === "ING" ? "모집중" : "모집마감",
-        }));
+        const mappedGroups: GroupUI[] = await Promise.all(
+          content.map(async (g) => {
+            let imageUrl: string | undefined;
 
-        setGroups(mapped);
+            // 캐시 확인
+            if (imageCache.has(g.communityId)) {
+              imageUrl = imageCache.get(g.communityId) || undefined;
+            } else {
+              try {
+                const imgRes = await axiosInstance.get(
+                  `/api/images/C/${g.communityId}`
+                );
+                if (imgRes.data.status === "success" && imgRes.data.data) {
+                  imageUrl = `http://localhost:8080${imgRes.data.data}`;
+                  imageCache.set(g.communityId, imageUrl);
+                } else {
+                  imageCache.set(g.communityId, "");
+                }
+              } catch {
+                imageCache.set(g.communityId, "");
+              }
+            }
+
+            return {
+              id: g.communityId,
+              title: g.title,
+              content: g.description,
+              date: g.date,
+              stadiumName: g.stadium,
+              teams: `${g.home} vs ${g.away}`,
+              personnel: g.memberCount,
+              leader: g.nickname,
+              status: g.state === "ING" ? "모집중" : "모집마감",
+              imageUrl,
+            };
+          })
+        );
+
+        setGroups(mappedGroups);
         setTotalPages(totalPages);
         setPage(pageNum);
-      } else {
-        console.warn("서버 응답 형식이 예상과 다릅니다:", res.data);
       }
     } catch (error) {
       console.error("모임 목록 조회 실패:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -78,6 +113,14 @@ export default function GroupList() {
 
   const handlePageChange = (pageNum: number) => {
     fetchGroups(sortType, pageNum);
+  };
+
+  const handleCreateClick = () => {
+    if (!isAuthenticated) {
+      addToast("로그인 후 모임을 등록할 수 있어요.", "error");
+      return;
+    }
+    setIsCreateOpen(true);
   };
 
   return (
@@ -100,21 +143,26 @@ export default function GroupList() {
             sortOptions={["최신순", "인원 많은순", "인원 적은순"]}
             onSortChange={handleSortChange}
             buttonText="+ 모임 등록"
-            onButtonClick={() => setIsCreateOpen(true)}
+            onButtonClick={handleCreateClick}
           />
         </div>
 
         {/* 카드 리스트 */}
-        <div className="grid gap-6 grid-cols-[repeat(auto-fill,_minmax(240px,_1fr))]">
-          {groups.map((group) => (
-            <GroupCard key={group.id} {...group} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="text-center text-gray-500 py-20">
+            모임 목록을 불러오는 중입니다...
+          </div>
+        ) : (
+          <div className="grid gap-6 grid-cols-[repeat(auto-fill,_minmax(240px,_1fr))] transition-opacity duration-300 opacity-100">
+            {groups.map((group) => (
+              <GroupCard key={group.id} {...group} />
+            ))}
+          </div>
+        )}
 
         {/* 페이지네이션 */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center mt-12 gap-3 text-sm">
-            {/* 이전 페이지 */}
             <button
               onClick={() => handlePageChange(Math.max(0, page - 1))}
               disabled={page === 0}
@@ -127,7 +175,6 @@ export default function GroupList() {
               <AiOutlineLeft size={18} />
             </button>
 
-            {/* 페이지 번호 */}
             {Array.from({ length: totalPages }, (_, i) => (
               <button
                 key={i}
@@ -142,7 +189,6 @@ export default function GroupList() {
               </button>
             ))}
 
-            {/* 다음 페이지 */}
             <button
               onClick={() =>
                 handlePageChange(Math.min(totalPages - 1, page + 1))

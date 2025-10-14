@@ -1,13 +1,24 @@
-// src/page/MyPage.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../store/authStore";
 import ProfileSection from "../components/mypage/ProfileSection";
 import TicketSection from "../components/mypage/TicketSection";
 import GroupSection from "../components/mypage/GroupSection";
 
 export default function MyPage() {
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuthStore();
   const [activeTab, setActiveTab] = useState<"profile" | "tickets" | "groups">(
     "profile"
   );
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  if (!isAuthenticated || !user) return null;
 
   return (
     <main className="flex flex-1 justify-center bg-white min-h-screen">
@@ -53,13 +64,11 @@ export default function MyPage() {
               <ProfileSection />
             </div>
           )}
-
           {activeTab === "tickets" && (
             <div className="w-full max-w-4xl mx-auto">
               <TicketSection />
             </div>
           )}
-
           {activeTab === "groups" && (
             <div className="w-full max-w-4xl mx-auto">
               <GroupSection />
