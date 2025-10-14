@@ -6,7 +6,7 @@ import { useToastStore } from "../../store/toastStore";
 import ConfirmModal from "../../Modals/ConfirmModal";
 import { formatDate } from "../../utils/format";
 import { useAuthStore } from "../../store/authStore";
-import { FiCalendar, FiMapPin, FiTrash2 } from "react-icons/fi";
+import { FiCalendar, FiMapPin, FiTrash2, FiEdit3 } from "react-icons/fi";
 import { FaRegUserCircle } from "react-icons/fa";
 import { HiOutlineUsers } from "react-icons/hi";
 import { BiBaseball } from "react-icons/bi";
@@ -14,16 +14,18 @@ import type { CommunityDetail, GroupUI, ApiResponse } from "../../types/group";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
 import { MOCK_MEMBERS } from "../../data/members";
 import { useChatWidgetStore } from "../../store/chatWidgetStore";
+import { FiCheckCircle, FiRefreshCcw } from "react-icons/fi";
 
 export default function GroupDetailView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
+  const { openPopup } = useChatWidgetStore();
 
   const [group, setGroup] = useState<GroupUI | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const { openPopup } = useChatWidgetStore();
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   // 상세 조회
   useEffect(() => {
@@ -36,7 +38,6 @@ export default function GroupDetailView() {
         if (res.data.status === "success" && res.data.data) {
           const g = res.data.data;
 
-          // 이미지 별도 조회
           let imageUrl: string | undefined;
           try {
             const imgRes = await axiosInstance.get(
@@ -77,6 +78,24 @@ export default function GroupDetailView() {
     fetchGroupDetail();
   }, [id, addToast]);
 
+  // 모집 상태 변경
+  const handleToggleState = async () => {
+    if (!group) return;
+    try {
+      const res = await axiosInstance.put(`/api/communities/state/${group.id}`);
+      if (res.data.status === "success") {
+        const nextStatus = group.status === "모집중" ? "모집마감" : "모집중";
+        setGroup({ ...group, status: nextStatus });
+        addToast(res.data.data || "모임 상태가 변경되었습니다 ✅", "success");
+      } else {
+        addToast(res.data.message || "상태 변경 실패 ❌", "error");
+      }
+    } catch (err) {
+      console.error("상태 변경 오류:", err);
+      addToast("서버 오류가 발생했습니다.", "error");
+    }
+  };
+
   // 삭제
   const handleDeleteGroup = async () => {
     try {
@@ -103,6 +122,9 @@ export default function GroupDetailView() {
     );
   }
 
+  const isEnded = group.status === "모집마감";
+  const isLeader = user?.nickname === group.leader;
+
   return (
     <main className="bg-white flex items-center justify-center py-10 px-4">
       <div className="relative w-full max-w-7xl">
@@ -111,13 +133,11 @@ export default function GroupDetailView() {
             {/* 이미지 영역 */}
             <div className="flex flex-col relative">
               <div className="relative w-full h-[450px] bg-gray-100 flex items-center justify-center rounded-2xl overflow-hidden border border-gray-100">
-                <span
-                  className={`absolute top-3 left-3 px-3 py-1.5 text-sm font-semibold rounded-md text-white ${
-                    group.status === "모집중" ? "bg-[#6F00B6]" : "bg-gray-400"
-                  }`}
-                >
-                  {group.status}
-                </span>
+                {!isEnded && (
+                  <span className="absolute top-3 left-3 px-3 py-1.5 text-sm font-semibold rounded-md text-white bg-[#6F00B6] z-20">
+                    모집중
+                  </span>
+                )}
 
                 <img
                   src={
@@ -128,6 +148,14 @@ export default function GroupDetailView() {
                   alt="모임 이미지"
                   className="w-full h-full object-cover"
                 />
+
+                {isEnded && (
+                  <div className="absolute inset-0 bg-black/55 z-10 flex items-center justify-center">
+                    <span className="text-white text-xl font-semibold tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
+                      모집 완료
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -163,7 +191,7 @@ export default function GroupDetailView() {
                 </div>
 
                 {/* 팝업 연결 */}
-                <div className="mb-8">
+                <div className="mb-4">
                   <button
                     onClick={() => {
                       if (!user) {
@@ -172,27 +200,62 @@ export default function GroupDetailView() {
                       }
                       openPopup(group.id);
                     }}
-                    className="w-full px-6 py-3 rounded-lg font-semibold text-lg bg-gradient-to-r from-[#8A2BE2] to-[#6F00B6] text-white hover:opacity-90 transition"
+                    className={`w-full px-6 py-3 rounded-lg font-semibold text-lg transition ${
+                      isEnded
+                        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                        : "bg-gradient-to-r from-[#8A2BE2] to-[#6F00B6] text-white hover:opacity-90"
+                    }`}
+                    disabled={isEnded}
                   >
-                    모임 참여하기
+                    {isEnded ? "모집이 완료된 모임입니다" : "모임 참여하기"}
                   </button>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 mt-8">
-                  <ShareButton />
-                  {user?.nickname && group?.leader === user.nickname && (
-                    <button
-                      onClick={() => setIsDeleteOpen(true)}
-                      className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-red-600 transition"
-                    >
-                      <FiTrash2 size={16} />
-                      삭제
-                    </button>
+                {/* 관리 버튼 그룹 */}
+                <div className="flex items-center justify-end gap-3 mt-3">
+                  {isLeader && (
+                    <>
+                      <button
+                        onClick={handleToggleState}
+                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition"
+                      >
+                        {group.status === "모집중" ? (
+                          <>
+                            <FiCheckCircle size={15} />
+                            모집 완료로 변경
+                          </>
+                        ) : (
+                          <>
+                            <FiRefreshCcw size={15} />
+                            모집 재개하기
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => setIsEditOpen(true)}
+                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition"
+                      >
+                        <FiEdit3 size={16} />
+                        수정
+                      </button>
+
+                      <button
+                        onClick={() => setIsDeleteOpen(true)}
+                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-red-600 transition"
+                      >
+                        <FiTrash2 size={15} />
+                        삭제
+                      </button>
+                    </>
                   )}
+
+                  <ShareButton />
                 </div>
               </div>
             </div>
           </div>
+
           {/* 상세 설명 + 사이드 정보 */}
           <div className="mt-8 pt-8 border-t border-gray-100 grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-8">
             <div className="bg-gray-50 rounded-xl p-6 min-h-[370px] flex flex-col overflow-y-auto border border-gray-100">
@@ -246,14 +309,30 @@ export default function GroupDetailView() {
       <ConfirmModal
         isOpen={isDeleteOpen}
         title="모임 삭제"
-        description={
-          "정말 이 모임을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다."
-        }
+        description="정말 이 모임을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다."
         confirmText="삭제하기"
         cancelText="취소"
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteGroup}
       />
+
+      {/* 수정 모달 자리 */}
+      {isEditOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg w-[480px]">
+            <h3 className="text-lg font-semibold mb-4">모임 수정</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              수정 모달 자리입니다. (TODO: 폼 연결 예정)
+            </p>
+            <button
+              onClick={() => setIsEditOpen(false)}
+              className="w-full py-2 mt-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

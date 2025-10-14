@@ -1,24 +1,9 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../store/authStore";
+import { useState } from "react";
 import ProfileSection from "../components/mypage/ProfileSection";
 import TicketSection from "../components/mypage/TicketSection";
-import GroupSection from "../components/mypage/GroupSection";
 
 export default function MyPage() {
-  const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<"profile" | "tickets" | "groups">(
-    "profile"
-  );
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login", { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
-
-  if (!isAuthenticated || !user) return null;
+  const [activeTab, setActiveTab] = useState<"profile" | "tickets">("profile");
 
   return (
     <main className="flex flex-1 justify-center bg-white min-h-screen">
@@ -45,16 +30,6 @@ export default function MyPage() {
           >
             내 티켓
           </button>
-          <button
-            className={`px-3 py-2 font-semibold ${
-              activeTab === "groups"
-                ? "text-[#6F00B6] border-b-2 border-[#6F00B6]"
-                : "text-gray-500"
-            }`}
-            onClick={() => setActiveTab("groups")}
-          >
-            직관 모임
-          </button>
         </div>
 
         {/* 탭별 콘텐츠 */}
@@ -67,11 +42,6 @@ export default function MyPage() {
           {activeTab === "tickets" && (
             <div className="w-full max-w-4xl mx-auto">
               <TicketSection />
-            </div>
-          )}
-          {activeTab === "groups" && (
-            <div className="w-full max-w-4xl mx-auto">
-              <GroupSection />
             </div>
           )}
         </div>

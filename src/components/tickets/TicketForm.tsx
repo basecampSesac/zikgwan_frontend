@@ -6,11 +6,21 @@ import "react-datepicker/dist/react-datepicker.css";
 import { TEAMS } from "../../constants/teams";
 import { STADIUMS } from "../../constants/stadiums";
 import { useToastStore } from "../../store/toastStore";
-import type { TicketUI } from "../../types/ticket";
+import axiosInstance from "../../lib/axiosInstance";
 
 interface TicketFormProps {
   mode?: "create" | "edit";
-  initialValues?: Partial<TicketUI>;
+  initialValues?: Partial<{
+    title: string;
+    description: string;
+    price: number;
+    ticketCount: number;
+    home: string;
+    away: string;
+    stadium: string;
+    adjacentSeat: string;
+    gameDay: string;
+  }>;
   onClose?: () => void;
 }
 
@@ -23,17 +33,17 @@ export default function TicketForm({
 
   const [form, setForm] = useState({
     title: initialValues?.title || "",
-    content: initialValues?.content || "",
+    description: initialValues?.description || "",
     price: initialValues?.price?.toString() || "",
     ticketCount: initialValues?.ticketCount?.toString() || "",
-    homeTeam: initialValues?.homeTeam || "",
-    awayTeam: initialValues?.awayTeam || "",
-    stadiumName: initialValues?.stadiumName || "",
-    adjacentSeat: initialValues?.adjacentSeat || false,
+    home: initialValues?.home || "",
+    away: initialValues?.away || "",
+    stadium: initialValues?.stadium || "",
+    adjacentSeat: initialValues?.adjacentSeat === "Y" ? true : false,
   });
 
-  const [gameDate, setGameDate] = useState<Date | null>(
-    initialValues?.gameDate ? new Date(initialValues.gameDate) : null
+  const [gameDay, setGameDay] = useState<Date | null>(
+    initialValues?.gameDay ? new Date(initialValues.gameDay) : null
   );
   const [images, setImages] = useState<File[]>([]);
 
@@ -59,48 +69,56 @@ export default function TicketForm({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
       !form.title ||
       !form.price ||
-      !gameDate ||
+      !gameDay ||
       !form.ticketCount ||
-      !form.homeTeam ||
-      !form.awayTeam ||
-      !form.stadiumName
+      !form.home ||
+      !form.away ||
+      !form.stadium ||
     ) {
       addToast("필수 항목을 모두 입력해주세요 ❌", "error");
       return;
     }
 
-    // TicketUI에 맞춘 payload
-    const payload: TicketUI = {
-      id: initialValues?.id || Date.now(), // 더미용
+    const payload = {
       title: form.title,
-      content: form.content,
+      description: form.description || "",
       price: Number(form.price),
-      gameDate: gameDate.toISOString(),
+      gameDay: gameDay.toISOString().slice(0, 19),
       ticketCount: Number(form.ticketCount),
-      homeTeam: form.homeTeam,
-      awayTeam: form.awayTeam,
-      stadiumName: form.stadiumName,
-      adjacentSeat: form.adjacentSeat,
-      status: initialValues?.status || "판매중",
-      imageUrl: initialValues?.imageUrl,
-      seller: initialValues?.seller || { id: 0, nickname: "알 수 없음" },
+      home: form.home,
+      away: form.away,
+      stadium: form.stadium,
+      adjacentSeat: form.adjacentSeat ? "Y" : "N",
     };
 
-    if (mode === "create") {
-      console.log("POST /api/tickets", payload);
-      addToast("티켓이 등록되었습니다 🎉", "success");
-    } else {
-      console.log("PUT /api/tickets/:id", payload);
-      addToast("티켓이 수정되었습니다 ✨", "success");
-    }
+    try {
+      const formData = new FormData();
+      formData.append(
+        "ticket",
+        new Blob([JSON.stringify(payload)], { type: "application/json" })
+      );
+      images.forEach((file) => formData.append("images", file));
 
-    onClose?.();
+      const res = await axiosInstance.post("/api/tickets", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res.data.status === "success") {
+        addToast("티켓이 등록되었습니다 🎉", "success");
+        onClose?.();
+      } else {
+        addToast(res.data.message || "등록 실패 ❌", "error");
+      }
+    } catch (err) {
+      console.error("티켓 등록 오류:", err);
+      addToast("서버 오류가 발생했습니다 ❌", "error");
+    }
   };
 
   return (
@@ -131,8 +149,8 @@ export default function TicketForm({
             경기 일자*
           </span>
           <DatePicker
-            selected={gameDate}
-            onChange={(date) => setGameDate(date)}
+            selected={gameDay}
+            onChange={(date) => setGameDay(date)}
             showTimeSelect
             timeFormat="HH:mm"
             timeIntervals={30}
@@ -180,22 +198,15 @@ export default function TicketForm({
               홈팀*
             </span>
             <select
-              name="homeTeam"
-              value={form.homeTeam}
+              name="home"
+              value={form.home}
               onChange={handleChange}
               className="input-border"
-              required
             >
-              <option value="" disabled>
-                선택
-              </option>
-              {TEAMS.map((team) => (
-                <option
-                  key={team.value}
-                  value={team.value}
-                  disabled={form.awayTeam === team.value}
-                >
-                  {team.label}
+              <option value="">선택</option>
+              {TEAMS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
                 </option>
               ))}
             </select>
@@ -206,22 +217,19 @@ export default function TicketForm({
               원정팀*
             </span>
             <select
-              name="awayTeam"
-              value={form.awayTeam}
+              name="away"
+              value={form.away}
               onChange={handleChange}
               className="input-border"
-              required
             >
-              <option value="" disabled>
-                선택
-              </option>
-              {TEAMS.map((team) => (
+              <option value="">선택</option>
+              {TEAMS.map((t) => (
                 <option
-                  key={team.value}
-                  value={team.value}
-                  disabled={form.homeTeam === team.value}
+                  key={t.value}
+                  value={t.value}
+                  disabled={form.home === t.value}
                 >
-                  {team.label}
+                  {t.label}
                 </option>
               ))}
             </select>
@@ -235,16 +243,15 @@ export default function TicketForm({
               야구장*
             </span>
             <select
-              name="stadiumName"
-              value={form.stadiumName}
+              name="stadium"
+              value={form.stadium}
               onChange={handleChange}
               className="input-border"
-              required
             >
-              <option value="">야구장 선택</option>
-              {STADIUMS.map((stadium) => (
-                <option key={stadium} value={stadium}>
-                  {stadium}
+              <option value="">선택</option>
+              {STADIUMS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
                 </option>
               ))}
             </select>
@@ -255,7 +262,7 @@ export default function TicketForm({
               type="checkbox"
               checked={form.adjacentSeat}
               onChange={handleCheckbox}
-              className="accent-[#6F00B6] hover:accent-[#8A2BE2]"
+              className="accent-[#6F00B6]"
             />
             <span className="text-sm text-gray-600">연석 여부</span>
           </label>
@@ -267,8 +274,8 @@ export default function TicketForm({
             상세 설명
           </span>
           <textarea
-            name="content"
-            value={form.content}
+            name="description"
+            value={form.description}
             onChange={handleChange}
             placeholder="좌석 위치, 전달 방법 등 추가 설명을 입력해주세요."
             className="input-border h-24"
