@@ -133,6 +133,16 @@ export default function GroupForm({
         res = await axiosInstance.post(`/api/communities`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
+
+        if (res.data.status === "success" && res.data.data) {
+          const communityId = res.data.data.communityId;
+          // 채팅방 생성
+          await axiosInstance.post(
+            `/api/chatroom/community/${communityId}?roomName=${encodeURIComponent(
+              form.title
+            )}`
+          );
+        }
       } else {
         res = await axiosInstance.put(
           `/api/communities/${initialValues?.id}`,
