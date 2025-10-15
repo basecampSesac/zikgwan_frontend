@@ -79,7 +79,7 @@ export default function TicketForm({
       !form.ticketCount ||
       !form.home ||
       !form.away ||
-      !form.stadium ||
+      !form.stadium 
     ) {
       addToast("필수 항목을 모두 입력해주세요 ❌", "error");
       return;
