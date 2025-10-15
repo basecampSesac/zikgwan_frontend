@@ -1,14 +1,9 @@
 import { Calendar, User, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import axiosInstance from "../../lib/axiosInstance";
-import axios, { AxiosError } from "axios";
 import type { GroupUI } from "../../types/group";
 import { formatDate } from "../../utils/format";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
 import { useAuthStore } from "../../store/authStore";
-
-const imageCache = new Map<number, string>();
 
 export default function GroupCard({
   id,
@@ -19,43 +14,23 @@ export default function GroupCard({
   personnel,
   leader,
   status,
+  imageUrl,
 }: GroupUI) {
   const navigate = useNavigate();
-  const [imageUrl, setImageUrl] = useState<string | undefined>();
   const { user } = useAuthStore();
-
-  useEffect(() => {
-    const fetchImage = async () => {
-      if (imageCache.has(id)) {
-        setImageUrl(imageCache.get(id) || undefined);
-        return;
-      }
-
-      try {
-        const res = await axiosInstance.get(`/api/images/C/${id}`);
-        if (res.data.status === "success" && res.data.data) {
-          const url = `http://localhost:8080${res.data.data}`;
-          imageCache.set(id, url);
-          setImageUrl(url);
-        } else imageCache.set(id, "");
-      } catch (error: unknown) {
-        if (axios.isAxiosError(error)) {
-          const err = error as AxiosError;
-          if (err.response?.status !== 404)
-            console.warn(`이미지 요청 실패 [${id}]`, err.message);
-        }
-        imageCache.set(id, "");
-      }
-    };
-
-    fetchImage();
-  }, [id]);
 
   const isEnded = status === "모집마감";
   const isLeader = user?.nickname === leader;
 
+  const resolvedImageUrl =
+    imageUrl && imageUrl.trim() !== ""
+      ? imageUrl.startsWith("http")
+        ? imageUrl
+        : `http://localhost:8080/images/${imageUrl.replace(/^\/+/, "")}`
+      : getDefaultStadiumImage(stadiumName);
+
   const handleClick = () => {
-    if (isEnded && !isLeader) return; // 모집마감 + 작성자 아님 → 이동 차단
+    if (isEnded && !isLeader) return;
     navigate(`/groups/${id}`);
   };
 
@@ -67,15 +42,18 @@ export default function GroupCard({
       {/* 이미지 영역 */}
       <div className="relative h-44">
         <img
-          src={imageUrl || getDefaultStadiumImage(stadiumName)}
+          src={resolvedImageUrl}
           alt={title}
           className="w-full h-full object-cover transition-transform duration-200 hover:scale-[1.02]"
+          onError={(e) => {
+            e.currentTarget.src = getDefaultStadiumImage(stadiumName);
+          }}
         />
 
         {/* 모집마감 시 블랙 오버레이 + 중앙 문구 */}
         {isEnded && (
           <div className="absolute inset-0 bg-black/55 z-10 flex items-center justify-center">
-            <span className="text-white text-lg font-bold tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+            <span className="text-white text-lg font-bold tracking-wide">
               모집 완료
             </span>
           </div>
@@ -83,16 +61,14 @@ export default function GroupCard({
 
         {/* 상태 뱃지 (모집중일 때만 표시) */}
         {!isEnded && (
-          <span className="absolute top-2 left-2 text-white text-xs font-semibold px-2 py-0.5 rounded-md shadow bg-[#6F00B6] z-20">
-            모집중
-          </span>
-        )}
-
-        {/* 구장명 뱃지 (모집중일 때만 표시) */}
-        {!isEnded && (
-          <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded z-20">
-            {stadiumName}
-          </span>
+          <>
+            <span className="absolute top-2 left-2 text-white text-xs font-semibold px-2 py-0.5 rounded-md shadow bg-[#6F00B6] z-20">
+              모집중
+            </span>
+            <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded z-20">
+              {stadiumName}
+            </span>
+          </>
         )}
       </div>
 

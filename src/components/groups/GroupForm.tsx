@@ -4,17 +4,19 @@ import DatePicker from "react-datepicker";
 import { ko } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
 import { TEAMS } from "../../constants/teams";
-import { STADIUMS } from "../../constants/stadiums";
+import { STADIUMS, getDefaultStadiumImage } from "../../constants/stadiums";
 import axiosInstance from "../../lib/axiosInstance";
 import { useAuthStore } from "../../store/authStore";
 import { useToastStore } from "../../store/toastStore";
 import type { GroupUI } from "../../types/group";
-import { uploadImage } from "../../api/imageApi";
+import { useGroupUpdateStore } from "../../store/groupUpdateStore";
+import type { CommunityItem } from "../../types/group";
 
 interface GroupFormProps {
   mode?: "create" | "edit";
   initialValues?: Partial<GroupUI>;
   onClose?: () => void;
+  onSuccess?: (newGroup?: CommunityItem) => void;
 }
 
 export default function GroupForm({
@@ -34,28 +36,44 @@ export default function GroupForm({
   const [meetingDate, setMeetingDate] = useState<Date | null>(
     initialValues?.date ? new Date(initialValues.date) : null
   );
-  const [images, setImages] = useState<File[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setImages(Array.from(e.target.files));
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(
+    () => {
+      if (!initialValues?.imageUrl) return null;
+      if (initialValues.imageUrl.includes("/stadiums/")) return null;
+      return initialValues.imageUrl.startsWith("http")
+        ? initialValues.imageUrl
+        : `http://localhost:8080/images/${initialValues.imageUrl.replace(
+            /^\/+/,
+            ""
+          )}`;
     }
-  };
+  );
+
+  const [image, setImage] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [inputKey, setInputKey] = useState(Date.now());
 
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
+  const { triggerUpdate } = useGroupUpdateStore();
 
+  /** 🔸 입력 변경 */
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
     const { name, value } = e.target;
-    setForm({
-      ...form,
-      [name]: value,
-    });
+    setForm({ ...form, [name]: value });
+  };
+
+  // 파일 선택
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setImage(e.target.files[0]);
+      setExistingImageUrl(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,58 +106,53 @@ export default function GroupForm({
       away: form.awayTeam,
       memberCount: Number(form.personnel),
     };
+
+    const formData = new FormData();
+    formData.append(
+      "data",
+      new Blob([JSON.stringify(payload)], { type: "application/json" })
+    );
+
+    if (image) {
+      formData.append("image", image);
+    } else {
+      try {
+        const defaultImagePath = getDefaultStadiumImage(form.stadiumName);
+        const response = await fetch(defaultImagePath);
+        const blob = await response.blob();
+        formData.append("image", blob, "default.jpg");
+      } catch {
+        formData.append("image", "null");
+      }
+    }
+
     setIsSubmitting(true);
-
     try {
+      let res;
       if (mode === "create") {
-        // 모임 생성
-        const res = await axiosInstance.post(
-          `/api/communities/${user.userId}`,
-          payload
-        );
-
-        if (res.data.status === "success") {
-          const communityId = res.data.data.communityId;
-          addToast("모임이 등록되었습니다 🎉", "success");
-
-          // 이미지 업로드
-          if (images.length > 0) {
-            await Promise.all(
-              images.map((file) => uploadImage("C", file, communityId))
-            );
-
-            // 업로드 후 이미지 확인 (썸네일 반영)
-            try {
-              const imgRes = await axiosInstance.get(
-                `/api/images/C/${communityId}`
-              );
-              if (imgRes.data.status === "success" && imgRes.data.data) {
-                console.log("✅ 모임 썸네일 업로드 성공:", imgRes.data.data);
-              }
-            } catch (err) {
-              console.warn("⚠️ 썸네일 조회 실패:", err);
-            }
-          }
-
-          // 채팅방 생성
-          await axiosInstance.post(
-            `/api/chatroom/community/${communityId}?roomName=${encodeURIComponent(
-              form.title
-            )}`
-          );
-        } else {
-          addToast(res.data.message || "모임 등록 실패", "error");
-        }
+        res = await axiosInstance.post(`/api/communities`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
       } else {
-        const res = await axiosInstance.put(
+        res = await axiosInstance.put(
           `/api/communities/${initialValues?.id}`,
-          payload
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
         );
-        if (res.data.status === "success") {
-          addToast("모임이 수정되었습니다 ✨", "success");
-        } else {
-          addToast(res.data.message || "모임 수정 실패", "error");
-        }
+      }
+
+      if (res.data.status === "success" && res.data.data) {
+        triggerUpdate();
+        addToast(
+          mode === "create"
+            ? "모임이 등록되었습니다 🎉"
+            : "모임이 수정되었습니다 ✨",
+          "success"
+        );
+      } else {
+        addToast(res.data.message || "등록/수정 실패 ❌", "error");
       }
 
       onClose?.();
@@ -207,51 +220,34 @@ export default function GroupForm({
 
         {/* 팀, 구장, 인원 */}
         <div className="grid grid-cols-2 gap-4">
-          <label className="block">
-            <span className="block text-sm font-medium mb-1 text-gray-600">
-              홈팀*
-            </span>
-            <select
-              name="homeTeam"
-              value={form.homeTeam}
-              onChange={handleChange}
-              className="input-border"
-            >
-              <option value="">선택</option>
-              {TEAMS.map((team) => (
-                <option
-                  key={team.value}
-                  value={team.value}
-                  disabled={form.awayTeam === team.value}
-                >
-                  {team.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="block">
-            <span className="block text-sm font-medium mb-1 text-gray-600">
-              원정팀*
-            </span>
-            <select
-              name="awayTeam"
-              value={form.awayTeam}
-              onChange={handleChange}
-              className="input-border"
-            >
-              <option value="">선택</option>
-              {TEAMS.map((team) => (
-                <option
-                  key={team.value}
-                  value={team.value}
-                  disabled={form.homeTeam === team.value}
-                >
-                  {team.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {["homeTeam", "awayTeam"].map((type) => (
+            <label key={type} className="block">
+              <span className="block text-sm font-medium mb-1 text-gray-600">
+                {type === "homeTeam" ? "홈팀*" : "원정팀*"}
+              </span>
+              <select
+                name={type}
+                value={form[type as "homeTeam" | "awayTeam"]}
+                onChange={handleChange}
+                className="input-border"
+              >
+                <option value="">선택</option>
+                {TEAMS.map((team) => (
+                  <option
+                    key={team.value}
+                    value={team.value}
+                    disabled={
+                      type === "homeTeam"
+                        ? form.awayTeam === team.value
+                        : form.homeTeam === team.value
+                    }
+                  >
+                    {team.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
         </div>
 
         {/* 구장 */}
@@ -274,7 +270,7 @@ export default function GroupForm({
           </select>
         </label>
 
-        {/* 모집 인원 */}
+        {/* 인원 */}
         <label className="block">
           <span className="block text-sm font-medium mb-1 text-gray-600">
             모집 인원*
@@ -295,53 +291,68 @@ export default function GroupForm({
             이미지 업로드 (선택)
           </span>
 
-          <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 hover:bg-gray-50 overflow-hidden relative">
-            {images.length > 0 ? (
-              <div className="flex gap-2 overflow-x-auto p-2 w-full h-full">
-                {images.map((img, i) => (
-                  <div
-                    key={i}
-                    className="relative h-full aspect-[4/3] flex-shrink-0"
-                  >
-                    <img
-                      src={URL.createObjectURL(img)}
-                      alt={`preview-${i}`}
-                      className="h-full w-auto object-cover rounded-md"
-                    />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setImages((prev) => prev.filter((_, idx) => idx !== i));
-                      }}
-                      className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs z-10 transition"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+          <label
+            htmlFor="imageInput"
+            className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 hover:bg-gray-50 overflow-hidden relative cursor-pointer"
+          >
+            {image ? (
+              <div className="relative h-full aspect-[4/3]">
+                <img
+                  src={URL.createObjectURL(image)}
+                  alt="preview"
+                  className="h-full w-auto object-cover rounded-md pointer-events-none"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setImage(null);
+                    setInputKey(Date.now()); // ✅ input 재생성으로 자동 업로드 방지
+                  }}
+                  className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs z-10"
+                >
+                  ×
+                </button>
+              </div>
+            ) : existingImageUrl ? (
+              <div className="relative h-full aspect-[4/3]">
+                <img
+                  src={existingImageUrl}
+                  alt="preview"
+                  className="h-full w-auto object-cover rounded-md pointer-events-none"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setExistingImageUrl(null);
+                    setInputKey(Date.now());
+                  }}
+                  className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs z-10"
+                >
+                  ×
+                </button>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center text-gray-400 h-full">
                 <Upload className="w-6 h-6" />
                 <span className="text-xs text-gray-500">
-                  클릭 또는 드래그하여 업로드
+                  클릭하여 이미지 선택
                 </span>
               </div>
             )}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFile}
-              className="absolute inset-0 opacity-0"
-            />
-          </div>
-          {images.length > 0 && (
-            <p className="text-xs text-gray-500 mt-1">
-              선택된 파일 {images.length}개
-            </p>
-          )}
+          </label>
+
+          <input
+            key={inputKey}
+            id="imageInput"
+            type="file"
+            accept="image/*"
+            onChange={handleFile}
+            className="hidden"
+          />
         </label>
 
         <button

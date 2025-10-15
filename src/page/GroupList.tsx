@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AiOutlineLeft, AiOutlineRight } from "react-icons/ai";
 import SearchPanel from "../components/SearchPanel";
 import GroupCard from "../components/groups/GroupCard";
@@ -9,8 +9,7 @@ import axiosInstance from "../lib/axiosInstance";
 import type { CommunityItem, ApiResponse, GroupUI } from "../types/group";
 import { useAuthStore } from "../store/authStore";
 import { useToastStore } from "../store/toastStore";
-
-const imageCache = new Map<number, string>();
+import { useGroupUpdateStore } from "../store/groupUpdateStore";
 
 type SortType = "RECENT" | "MOST" | "LEAST";
 
@@ -33,73 +32,58 @@ export default function GroupList() {
 
   const { isAuthenticated } = useAuthStore();
   const { addToast } = useToastStore();
+  const { updated, resetUpdate } = useGroupUpdateStore();
 
   // 모임 목록 + 이미지 불러오기
-  const fetchGroups = async (
-    sort: SortType = "RECENT",
-    pageNum: number = 0
-  ) => {
-    setLoading(true);
-    try {
-      const res = await axiosInstance.get<
-        ApiResponse<PageResponse<CommunityItem>>
-      >(`/api/communities?page=${pageNum}&size=12&sortType=${sort}`);
+  const fetchGroups = useCallback(
+    async (sort: SortType = "RECENT", pageNum: number = 0) => {
+      setLoading(true);
+      try {
+        const res = await axiosInstance.get<
+          ApiResponse<PageResponse<CommunityItem>>
+        >(`/api/communities?page=${pageNum}&size=12&sortType=${sort}`);
 
-      if (res.data.status === "success" && res.data.data) {
-        const { content, totalPages } = res.data.data;
+        if (res.data.status === "success" && res.data.data) {
+          const { content, totalPages } = res.data.data;
 
-        const mappedGroups: GroupUI[] = await Promise.all(
-          content.map(async (g) => {
-            let imageUrl: string | undefined;
+          const mappedGroups: GroupUI[] = content.map((g) => ({
+            id: g.communityId,
+            title: g.title,
+            content: g.description,
+            date: g.date,
+            stadiumName: g.stadium,
+            teams: `${g.home} vs ${g.away}`,
+            personnel: g.memberCount,
+            leader: g.nickname,
+            status: g.state === "ING" ? "모집중" : "모집마감",
+            imageUrl: g.imageUrl
+              ? `http://localhost:8080/images/${g.imageUrl.replace(/^\/+/, "")}`
+              : undefined,
+          }));
 
-            // 캐시 확인
-            if (imageCache.has(g.communityId)) {
-              imageUrl = imageCache.get(g.communityId) || undefined;
-            } else {
-              try {
-                const imgRes = await axiosInstance.get(
-                  `/api/images/C/${g.communityId}`
-                );
-                if (imgRes.data.status === "success" && imgRes.data.data) {
-                  imageUrl = `http://localhost:8080${imgRes.data.data}`;
-                  imageCache.set(g.communityId, imageUrl);
-                } else {
-                  imageCache.set(g.communityId, "");
-                }
-              } catch {
-                imageCache.set(g.communityId, "");
-              }
-            }
-
-            return {
-              id: g.communityId,
-              title: g.title,
-              content: g.description,
-              date: g.date,
-              stadiumName: g.stadium,
-              teams: `${g.home} vs ${g.away}`,
-              personnel: g.memberCount,
-              leader: g.nickname,
-              status: g.state === "ING" ? "모집중" : "모집마감",
-              imageUrl,
-            };
-          })
-        );
-
-        setGroups(mappedGroups);
-        setTotalPages(totalPages);
-        setPage(pageNum);
+          setGroups(mappedGroups);
+          setTotalPages(totalPages);
+          setPage(pageNum);
+        }
+      } catch (error) {
+        console.error("모임 목록 조회 실패:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("모임 목록 조회 실패:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    []
+  );
 
   useEffect(() => {
     fetchGroups(sortType, 0);
-  }, [sortType]);
+  }, [sortType, fetchGroups]);
+
+  useEffect(() => {
+    if (updated) {
+      fetchGroups(sortType, 0);
+      resetUpdate();
+    }
+  }, [updated, sortType, fetchGroups, resetUpdate]);
 
   const handleSortChange = (value: string): void => {
     const nextSort: SortType =
@@ -121,6 +105,30 @@ export default function GroupList() {
       return;
     }
     setIsCreateOpen(true);
+  };
+
+  const handleCreateSuccess = (newGroup?: CommunityItem) => {
+    if (!newGroup) return;
+
+    const formattedGroup: GroupUI = {
+      id: newGroup.communityId,
+      title: newGroup.title,
+      content: newGroup.description,
+      date: newGroup.date,
+      stadiumName: newGroup.stadium,
+      teams: `${newGroup.home} vs ${newGroup.away}`,
+      personnel: newGroup.memberCount,
+      leader: newGroup.nickname,
+      status: newGroup.state === "ING" ? "모집중" : "모집마감",
+      imageUrl: newGroup.imageUrl
+        ? `http://localhost:8080/images/${newGroup.imageUrl.replace(
+            /^\/+/,
+            ""
+          )}`
+        : undefined,
+    };
+
+    setGroups((prev) => [formattedGroup, ...prev]);
   };
 
   return (
@@ -153,7 +161,7 @@ export default function GroupList() {
             모임 목록을 불러오는 중입니다...
           </div>
         ) : (
-          <div className="grid gap-6 grid-cols-[repeat(auto-fill,_minmax(240px,_1fr))] transition-opacity duration-300 opacity-100">
+          <div className="grid gap-6 grid-cols-[repeat(auto-fill,_minmax(240px,_1fr))]">
             {groups.map((group) => (
               <GroupCard key={group.id} {...group} />
             ))}
@@ -210,10 +218,8 @@ export default function GroupList() {
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)}>
         <GroupForm
           mode="create"
-          onClose={() => {
-            setIsCreateOpen(false);
-            fetchGroups(sortType, 0);
-          }}
+          onClose={() => setIsCreateOpen(false)}
+          onSuccess={handleCreateSuccess}
         />
       </Modal>
     </div>

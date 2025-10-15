@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosInstance from "../../lib/axiosInstance";
 import ShareButton from "../common/ShareButton";
@@ -6,15 +6,24 @@ import { useToastStore } from "../../store/toastStore";
 import ConfirmModal from "../../Modals/ConfirmModal";
 import { formatDate } from "../../utils/format";
 import { useAuthStore } from "../../store/authStore";
-import { FiCalendar, FiMapPin, FiTrash2, FiEdit3 } from "react-icons/fi";
+import {
+  FiCalendar,
+  FiMapPin,
+  FiTrash2,
+  FiEdit3,
+  FiCheckCircle,
+  FiRefreshCcw,
+} from "react-icons/fi";
 import { FaRegUserCircle } from "react-icons/fa";
 import { HiOutlineUsers } from "react-icons/hi";
 import { BiBaseball } from "react-icons/bi";
 import type { CommunityDetail, GroupUI, ApiResponse } from "../../types/group";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
 import { MOCK_MEMBERS } from "../../data/members";
+import { MANNER_GUIDE } from "../../data/guides";
 import { useChatWidgetStore } from "../../store/chatWidgetStore";
-import { FiCheckCircle, FiRefreshCcw } from "react-icons/fi";
+import GroupForm from "../groups/GroupForm";
+import Modal from "../Modal";
 
 export default function GroupDetailView() {
   const { id } = useParams<{ id: string }>();
@@ -28,57 +37,56 @@ export default function GroupDetailView() {
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   // 상세 조회
-  useEffect(() => {
-    const fetchGroupDetail = async () => {
-      try {
-        const res = await axiosInstance.get<ApiResponse<CommunityDetail>>(
-          `/api/communities/${id}`
-        );
+  const fetchGroupDetail = useCallback(async () => {
+    try {
+      const res = await axiosInstance.get<ApiResponse<CommunityDetail>>(
+        `/api/communities/${id}`
+      );
 
-        if (res.data.status === "success" && res.data.data) {
-          const g = res.data.data;
+      if (res.data.status === "success" && res.data.data) {
+        const g = res.data.data;
 
-          let imageUrl: string | undefined;
-          try {
-            const imgRes = await axiosInstance.get(
-              `/api/images/C/${g.communityId}`
-            );
-            if (imgRes.data.status === "success" && imgRes.data.data) {
-              imageUrl = `http://localhost:8080${imgRes.data.data}`;
-            }
-          } catch {
-            imageUrl = undefined;
-          }
+        // 이미지 경로
+        const fullImageUrl = g.imageUrl
+          ? `http://localhost:8080/images/${g.imageUrl.replace(/^\/+/, "")}`
+          : undefined;
 
-          const mapped: GroupUI = {
-            id: g.communityId,
-            title: g.title,
-            content: g.description,
-            date: formatDate(g.date),
-            stadiumName: g.stadium,
-            teams: `${g.home} vs ${g.away}`,
-            personnel: g.memberCount,
-            leader: g.nickname,
-            status: g.state === "ING" ? "모집중" : "모집마감",
-            userId: g.userId ?? undefined,
-            createdAt: g.createdAt,
-            updatedAt: g.updatedAt,
-            imageUrl,
-          };
-          setGroup(mapped);
-        } else {
-          addToast("모임 정보를 불러오지 못했습니다.", "error");
-        }
-      } catch (err) {
-        console.error("모임 상세 조회 실패:", err);
-        addToast("서버 오류가 발생했습니다.", "error");
+        const mapped: GroupUI = {
+          id: g.communityId,
+          title: g.title,
+          content: g.description,
+          date: formatDate(g.date),
+          stadiumName: g.stadium,
+          teams: `${g.home} vs ${g.away}`,
+          personnel: g.memberCount,
+          leader: g.nickname,
+          status: g.state === "ING" ? "모집중" : "모집마감",
+          userId: g.userId ?? undefined,
+          createdAt: g.createdAt,
+          updatedAt: g.updatedAt,
+          imageUrl: fullImageUrl,
+        };
+        setGroup(mapped);
+      } else {
+        addToast("모임 정보를 불러오지 못했습니다.", "error");
       }
-    };
-
-    fetchGroupDetail();
+    } catch (err) {
+      console.error("모임 상세 조회 실패:", err);
+      addToast("서버 오류가 발생했습니다.", "error");
+    }
   }, [id, addToast]);
 
-  // 모집 상태 변경
+  useEffect(() => {
+    fetchGroupDetail();
+  }, [fetchGroupDetail]);
+
+  // 수정 완료 후 반영
+  const handleEditClose = async () => {
+    setIsEditOpen(false);
+    await fetchGroupDetail();
+  };
+
+  // 상태 변경
   const handleToggleState = async () => {
     if (!group) return;
     try {
@@ -86,10 +94,8 @@ export default function GroupDetailView() {
       if (res.data.status === "success") {
         const nextStatus = group.status === "모집중" ? "모집마감" : "모집중";
         setGroup({ ...group, status: nextStatus });
-        addToast(res.data.data || "모임 상태가 변경되었습니다 ✅", "success");
-      } else {
-        addToast(res.data.message || "상태 변경 실패 ❌", "error");
-      }
+        addToast("모집 상태가 변경되었습니다 ✅", "success");
+      } else addToast(res.data.message || "상태 변경 실패 ❌", "error");
     } catch (err) {
       console.error("상태 변경 오류:", err);
       addToast("서버 오류가 발생했습니다.", "error");
@@ -99,13 +105,11 @@ export default function GroupDetailView() {
   // 삭제
   const handleDeleteGroup = async () => {
     try {
-      const res = await axiosInstance.delete(`/api/group/${id}`);
+      const res = await axiosInstance.delete(`/api/communities/${id}`);
       if (res.data.status === "success") {
         addToast("모임이 삭제되었습니다 ✅", "success");
         navigate("/groups");
-      } else {
-        addToast(res.data.message || "삭제 실패 ❌", "error");
-      }
+      } else addToast(res.data.message || "삭제 실패 ❌", "error");
     } catch (err) {
       console.error("모임 삭제 오류:", err);
       addToast("모임 삭제 중 오류가 발생했습니다.", "error");
@@ -273,12 +277,9 @@ export default function GroupDetailView() {
                   모임 매너 가이드
                 </h4>
                 <ul className="list-disc pl-5 text-gray-600 text-sm leading-relaxed">
-                  <li>약속된 시간과 장소를 지켜주세요.</li>
-                  <li>참석이 어려울 땐 미리 모임원들에게 알려주세요.</li>
-                  <li>
-                    응원 스타일이 달라도 서로 존중하는 마음을 잊지 마세요.
-                  </li>
-                  <li>예의 있는 대화를 부탁드려요.</li>
+                  {MANNER_GUIDE.map((text, idx) => (
+                    <li key={idx}>{text}</li>
+                  ))}
                 </ul>
               </div>
 
@@ -309,29 +310,33 @@ export default function GroupDetailView() {
       <ConfirmModal
         isOpen={isDeleteOpen}
         title="모임 삭제"
-        description="정말 이 모임을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다."
+        description={
+          "정말 이 모임을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다."
+        }
         confirmText="삭제하기"
         cancelText="취소"
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteGroup}
       />
 
-      {/* 수정 모달 자리 */}
+      {/* 수정 모달 */}
       {isEditOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-[480px]">
-            <h3 className="text-lg font-semibold mb-4">모임 수정</h3>
-            <p className="text-sm text-gray-500 mb-6">
-              수정 모달 자리입니다. (TODO: 폼 연결 예정)
-            </p>
-            <button
-              onClick={() => setIsEditOpen(false)}
-              className="w-full py-2 mt-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-            >
-              닫기
-            </button>
-          </div>
-        </div>
+        <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)}>
+          <GroupForm
+            mode="edit"
+            initialValues={{
+              id: group.id,
+              title: group.title,
+              content: group.content,
+              stadiumName: group.stadiumName,
+              teams: group.teams,
+              personnel: group.personnel,
+              date: group.date,
+              imageUrl: group.imageUrl,
+            }}
+            onClose={handleEditClose}
+          />
+        </Modal>
       )}
     </main>
   );

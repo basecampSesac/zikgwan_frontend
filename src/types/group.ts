@@ -11,6 +11,7 @@ export interface CommunityBase {
   nickname: string;
   state: "ING" | "DONE";
   userId?: number;
+  imageUrl: string;
 }
 
 // 목록, 검색용 /api/communities, /api/communities/search
@@ -21,6 +22,7 @@ export interface CommunityDetail extends CommunityBase {
   saveState: "Y" | "N";
   createdAt: string;
   updatedAt: string;
+  imageUrl: string;
 }
 
 // 프론트 UI 전용 타입
