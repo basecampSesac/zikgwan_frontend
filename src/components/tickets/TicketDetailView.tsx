@@ -1,122 +1,178 @@
-import { useState } from "react";
-import type { TicketUI } from "../../types/ticket";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import axiosInstance from "../../lib/axiosInstance";
-import ShareButton from "../common/ShareButton";
 import { useToastStore } from "../../store/toastStore";
+import { useAuthStore } from "../../store/authStore";
 import ConfirmModal from "../../Modals/ConfirmModal";
 import Modal from "../Modal";
 import TicketForm from "./TicketForm";
+import ShareButton from "../common/ShareButton";
 import {
-  FiCalendar,
-  FiMapPin,
   FiEdit3,
   FiTrash2,
+  FiCalendar,
+  FiMapPin,
   FiCreditCard,
+  FiMessageSquare,
 } from "react-icons/fi";
 import { HiOutlineUsers } from "react-icons/hi";
+import { getDefaultStadiumImage } from "../../constants/stadiums";
+import type { TicketUI } from "../../types/ticket";
 
-interface Props {
-  ticket: TicketUI;
-}
-
-export default function TicketDetailView({ ticket }: Props) {
+/** ✅ 티켓 상세 페이지 (등록/수정/삭제/채팅 포함) */
+export default function TicketDetailView() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const addToast = useToastStore((state) => state.addToast);
+  const addToast = useToastStore((s) => s.addToast);
+  const { user } = useAuthStore();
+
+  const [ticket, setTicket] = useState<TicketUI | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 채팅 시작
-  const handleChatStart = async () => {
+  /** ✅ 상세 조회 */
+  const fetchTicket = useCallback(async () => {
     try {
-      const res = await axiosInstance.post(
-        `/api/chatroom/ticket?roomName=${ticket.title}`
-      );
-      if (res.data.status === "success") {
-        const roomId = res.data.data.roomId;
-        navigate(`/chat/${roomId}`);
-      } else {
-        addToast("채팅방 생성 실패 ❌", "error");
-      }
+      const res = await axiosInstance.get(`/api/tickets/${id}`);
+      if (res.data) {
+        const t = res.data;
+        setTicket({
+          id: t.tsId,
+          title: t.title,
+          description: t.description,
+          gameDate: t.gameDay,
+          price: t.price,
+          ticketCount: t.ticketCount,
+          stadiumName: t.stadium,
+          status: t.state === "ING" ? "판매중" : "판매완료",
+          imageUrl: t.imageUrl
+            ? `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
+            : getDefaultStadiumImage(t.stadium),
+          seller: {
+            nickname: t.nickname,
+            rate: t.rating || 0,
+          },
+        });
+      } else addToast("티켓 정보를 불러오지 못했습니다.", "error");
     } catch (err) {
-      console.error("채팅 시작 에러:", err);
-      addToast("채팅 시작 중 오류가 발생했습니다.", "error");
+      console.error("티켓 상세 조회 실패:", err);
+      addToast("서버 오류가 발생했습니다.", "error");
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [id, addToast]);
 
-  // 티켓 삭제
-  const handleDeleteTicket = async () => {
+  useEffect(() => {
+    fetchTicket();
+  }, [fetchTicket]);
+
+  /** ✅ 삭제 */
+  const handleDelete = async () => {
     try {
-      const res = await axiosInstance.delete(`/api/ticket/${ticket.id}`);
-      if (res.data.success) {
+      const res = await axiosInstance.delete(`/api/tickets/${id}`);
+      if (res.data?.status === "success") {
         addToast("티켓이 삭제되었습니다 ✅", "success");
         navigate("/tickets");
-      } else {
-        addToast(res.data.message || "삭제 실패 ❌", "error");
-      }
+      } else addToast(res.data.message || "삭제 실패 ❌", "error");
     } catch (err) {
       console.error("티켓 삭제 오류:", err);
-      addToast("티켓 삭제 중 오류가 발생했습니다.", "error");
+      addToast("삭제 중 오류가 발생했습니다.", "error");
     } finally {
       setIsDeleteOpen(false);
     }
   };
 
+  /** ✅ 채팅 시작 */
+  const handleChatStart = async () => {
+    if (!ticket) return;
+    try {
+      const res = await axiosInstance.post(
+        `/api/chatroom/ticket/${ticket.id}?roomName=${encodeURIComponent(
+          ticket.title
+        )}`
+      );
+
+      if (res.data.status === "success" && res.data.data?.roomId) {
+        const roomId = res.data.data.roomId;
+        navigate(`/chat/${roomId}`);
+      } else {
+        addToast(res.data.message || "채팅방 생성 실패 ❌", "error");
+      }
+    } catch (err) {
+      console.error("채팅방 생성 실패:", err);
+      addToast("채팅방 생성 중 오류가 발생했습니다.", "error");
+    }
+  };
+
+  if (isLoading)
+    return (
+      <main className="flex items-center justify-center min-h-screen text-gray-500">
+        티켓 정보를 불러오는 중입니다...
+      </main>
+    );
+
+  if (!ticket)
+    return (
+      <main className="flex items-center justify-center min-h-screen text-gray-500">
+        해당 티켓 정보를 찾을 수 없습니다.
+      </main>
+    );
+
+  const isSeller = user?.nickname === ticket.seller.nickname;
+
   return (
     <main className="bg-white flex items-center justify-center py-10 px-4">
       <div className="relative w-full max-w-7xl">
-        <div className="bg-white rounded-2xl p-10 border border-gray-200">
-          {/* 메인 콘텐츠 영역 */}
+        <div className="bg-white rounded-2xl p-10 border border-gray-200 shadow-sm">
+          {/* 상단: 이미지 + 기본정보 */}
           <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-10">
             {/* 이미지 영역 */}
-            <div className="flex flex-col relative">
-              <div className="relative w-full h-[450px] bg-gray-100 flex items-center justify-center rounded-2xl overflow-hidden border border-gray-100">
-                <span
-                  className={`absolute top-3 left-3 px-3 py-1.5 text-sm font-semibold rounded-md text-white ${
-                    ticket.status === "판매중" ? "bg-[#6F00B6]" : "bg-gray-400"
-                  }`}
-                >
-                  {ticket.status}
-                </span>
+            <div className="relative w-full h-[450px] bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center border border-gray-100">
+              <span
+                className={`absolute top-3 left-3 px-3 py-1.5 text-sm font-semibold rounded-md text-white ${
+                  ticket.status === "판매중" ? "bg-[#6F00B6]" : "bg-gray-400"
+                }`}
+              >
+                {ticket.status}
+              </span>
 
-                {ticket.imageUrl ? (
-                  <img
-                    src={ticket.imageUrl}
-                    alt="티켓 이미지"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-gray-500">티켓 이미지 없음</span>
-                )}
-              </div>
+              <img
+                src={
+                  ticket.imageUrl || getDefaultStadiumImage(ticket.stadiumName)
+                }
+                alt="티켓 이미지"
+                className="w-full h-full object-cover"
+              />
             </div>
 
             {/* 오른쪽 정보 영역 */}
             <div className="flex flex-col justify-between">
               <div>
-                <h2 className="text-3xl font-bold mt-5 mb-6 text-gray-900 tracking-tight">
+                <h2 className="text-3xl font-bold mb-6 text-gray-900 tracking-tight">
                   {ticket.title}
                 </h2>
 
+                {/* 정보 블록 */}
                 <div className="text-gray-700 mb-4 divide-y divide-gray-100">
                   {[
                     {
-                      icon: <FiCalendar className="text-gray-500" size={22} />,
+                      icon: <FiCalendar size={22} className="text-gray-500" />,
                       text: new Date(ticket.gameDate).toLocaleString(),
                     },
                     {
-                      icon: <FiMapPin className="text-gray-500" size={22} />,
+                      icon: <FiMapPin size={22} className="text-gray-500" />,
                       text: ticket.stadiumName,
                     },
                     {
                       icon: (
-                        <HiOutlineUsers className="text-gray-500" size={22} />
+                        <HiOutlineUsers size={22} className="text-gray-500" />
                       ),
                       text: `판매자: ${ticket.seller.nickname}`,
                     },
                     {
                       icon: (
-                        <FiCreditCard className="text-gray-500" size={22} />
+                        <FiCreditCard size={22} className="text-gray-500" />
                       ),
                       text: `가격: ${ticket.price.toLocaleString()}원 (${
                         ticket.ticketCount
@@ -134,44 +190,50 @@ export default function TicketDetailView({ ticket }: Props) {
                 </div>
 
                 {/* 채팅 버튼 */}
-                <div className="mb-8">
+                <div className="mb-8 mt-4">
                   <button
                     onClick={
                       ticket.status === "판매중" ? handleChatStart : undefined
                     }
                     disabled={ticket.status === "판매완료"}
-                    className={`w-full px-6 py-3 rounded-lg font-semibold text-lg transition ${
+                    className={`w-full px-6 py-3 rounded-lg font-semibold text-lg transition flex items-center justify-center gap-2 ${
                       ticket.status === "판매중"
                         ? "bg-gradient-to-r from-[#8A2BE2] to-[#6F00B6] text-white hover:opacity-90"
                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }`}
                   >
+                    <FiMessageSquare size={20} />
                     판매자와 채팅 시작하기
                   </button>
                 </div>
 
                 {/* 버튼 묶음 */}
-                <div className="flex items-center justify-end gap-3 mt-8">
+                <div className="flex items-center justify-end gap-3 mt-6">
                   <ShareButton />
-                  <button
-                    onClick={() => setIsEditOpen(true)}
-                    className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition"
-                  >
-                    <FiEdit3 size={16} /> 수정
-                  </button>
-                  <button
-                    onClick={() => setIsDeleteOpen(true)}
-                    className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-red-600 transition"
-                  >
-                    <FiTrash2 size={16} /> 삭제
-                  </button>
+                  {isSeller && (
+                    <>
+                      <button
+                        onClick={() => setIsEditOpen(true)}
+                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition"
+                      >
+                        <FiEdit3 size={16} /> 수정
+                      </button>
+                      <button
+                        onClick={() => setIsDeleteOpen(true)}
+                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-red-600 transition"
+                      >
+                        <FiTrash2 size={16} /> 삭제
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* 상세 설명 + 사이드 정보 */}
+          {/* 하단: 상세 설명 + 판매자 정보 */}
           <div className="mt-8 pt-8 border-t border-gray-100 grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-8 items-stretch">
+            {/* 상세 설명 */}
             <div className="bg-gray-50 rounded-xl p-6 min-h-[370px] flex flex-col overflow-y-auto border border-gray-100">
               <h3 className="font-semibold text-gray-800 mb-2 text-lg">
                 티켓 상세 설명
@@ -181,7 +243,7 @@ export default function TicketDetailView({ ticket }: Props) {
               </p>
             </div>
 
-            {/* 오른쪽: 안내 카드 + 거래자 목록 */}
+            {/* 판매자 정보 */}
             <div className="space-y-6">
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                 <h4 className="font-semibold text-gray-800 mb-3 text-lg">
@@ -208,6 +270,7 @@ export default function TicketDetailView({ ticket }: Props) {
         </div>
       </div>
 
+      {/* ✅ 삭제 모달 */}
       <ConfirmModal
         isOpen={isDeleteOpen}
         title="티켓 삭제"
@@ -217,16 +280,20 @@ export default function TicketDetailView({ ticket }: Props) {
         confirmText="삭제하기"
         cancelText="취소"
         onClose={() => setIsDeleteOpen(false)}
-        onConfirm={handleDeleteTicket}
+        onConfirm={handleDelete}
       />
 
-      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)}>
-        <TicketForm
-          mode="edit"
-          initialValues={ticket}
-          onClose={() => setIsEditOpen(false)}
-        />
-      </Modal>
+      {/* ✅ 수정 모달 */}
+      {isEditOpen && (
+        <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)}>
+          <TicketForm
+            mode="edit"
+            initialValues={ticket}
+            onClose={() => setIsEditOpen(false)}
+            onSuccess={fetchTicket}
+          />
+        </Modal>
+      )}
     </main>
   );
 }
