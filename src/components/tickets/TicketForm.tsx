@@ -6,11 +6,13 @@ import "react-datepicker/dist/react-datepicker.css";
 import { TEAMS } from "../../constants/teams";
 import { STADIUMS } from "../../constants/stadiums";
 import { useToastStore } from "../../store/toastStore";
+import { useAuthStore } from "../../store/authStore";
 import axiosInstance from "../../lib/axiosInstance";
 
 interface TicketFormProps {
   mode?: "create" | "edit";
   initialValues?: Partial<{
+    id: number;
     title: string;
     description: string;
     price: number;
@@ -22,14 +24,17 @@ interface TicketFormProps {
     gameDay: string;
   }>;
   onClose?: () => void;
+  onSuccess?: () => void;
 }
 
 export default function TicketForm({
   mode = "create",
   initialValues,
   onClose,
+  onSuccess,
 }: TicketFormProps) {
-  const addToast = useToastStore((state) => state.addToast);
+  const addToast = useToastStore((s) => s.addToast);
+  const { user } = useAuthStore();
 
   const [form, setForm] = useState({
     title: initialValues?.title || "",
@@ -39,38 +44,39 @@ export default function TicketForm({
     home: initialValues?.home || "",
     away: initialValues?.away || "",
     stadium: initialValues?.stadium || "",
-    adjacentSeat: initialValues?.adjacentSeat === "Y" ? true : false,
+    adjacentSeat: initialValues?.adjacentSeat === "Y",
   });
 
   const [gameDay, setGameDay] = useState<Date | null>(
     initialValues?.gameDay ? new Date(initialValues.gameDay) : null
   );
   const [images, setImages] = useState<File[]>([]);
+  const [isSubmitting] = useState(false);
 
+  /** 🔸 입력 변경 핸들러 */
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
-    const { name, value, type } = e.target;
-    setForm({
-      ...form,
-      [name]: type === "number" ? Number(value) : value,
-    });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
   };
 
+  /** 🔸 체크박스 */
   const handleCheckbox = () => {
     setForm({ ...form, adjacentSeat: !form.adjacentSeat });
   };
 
+  /** 🔸 파일 업로드 */
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setImages(Array.from(e.target.files));
-    }
+    if (e.target.files) setImages(Array.from(e.target.files));
   };
 
+  /** 🔸 제출 */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     if (
       !form.title ||
@@ -79,15 +85,20 @@ export default function TicketForm({
       !form.ticketCount ||
       !form.home ||
       !form.away ||
-      !form.stadium 
+      !form.stadium
     ) {
       addToast("필수 항목을 모두 입력해주세요 ❌", "error");
       return;
     }
 
+    if (!user?.userId) {
+      addToast("로그인이 필요합니다.", "error");
+      return;
+    }
+
     const payload = {
       title: form.title,
-      description: form.description || "",
+      description: form.description,
       price: Number(form.price),
       gameDay: gameDay.toISOString().slice(0, 19),
       ticketCount: Number(form.ticketCount),
@@ -95,29 +106,26 @@ export default function TicketForm({
       away: form.away,
       stadium: form.stadium,
       adjacentSeat: form.adjacentSeat ? "Y" : "N",
+      buyerId: user.userId,
     };
 
     try {
-      const formData = new FormData();
-      formData.append(
-        "ticket",
-        new Blob([JSON.stringify(payload)], { type: "application/json" })
+      const res = await axiosInstance.post(
+        `/api/tickets/${user.userId}`,
+        payload,
+        { headers: { "Content-Type": "application/json" } }
       );
-      images.forEach((file) => formData.append("images", file));
-
-      const res = await axiosInstance.post("/api/tickets", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
 
       if (res.data.status === "success") {
         addToast("티켓이 등록되었습니다 🎉", "success");
+        onSuccess?.();
         onClose?.();
       } else {
         addToast(res.data.message || "등록 실패 ❌", "error");
       }
     } catch (err) {
       console.error("티켓 등록 오류:", err);
-      addToast("서버 오류가 발생했습니다 ❌", "error");
+      addToast("서버 오류가 발생했습니다.", "error");
     }
   };
 
@@ -236,7 +244,7 @@ export default function TicketForm({
           </label>
         </div>
 
-        {/* 구장 + 연석 */}
+        {/* 구장 + 연석 여부 */}
         <div className="grid grid-cols-2 gap-4">
           <label className="block">
             <span className="block text-sm font-medium mb-1 text-gray-600">
@@ -310,7 +318,12 @@ export default function TicketForm({
         {/* 버튼 */}
         <button
           type="submit"
-          className="w-full py-3 rounded-lg font-semibold transition-colors bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
+          disabled={isSubmitting}
+          className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+            isSubmitting
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-[#6F00B6] text-white hover:bg-[#8A2BE2]"
+          }`}
         >
           {mode === "create" ? "등록하기" : "수정 완료"}
         </button>
