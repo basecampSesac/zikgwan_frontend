@@ -23,7 +23,7 @@ export default function NotificationDropdown() {
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await axiosInstance.get(`/api/notification/${user.userId}`);
+      const res = await axiosInstance.get(`/api/notification/all`);
       if (res.data.status === "success") {
         setNotifications(res.data.data);
       }
@@ -36,7 +36,7 @@ export default function NotificationDropdown() {
   const markAsRead = async (id: number) => {
     if (!user) return;
     try {
-      await axiosInstance.patch(`/api/${user.userId}/${id}`);
+      await axiosInstance.patch(`/api/notification/read/${id}`);
       setNotifications((prev) =>
         prev.map((n) =>
           n.id === id ? { ...n, readAt: new Date().toISOString() } : n
@@ -51,7 +51,7 @@ export default function NotificationDropdown() {
   const deleteNotification = async (id: number) => {
     if (!user) return;
     try {
-      await axiosInstance.delete(`/api/${user.userId}/${id}`);
+      await axiosInstance.delete(`/api/notification/${id}`);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
       console.error("❌ 알림 삭제 실패:", err);
