@@ -18,7 +18,7 @@ export default function ChatListPanel({ onSelect }: Props) {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const res = await axiosInstance.get("/api/chatroom/my");
+        const res = await axiosInstance.get("/api/chatroom/all");
         if (res.data.status === "success" && Array.isArray(res.data.data)) {
           setRooms(res.data.data);
         } else {
