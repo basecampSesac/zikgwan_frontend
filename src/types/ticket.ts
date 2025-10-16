@@ -5,15 +5,19 @@ export type UserInfo = {
 };
 
 export type TicketUI = {
-  id: number;
+  tsId: number;
   title: string;
-  description?: string;
+  description: string;
   price: number;
-  gameDate: string;
+  gameDay: string;
   ticketCount: number;
-  stadiumName: string;
-  status: "판매중" | "판매완료";
-  imageUrl?: string;
-
-  seller: UserInfo;
+  home: string;
+  away: string;
+  stadium: string;
+  adjacentSeat: "Y" | "N";
+  nickname: string;
+  rating: number | null;
+  state: string;
+  createdAt: string;
+  updatedAt: string;
 };

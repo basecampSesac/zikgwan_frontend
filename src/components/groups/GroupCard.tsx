@@ -4,6 +4,7 @@ import type { GroupUI } from "../../types/group";
 import { formatDate } from "../../utils/format";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
 import { useAuthStore } from "../../store/authStore";
+import { useState } from "react";
 
 export default function GroupCard({
   id,
@@ -26,8 +27,12 @@ export default function GroupCard({
     imageUrl && imageUrl.trim() !== ""
       ? imageUrl.startsWith("http")
         ? imageUrl
+        : imageUrl.startsWith("/")
+        ? imageUrl
         : `http://localhost:8080/images/${imageUrl.replace(/^\/+/, "")}`
       : getDefaultStadiumImage(stadiumName);
+
+  const [imgSrc, setImgSrc] = useState(resolvedImageUrl);
 
   const handleClick = () => {
     if (isEnded && !isLeader) return;
@@ -42,11 +47,13 @@ export default function GroupCard({
       {/* 이미지 영역 */}
       <div className="relative h-44">
         <img
-          src={resolvedImageUrl}
+          src={imgSrc}
           alt={title}
           className="w-full h-full object-cover transition-transform duration-200 hover:scale-[1.02]"
-          onError={(e) => {
-            e.currentTarget.src = getDefaultStadiumImage(stadiumName);
+          onError={() => {
+            if (imgSrc !== getDefaultStadiumImage(stadiumName)) {
+              setImgSrc(getDefaultStadiumImage(stadiumName));
+            }
           }}
         />
 
