@@ -5,7 +5,7 @@ import NotificationDropdown from "../components/NotificationDropdown";
 
 export function Navbar() {
   const navigate = useNavigate();
-  const { isAuthenticated, logout, user } = useAuthStore();
+  const { isAuthenticated, logout } = useAuthStore();
   const { addToast } = useToastStore();
 
   const handleLogout = async () => {
@@ -17,8 +17,6 @@ export function Navbar() {
       addToast("로그아웃 중 오류가 발생했습니다.", "error");
     }
   };
-
-  const isLoadingAuth = user === null && localStorage.getItem("accessToken");
 
   return (
     <header className="fixed top-0 left-0 w-full border-b border-gray-200 bg-white/95 backdrop-blur z-50">
@@ -56,24 +54,22 @@ export function Navbar() {
 
         {/* 오른쪽 버튼 */}
         <div className="flex items-center gap-3 text-sm font-medium relative">
-          {isLoadingAuth ? (
-            <div className="w-24 h-8 bg-gray-100 rounded-md animate-pulse" />
-          ) : isAuthenticated ? (
-            <>
-              <button
-                onClick={() => navigate("/mypage")}
-                className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
-              >
-                마이페이지
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
-              >
-                로그아웃
-              </button>
-              <NotificationDropdown />
-            </>
+          <button
+            onClick={() =>
+              isAuthenticated ? navigate("/mypage") : navigate("/login")
+            }
+            className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
+          >
+            마이페이지
+          </button>
+
+          {isAuthenticated ? (
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
+            >
+              로그아웃
+            </button>
           ) : (
             <>
               <button
@@ -90,6 +86,8 @@ export function Navbar() {
               </button>
             </>
           )}
+          {/* 알림 */}
+          {isAuthenticated && <NotificationDropdown />}
         </div>
       </div>
     </header>
