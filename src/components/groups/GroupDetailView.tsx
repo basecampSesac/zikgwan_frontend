@@ -33,6 +33,7 @@ export default function GroupDetailView() {
   const { openPopup } = useChatWidgetStore();
 
   const [group, setGroup] = useState<GroupUI | null>(null);
+  const [roomId, setRoomId] = useState<number | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -45,8 +46,6 @@ export default function GroupDetailView() {
 
       if (res.data.status === "success" && res.data.data) {
         const g = res.data.data;
-
-        // 이미지 경로
         const fullImageUrl = g.imageUrl
           ? `http://localhost:8080/images/${g.imageUrl.replace(/^\/+/, "")}`
           : undefined;
@@ -76,9 +75,26 @@ export default function GroupDetailView() {
     }
   }, [id, addToast]);
 
+  // 채팅방 상세 조회
+  const fetchChatRoom = useCallback(async () => {
+    try {
+      const res = await axiosInstance.get(`/api/chatroom/community/${id}`);
+      if (res.data.status === "success" && res.data.data) {
+        setRoomId(res.data.data.roomId);
+        console.log("✅ 채팅방 정보 불러오기 성공:", res.data.data);
+      } else {
+        console.warn("채팅방 정보를 불러오지 못했습니다.");
+      }
+    } catch (err) {
+      console.error("채팅방 상세 조회 실패:", err);
+    }
+  }, [id]);
+
+  // 초기 로드
   useEffect(() => {
     fetchGroupDetail();
-  }, [fetchGroupDetail]);
+    fetchChatRoom();
+  }, [fetchGroupDetail, fetchChatRoom]);
 
   // 수정 완료 후 반영
   const handleEditClose = async () => {
@@ -118,6 +134,19 @@ export default function GroupDetailView() {
     }
   };
 
+  // 모임 참여 (채팅방 연결)
+  const handleJoinGroup = () => {
+    if (!user) {
+      addToast("로그인 후 모임에 참여할 수 있어요.", "error");
+      return;
+    }
+    if (!roomId) {
+      addToast("채팅방 정보를 불러오지 못했습니다.", "error");
+      return;
+    }
+    openPopup(roomId);
+  };
+
   if (!group) {
     return (
       <main className="flex items-center justify-center min-h-screen text-gray-500">
@@ -142,7 +171,6 @@ export default function GroupDetailView() {
                     모집중
                   </span>
                 )}
-
                 <img
                   src={
                     group.imageUrl
@@ -152,7 +180,6 @@ export default function GroupDetailView() {
                   alt="모임 이미지"
                   className="w-full h-full object-cover"
                 />
-
                 {isEnded && (
                   <div className="absolute inset-0 bg-black/55 z-10 flex items-center justify-center">
                     <span className="text-white text-xl font-semibold tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
@@ -197,13 +224,7 @@ export default function GroupDetailView() {
                 {/* 팝업 연결 */}
                 <div className="mb-4">
                   <button
-                    onClick={() => {
-                      if (!user) {
-                        addToast("로그인 후 모임에 참여할 수 있어요.", "error");
-                        return;
-                      }
-                      openPopup(group.id);
-                    }}
+                    onClick={handleJoinGroup}
                     className={`w-full px-6 py-3 rounded-lg font-semibold text-lg transition ${
                       isEnded
                         ? "bg-gray-300 text-gray-600 cursor-not-allowed"
