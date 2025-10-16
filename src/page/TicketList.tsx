@@ -37,7 +37,7 @@ export default function TicketList() {
   const fetchTickets = async (sort: SortType = "RECENT", pageNum = 0) => {
     setLoading(true);
     try {
-      const res = await axiosInstance.get(`/api/tickets`, {
+      const res = await axiosInstance.get(`/api/tickets/all`, {
         params: { page: pageNum, size: 12, sortType: sort },
       });
 
