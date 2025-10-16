@@ -3,12 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
 import type { TicketUI } from "../../types/ticket";
 
-/**
- * ✅ TicketCard
- * - 티켓 목록에서 사용되는 단일 카드 컴포넌트
- * - 이미지 fallback 처리
- * - 클릭 시 상세 페이지로 이동
- */
 export default function TicketCard({
   id,
   title,
@@ -42,7 +36,6 @@ export default function TicketCard({
       onClick={handleClick}
       className="group card-hover cursor-pointer flex flex-col overflow-hidden border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all bg-white"
     >
-      {/* 상단 이미지 */}
       <div className="relative w-full h-48 overflow-hidden">
         <img
           src={imgSrc}
@@ -61,14 +54,11 @@ export default function TicketCard({
         </span>
       </div>
 
-      {/* 본문 */}
       <div className="flex flex-col flex-1 justify-between px-4 py-3">
-        {/* 제목 */}
         <h3 className="font-semibold text-base text-gray-900 truncate mb-2 group-hover:text-[#6F00B6] transition">
           {title}
         </h3>
 
-        {/* 정보 */}
         <div className="flex flex-col gap-1 text-sm text-gray-600">
           <div className="flex items-center gap-1">
             <Calendar className="w-4 h-4 text-gray-400" />
