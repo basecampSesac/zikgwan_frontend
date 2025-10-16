@@ -20,7 +20,6 @@ export const useMatchStore = create<MatchState>((set, get) => ({
   loading: false,
 
   fetchMatches: async () => {
-    // 이미 로드된 경우 캐시 활용
     if (get().matches.length > 0 && get().dates.length > 0) return;
 
     set({ loading: true });
@@ -40,12 +39,15 @@ export const useMatchStore = create<MatchState>((set, get) => ({
       const allMatches: Match[] = [];
       const uniqueDates = new Set<string>();
 
-      results.forEach((res) => {
+      results.forEach((res, i) => {
         if (res.status === "fulfilled" && res.value.data.status === "success") {
+          const target = new Date(2025, 8, 27 + i);
+          const dateStr = target.toISOString().slice(0, 10);
+          uniqueDates.add(dateStr);
+
           const data = res.value.data.data;
           if (data.length > 0) {
             allMatches.push(...data);
-            uniqueDates.add(data[0].date);
           }
         }
       });
