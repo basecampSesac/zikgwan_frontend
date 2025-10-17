@@ -190,6 +190,7 @@ export default function LoginPage() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
               placeholder="비밀번호를 입력해주세요."
               className="input-border pr-10"
             />
