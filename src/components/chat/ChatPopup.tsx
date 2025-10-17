@@ -55,8 +55,7 @@ export default function ChatPopup({
     >
       <div
         ref={nodeRef}
-        className="fixed w-[440px] h-[640px] bg-white rounded-2xl 
-                   shadow-lg border border-gray-200 z-[2000]"
+        className="fixed w-[440px] h-[640px] rounded-2xl border border-gray-300 shadow-lg overflow-hidden bg-white z-[2000]"
         style={{
           top: `calc(50% - 320px)`,
           left: `calc(50% - 220px + ${offsetX * 40}px)`,
@@ -79,7 +78,6 @@ export default function ChatPopup({
                          text-gray-600 hover:bg-gray-200 rounded-md transition"
             >
               <LogOut size={14} />
-              퇴장하기
             </button>
 
             <button

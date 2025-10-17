@@ -55,9 +55,9 @@ export default function ChatRoom({ roomId, nickname }: ChatRoomProps) {
   };
 
   return (
-    <div className="flex flex-col w-full h-full bg-white border border-gray-300 rounded-b-2xl">
+    <div className="flex flex-col w-full h-full bg-gray-50">
       {/* 메시지 목록 */}
-      <div className="flex-1 overflow-y-auto p-5 bg-gray-50 space-y-3">
+      <div className="flex-1 overflow-y-auto p-5 space-y-3">
         {messages.length === 0 ? (
           <div className="flex justify-center items-center h-full text-gray-400 text-sm">
             아직 대화가 없습니다.
