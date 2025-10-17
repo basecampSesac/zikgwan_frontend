@@ -9,7 +9,7 @@ interface ChatListItem {
 }
 
 interface Props {
-  onSelect: (roomId: number) => void;
+  onSelect: (roomId: number, title: string) => void;
 }
 
 export default function ChatListPanel({ onSelect }: Props) {
@@ -48,7 +48,7 @@ export default function ChatListPanel({ onSelect }: Props) {
           rooms.map((room) => (
             <button
               key={room.roomId}
-              onClick={() => onSelect(room.roomId)}
+              onClick={() => onSelect(room.roomId, room.roomName)}
               className="w-full flex items-center justify-between px-4 py-3 border-b hover:bg-gray-50 transition text-left"
             >
               <div>
