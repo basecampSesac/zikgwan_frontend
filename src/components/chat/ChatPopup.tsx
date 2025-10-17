@@ -20,6 +20,17 @@ export default function ChatPopup({
 
   const nodeRef = useRef<HTMLDivElement>(null);
 
+// 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (nodeRef.current && !nodeRef.current.contains(e.target as Node)) {
+        closePopup(roomId);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [roomId, closePopup]);
+
   // 채팅방 입장 (join)
   useEffect(() => {
     const joinRoom = async () => {
