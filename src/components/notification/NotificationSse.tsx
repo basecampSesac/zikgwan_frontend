@@ -60,15 +60,4 @@ export default function NotificationSse() {
       eventSource.close();
     };
   }, [user?.userId]);
-
-  return (
-    <div>
-      <h2>알림 목록</h2>
-      {notifications.map((n, i) => (
-        <p key={i}>
-          [{n.roomId}] {n.message}
-        </p>
-      ))}
-    </div>
-  );
 }
