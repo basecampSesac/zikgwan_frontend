@@ -18,6 +18,7 @@ import axiosInstance from "./lib/axiosInstance";
 import NotificationSSE from "./components/notification/NotificationSse";
 import GlobalChatWidget from "./components/chat/GlobalChatWidget";
 import ChatPopupManager from "./components/chat/ChatPopupManger";
+import { getImageUrl } from "./api/imageApi";
 
 const router = createBrowserRouter([
   {
@@ -45,17 +46,39 @@ export default function App() {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // refreshToken 쿠키 기반으로 자동 로그인 시도
         await tryAutoLogin();
 
-        // 로그인 상태라면 사용자 정보 다시 불러오기
         const token = useAuthStore.getState().accessToken;
-        const userId = useAuthStore.getState().user?.userId;
+        const user = useAuthStore.getState().user;
 
-        if (token && userId) {
-          const { data } = await axiosInstance.get(`/api/user/${userId}`);
-          if (data.status === "success" && data.data) {
-            setUser(data.data);
+        if (token && user?.userId) {
+          // 사용자 정보 조회
+          const userRes = await axiosInstance.get(`/api/user/${user.userId}`);
+
+          if (userRes.data.status === "success" && userRes.data.data) {
+            const userData = userRes.data.data;
+
+            let profileImage = "";
+            try {
+              const imgRes = await axiosInstance.get(
+                `/api/images/U/${user.userId}`
+              );
+
+              if (imgRes.data.status === "success" && imgRes.data.data) {
+                profileImage = getImageUrl(imgRes.data.data);
+              } else {
+                console.warn("⚠️ 사용자 이미지 없음, 기본 이미지 유지");
+              }
+            } catch (err) {
+              console.warn("⚠️ 프로필 이미지 조회 실패:", err);
+            }
+
+            // Zustand store에 사용자 정보 + 이미지 반영
+            setUser({
+              ...userData,
+              profileImage,
+            });
+            console.log("✅ 사용자 정보 복원 완료:", profileImage);
           }
         }
       } catch (err) {

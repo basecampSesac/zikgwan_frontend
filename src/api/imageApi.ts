@@ -36,10 +36,14 @@ export async function uploadImage(
 }
 
 // 이미지 조회 URL 생성
-export function getImageUrl(path: string) {
+export function getImageUrl(path?: string | null) {
   if (!path) return "";
   const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
-  return path.startsWith("/") ? `${baseUrl}${path}` : `${baseUrl}/${path}`;
+
+  if (path.startsWith("http")) return path;
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${baseUrl}${normalizedPath}`;
 }
 
 // 이미지 삭제
