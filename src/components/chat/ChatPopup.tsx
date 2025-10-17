@@ -9,12 +9,15 @@ import axiosInstance from "../../lib/axiosInstance";
 export default function ChatPopup({
   roomId,
   offsetX = 0,
+  title,
 }: {
   roomId: number;
   offsetX?: number;
+  title: string;
 }) {
   const { closePopup } = useChatWidgetStore();
   const { user } = useAuthStore();
+
   const nodeRef = useRef<HTMLDivElement>(null);
 
   // 채팅방 입장 (join)
@@ -67,8 +70,9 @@ export default function ChatPopup({
                      px-4 py-3 bg-gray-100 text-gray-700 border-b border-gray-200 
                      rounded-t-2xl select-none active:cursor-grabbing"
         >
-          <span className="font-semibold text-[15px]">
-            💬 모임 채팅 #{roomId}
+          <span className="inline-flex items-center gap-2 font-semibold text-[15px]">
+            <span>💬</span>
+            <span>{title ? title : `모임 채팅 #${roomId}`}</span>
           </span>
 
           <div className="flex items-center gap-2">
