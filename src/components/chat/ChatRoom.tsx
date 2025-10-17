@@ -98,7 +98,13 @@ export default function ChatRoom({ roomId, nickname }: ChatRoomProps) {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          onKeyDown={(e) => {
+            if (e.nativeEvent.isComposing) return; // 한글 조합 중이면 return
+            if (e.key === "Enter") {
+              e.preventDefault(); // 기본 개행 방지
+              handleSend();
+            }
+          }}
           placeholder="메시지를 입력해주세요."
           className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#6F00B6]/40"
         />

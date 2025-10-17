@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { FaRegBell } from "react-icons/fa6";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiTrash2 } from "react-icons/fi";
@@ -18,6 +18,25 @@ export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const { user } = useAuthStore();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      // 버튼 또는 드롭다운 내부 클릭은 무시
+      if (
+        dropdownRef.current?.contains(target) ||
+        buttonRef.current?.contains(target)
+      )
+        return;
+      setIsOpen(false); // 외부 클릭 시 닫기
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // 알림 목록 조회
   const fetchNotifications = useCallback(async () => {
@@ -58,7 +77,7 @@ export default function NotificationDropdown() {
     }
   };
 
-  // 드롭다운 열릴 때마다 목록 갱신 (컴포넌트 내부에서만)
+  // 드롭다운 열릴 때마다 목록 갱신
   useEffect(() => {
     if (isOpen) fetchNotifications();
   }, [isOpen, fetchNotifications]);
@@ -66,9 +85,10 @@ export default function NotificationDropdown() {
   const unreadExists = notifications.some((n) => !n.readAt);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       {/* 종 아이콘 */}
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen((prev) => !prev)}
         className="relative p-2 hover:bg-gray-50 rounded-full transition"
       >
@@ -132,10 +152,9 @@ export default function NotificationDropdown() {
                         })}
                       </span>
                     </div>
-                    {/* 휴지통 아이콘 */}
                     <button
                       onClick={(e) => {
-                        e.stopPropagation(); // 읽음 처리 막기
+                        e.stopPropagation();
                         deleteNotification(n.id);
                       }}
                       className="text-gray-400 hover:text-red-500 transition"
