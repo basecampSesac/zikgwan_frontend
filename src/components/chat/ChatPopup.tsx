@@ -9,12 +9,15 @@ import axiosInstance from "../../lib/axiosInstance";
 export default function ChatPopup({
   roomId,
   offsetX = 0,
+  title,
 }: {
   roomId: number;
   offsetX?: number;
+  title: string;
 }) {
   const { closePopup } = useChatWidgetStore();
   const { user } = useAuthStore();
+
   const nodeRef = useRef<HTMLDivElement>(null);
 
   // 채팅방 입장 (join)
@@ -55,8 +58,7 @@ export default function ChatPopup({
     >
       <div
         ref={nodeRef}
-        className="fixed w-[440px] h-[640px] bg-white rounded-2xl 
-                   shadow-lg border border-gray-200 z-[2000]"
+        className="fixed w-[440px] h-[640px] rounded-2xl border border-gray-300 shadow-lg overflow-hidden bg-white z-[2000]"
         style={{
           top: `calc(50% - 320px)`,
           left: `calc(50% - 220px + ${offsetX * 40}px)`,
@@ -68,8 +70,9 @@ export default function ChatPopup({
                      px-4 py-3 bg-gray-100 text-gray-700 border-b border-gray-200 
                      rounded-t-2xl select-none active:cursor-grabbing"
         >
-          <span className="font-semibold text-[15px]">
-            💬 모임 채팅 #{roomId}
+          <span className="inline-flex items-center gap-2 font-semibold text-[15px]">
+            <span>💬</span>
+            <span>{title ? title : `모임 채팅 #${roomId}`}</span>
           </span>
 
           <div className="flex items-center gap-2">
@@ -79,7 +82,6 @@ export default function ChatPopup({
                          text-gray-600 hover:bg-gray-200 rounded-md transition"
             >
               <LogOut size={14} />
-              퇴장하기
             </button>
 
             <button
