@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import ConfirmModal from "../../Modals/ConfirmModal";
 import { useAuthStore } from "../../store/authStore";
@@ -6,7 +6,7 @@ import { useToastStore } from "../../store/toastStore";
 import { TEAMS } from "../../constants/teams";
 import axiosInstance from "../../lib/axiosInstance";
 import axios, { AxiosError } from "axios";
-import { uploadImage } from "../../api/imageApi";
+import { uploadImage, getImageUrl } from "../../api/imageApi";
 
 export default function ProfileSection() {
   const { user, logout, setUser } = useAuthStore();
@@ -27,15 +27,10 @@ export default function ProfileSection() {
   const [openModal, setOpenModal] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // 소셜 로그인 여부 판별
   const provider = user?.provider?.toLowerCase();
-  const isSocialLogin = !!(
-    provider &&
-    provider !== "local" &&
-    provider !== "email"
-  );
+  const isSocialLogin =
+    provider !== undefined && provider !== "local" && provider !== "email";
 
-  // 비밀번호 형식 검사
   const isPasswordValid =
     newPassword.length >= 8 &&
     newPassword.length <= 16 &&
@@ -61,10 +56,7 @@ export default function ProfileSection() {
       const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
 
       if (data.status === "success" && data.data) {
-        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
-        const path = data.data.startsWith("/") ? data.data : `/${data.data}`;
-        const imageUrl = `${baseUrl}${path}`;
-
+        const imageUrl = getImageUrl(data.data);
         setProfileImage(imageUrl);
         setUser({ ...user, profileImage: imageUrl });
         addToast("프로필 이미지가 변경되었습니다.", "success");
@@ -86,17 +78,12 @@ export default function ProfileSection() {
   // 회원정보 수정
   const handleSave = async () => {
     if (!user) return;
-
-    setErrorMessage("");
-
-    // 소셜 로그인은 비밀번호 입력 불필요
-    if (!isSocialLogin && !currentPassword) {
-      setErrorMessage("현재 비밀번호를 입력해주세요.");
+    if (!currentPassword) {
       addToast("회원 정보를 수정하려면 현재 비밀번호를 입력해주세요.", "error");
       return;
     }
 
-    if (!isSocialLogin && newPassword && !isPasswordValid) {
+    if (newPassword && !isPasswordValid) {
       addToast(
         "비밀번호는 영문 대소문자, 숫자, 특수문자를 포함한 8~16자여야 합니다.",
         "error"
@@ -104,45 +91,39 @@ export default function ProfileSection() {
       return;
     }
 
-    if (!isSocialLogin && newPassword && newPassword !== confirmPassword) {
+    if (newPassword && newPassword !== confirmPassword) {
       addToast("새 비밀번호가 일치하지 않습니다.", "error");
       return;
     }
 
-    const payload = {
-      nickname,
-      email: user.email,
-      club,
-      provider: user.provider,
-      ...(isSocialLogin
-        ? {}
-        : {
-            password: currentPassword,
-            ...(newPassword && {
-              newpassword: newPassword,
-              newpasswordConfirm: confirmPassword,
-            }),
-          }),
-    };
-
     try {
+      const payload = {
+        nickname,
+        email: user.email,
+        club,
+        password: currentPassword,
+        provider: user.provider || "LOCAL",
+        ...(newPassword && {
+          newpassword: newPassword,
+          newpasswordconfirm: confirmPassword,
+        }),
+      };
+
       const { data } = await axiosInstance.put(
         `/api/user/${user.userId}`,
         payload
       );
 
       if (data.status === "success") {
-        const updated = {
+        addToast("회원 정보가 정상적으로 수정되었습니다.", "success");
+        setUser({
           ...user,
           nickname: data.data.nickname || nickname,
           club: data.data.club || club,
-        };
-
-        setUser(updated);
-        setNickname(updated.nickname);
-        setClub(updated.club);
-
-        addToast("회원 정보가 정상적으로 수정되었습니다.", "success");
+        });
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
       } else {
         addToast(data.message || "회원 정보 수정에 실패했습니다.", "error");
       }
@@ -174,6 +155,10 @@ export default function ProfileSection() {
       }
     }
   };
+  useEffect(() => {
+    if (user?.nickname) setNickname(user.nickname);
+    if (user?.club) setClub(user.club);
+  }, [user?.nickname, user?.club]);
 
   // 회원탈퇴
   const handleDelete = async () => {
@@ -201,12 +186,13 @@ export default function ProfileSection() {
 
       {/* 프로필 이미지 */}
       <div className="flex flex-col items-center mb-6">
-        <div className="w-20 h-20 rounded-full bg-gray-300 mb-2 overflow-hidden">
+        <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden mb-3 border border-gray-300">
           {(profileImage || user?.profileImage) && (
             <img
               src={profileImage || user?.profileImage || ""}
               alt="프로필"
               className="w-full h-full object-cover"
+              onError={(e) => (e.currentTarget.src = "/default-profile.png")}
             />
           )}
         </div>
@@ -275,9 +261,6 @@ export default function ProfileSection() {
             )}
           </button>
         </div>
-        {!isSocialLogin && errorMessage && (
-          <p className="text-xs text-red-500 mt-1">{errorMessage}</p>
-        )}
       </label>
 
       {/* 새 비밀번호 */}
@@ -375,7 +358,7 @@ export default function ProfileSection() {
       {/* 저장하기 */}
       <button
         onClick={handleSave}
-        className="w-full h-11 rounded-lg font-semibold bg-[#8A2BE2] text-white hover:bg-[#6F00B6] transition"
+        className="w-full h-11 rounded-lg font-semibold bg-[#8A2BE2] text-white hover:bg-[#6F00B6]"
       >
         저장하기
       </button>
