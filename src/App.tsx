@@ -45,6 +45,12 @@ export default function App() {
 
   useEffect(() => {
     const initAuth = async () => {
+      const token =
+        localStorage.getItem("accessToken") ||
+        sessionStorage.getItem("accessToken");
+      if (!token) {
+        return;
+      }
       try {
         await tryAutoLogin();
 
@@ -78,7 +84,6 @@ export default function App() {
               ...userData,
               profileImage,
             });
-            console.log("✅ 사용자 정보 복원 완료:", profileImage);
           }
         }
       } catch (err) {
