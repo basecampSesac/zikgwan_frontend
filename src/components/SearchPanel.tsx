@@ -12,7 +12,7 @@ import type { CommunityItem, GroupUI } from "../types/group";
 interface SearchPanelProps {
   title: string;
   onSearch?: (results: GroupUI[]) => void;
-  onReset?: () => void; //
+  onReset?: () => void;
 }
 
 export default function SearchPanel({
@@ -26,50 +26,49 @@ export default function SearchPanel({
   const [date, setDate] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
+  const mapCommunities = (data: any): GroupUI[] => {
+    if (!data) return [];
+
+    const list = Array.isArray(data)
+      ? data
+      : Array.isArray(data.content)
+      ? data.content
+      : [];
+
+    return list.map((g: CommunityItem) => ({
+      id: g.communityId,
+      title: g.title,
+      content: g.description,
+      date: g.date,
+      stadiumName: g.stadium,
+      teams: `${g.home} vs ${g.away}`,
+      personnel: g.memberCount,
+      leader: g.nickname,
+      status: g.state === "ING" ? "모집중" : "모집마감",
+    }));
+  };
+
   const handleKeywordSearch = useCallback(async () => {
     try {
       if (!keyword.trim()) {
-        // 검색어가 없으면 전체 모임 불러오기
         const res = await axiosInstance.get("/api/communities");
+
         if (res.data.status === "success") {
-          const mapped: GroupUI[] = res.data.data.map((g: CommunityItem) => ({
-            id: g.communityId,
-            title: g.title,
-            content: g.description,
-            date: g.date,
-            stadiumName: g.stadium,
-            teams: `${g.home} vs ${g.away}`,
-            personnel: g.memberCount,
-            leader: g.nickname,
-            status: g.state === "ING" ? "모집중" : "모집마감",
-          }));
+          const mapped = mapCommunities(res.data.data);
           onSearch?.(mapped);
         }
         return;
       }
 
-      // 검색어가 있을 경우
-      const res = await axiosInstance.get<{
-        status: string;
-        data: CommunityItem[];
-      }>("/api/communities/search", { params: { title: keyword } });
-
+      const res = await axiosInstance.get("/api/communities/search", {
+        params: { title: keyword },
+      });
       if (res.data.status === "success") {
-        const mapped: GroupUI[] = res.data.data.map((g) => ({
-          id: g.communityId,
-          title: g.title,
-          content: g.description,
-          date: g.date,
-          stadiumName: g.stadium,
-          teams: `${g.home} vs ${g.away}`,
-          personnel: g.memberCount,
-          leader: g.nickname,
-          status: g.state === "ING" ? "모집중" : "모집마감",
-        }));
+        const mapped = mapCommunities(res.data.data);
         onSearch?.(mapped);
       }
     } catch (err) {
-      console.error("검색 실패:", err);
+      console.error("❌ 키워드 검색 실패:", err);
     }
   }, [keyword, onSearch]);
 
@@ -85,28 +84,19 @@ export default function SearchPanel({
       if (team) params.team = team;
       if (stadium) params.stadium = stadium;
       if (date) params.date = date;
-      console.log("검색 요청 params:", params);
-      const res = await axiosInstance.get<{
-        status: string;
-        data: CommunityItem[];
-      }>(endpoint, noFilter ? undefined : { params });
+      const res = await axiosInstance.get(
+        endpoint,
+        noFilter ? undefined : { params }
+      );
 
       if (res.data.status === "success") {
-        const mapped: GroupUI[] = res.data.data.map((g) => ({
-          id: g.communityId,
-          title: g.title,
-          content: g.description,
-          date: g.date,
-          stadiumName: g.stadium,
-          teams: `${g.home} vs ${g.away}`,
-          personnel: g.memberCount,
-          leader: g.nickname,
-          status: g.state === "ING" ? "모집중" : "모집마감",
-        }));
+        const mapped = mapCommunities(res.data.data);
         onSearch?.(mapped);
+      } else {
+        console.warn("⚠️ 검색 응답 status가 success 아님:", res.data);
       }
     } catch (err) {
-      console.error("검색 실패:", err);
+      console.error("❌ 검색 실패:", err);
     }
   }, [keyword, team, stadium, date, onSearch]);
 
@@ -115,7 +105,6 @@ export default function SearchPanel({
     const delay = setTimeout(() => {
       handleKeywordSearch();
     }, 400); // 0.4초 동안 입력 없으면 자동 검색
-
     return () => clearTimeout(delay);
   }, [handleKeywordSearch]);
 
@@ -157,7 +146,6 @@ export default function SearchPanel({
               <option value="롯데">롯데 자이언츠</option>
               <option value="키움">키움 히어로즈</option>
             </select>
-
             <FiChevronDown
               size={18}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
@@ -201,7 +189,6 @@ export default function SearchPanel({
                 </option>
               ))}
             </select>
-
             <FiChevronDown
               size={18}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
@@ -228,8 +215,8 @@ export default function SearchPanel({
                 setTeam("");
                 setStadium("");
                 setDate("");
-                onReset?.();
                 setSelectedDate(null);
+                onReset?.();
               }}
               className="flex-1 h-10 flex items-center justify-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors rounded-md"
             >
