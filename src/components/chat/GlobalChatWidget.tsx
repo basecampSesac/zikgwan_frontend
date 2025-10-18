@@ -14,7 +14,6 @@ export default function GlobalChatWidget() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
-      // 버튼이나 패널 내부 클릭은 무시
       if (
         widgetRef.current?.contains(target) ||
         buttonRef.current?.contains(target)
@@ -35,16 +34,32 @@ export default function GlobalChatWidget() {
       <button
         ref={buttonRef}
         onClick={() => (isOpen ? closeWidget() : openWidget())}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-[#6F00B6] text-white flex items-center justify-center shadow-lg hover:bg-[#4E008A] transition z-[1000]"
+        className={`
+          fixed bottom-6 right-6 w-14 h-14 flex items-center justify-center
+          rounded-full transition-all duration-200 ease-out
+          bg-[#6F00B6]/85 backdrop-blur-md
+          text-white shadow-md
+          hover:bg-[#6F00B6]/75 hover:scale-110 active:scale-95
+          z-[1000]
+        `}
       >
-        {isOpen ? <X size={26} /> : <MessageCircle size={26} />}
+        {isOpen ? (
+          <X size={24} strokeWidth={2.2} className="drop-shadow-sm" />
+        ) : (
+          <MessageCircle
+            size={24}
+            strokeWidth={2.2}
+            className="drop-shadow-sm"
+          />
+        )}
       </button>
 
       {/* 사이드 패널 */}
       {isOpen && (
         <div
           ref={widgetRef}
-          className="fixed bottom-24 right-6 w-[380px] h-[540px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col z-[999]"
+          className="fixed bottom-24 right-6 w-[380px] h-[540px] bg-white rounded-2xl 
+                     shadow-lg border border-gray-200 overflow-hidden flex flex-col z-[999]"
         >
           <ChatListPanel
             onSelect={(roomId, title) => {
