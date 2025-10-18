@@ -34,36 +34,48 @@ export default function ChatListPanel({ onSelect }: Props) {
   }, []);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b bg-[#6F00B6] text-white font-semibold">
-        내 채팅방
+    <div className="flex flex-col h-full bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100">
+      {/* 헤더 */}
+      <div className="px-5 py-4 border-b border-gray-100 bg-white/90 backdrop-blur-sm flex items-center justify-between">
+        <span className="text-[15px] font-semibold text-gray-800">
+          내 채팅방
+        </span>
+        <span className="text-sm text-gray-400">
+          {rooms.length > 0 ? `${rooms.length}개` : ""}
+        </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      {/* 리스트 */}
+      <div className="flex-1 overflow-y-auto bg-white">
         {rooms.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">
             참여 중인 채팅방이 없습니다.
           </div>
         ) : (
-          rooms.map((room) => (
-            <button
-              key={room.roomId}
-              onClick={() => onSelect(room.roomId, room.roomName)}
-              className="w-full flex items-center justify-between px-4 py-3 border-b hover:bg-gray-50 transition text-left"
-            >
-              <div>
-                <p className="font-medium text-gray-800">{room.roomName}</p>
-                <p className="text-sm text-gray-500 line-clamp-1">
-                  {room.lastMessage || "최근 메시지 없음"}
-                </p>
-              </div>
-              {room.unreadCount > 0 && (
-                <span className="ml-2 bg-[#6F00B6] text-white text-xs font-bold px-2 py-1 rounded-full">
-                  {room.unreadCount}
-                </span>
-              )}
-            </button>
-          ))
+          <ul className="divide-y divide-gray-100">
+            {rooms.map((room) => (
+              <li key={room.roomId}>
+                <button
+                  onClick={() => onSelect(room.roomId, room.roomName)}
+                  className="w-full flex justify-between items-center px-5 py-4 hover:bg-gray-50 transition"
+                >
+                  <div className="flex flex-col text-left overflow-hidden">
+                    <p className="font-medium text-gray-900 truncate">
+                      {room.roomName}
+                    </p>
+                    <p className="text-[13px] text-gray-500 truncate mt-0.5">
+                      {room.lastMessage || "최근 메시지 없음"}
+                    </p>
+                  </div>
+                  {room.unreadCount > 0 && (
+                    <span className="ml-3 bg-gray-900 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                      {room.unreadCount}
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>
