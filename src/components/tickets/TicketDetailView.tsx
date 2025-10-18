@@ -7,6 +7,7 @@ import ConfirmModal from "../../Modals/ConfirmModal";
 import Modal from "../Modal";
 import TicketForm from "./TicketForm";
 import ShareButton from "../common/ShareButton";
+import { MdOutlineSportsBaseball } from "react-icons/md";
 import {
   FiEdit3,
   FiTrash2,
@@ -16,6 +17,7 @@ import {
   FiMessageSquare,
 } from "react-icons/fi";
 import { HiOutlineUsers } from "react-icons/hi";
+import { PiSeat } from "react-icons/pi";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
 import type { TicketUI } from "../../types/ticket";
 
@@ -30,28 +32,41 @@ export default function TicketDetailView() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  /** ✅ UTC → KST 변환 유틸 */
+  const toKST = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    date.setHours(date.getHours() + 9);
+    return date.toISOString();
+  };
+
   /** 상세 조회 */
   const fetchTicket = useCallback(async () => {
     try {
       const res = await axiosInstance.get(`/api/tickets/${id}`);
       if (res.data?.status === "success" && res.data.data) {
         const t = res.data.data;
+
         setTicket({
-          id: t.tsId ?? 0,
+          tsId: t.tsId ?? 0,
           title: t.title ?? "제목 없음",
           description: t.description ?? "",
-          gameDate: t.gameDay ?? "",
           price: t.price ?? 0,
+          gameDay: toKST(t.gameDay), // ✅ 시간 보정 적용
           ticketCount: t.ticketCount ?? 1,
-          stadiumName: t.stadium ?? "정보 없음",
-          status: t.state === "ING" ? "판매중" : "판매완료",
+          home: t.home ?? "홈팀 정보 없음",
+          away: t.away ?? "원정팀 정보 없음",
+          stadium: t.stadium ?? "정보 없음",
+          adjacentSeat: t.adjacentSeat ?? "N",
+          nickname: t.nickname ?? "익명",
           imageUrl: t.imageUrl
-            ? `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
-            : getDefaultStadiumImage(t.stadium ?? ""),
-          seller: {
-            nickname: t.nickname ?? "익명",
-            rate: t.rating ?? 0,
-          },
+          ? `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
+          : getDefaultStadiumImage(t.stadium ?? ""),
+
+          rating: t.rating ?? 0,
+          state: t.state ?? "ING",
+          createdAt: t.createdAt ?? "",
+          updatedAt: t.updatedAt ?? "",
         });
       } else {
         addToast("티켓 정보를 불러오지 못했습니다.", "error");
@@ -89,7 +104,7 @@ export default function TicketDetailView() {
     if (!ticket) return;
     try {
       const res = await axiosInstance.post(
-        `/api/chatroom/ticket/${ticket.id}?roomName=${encodeURIComponent(
+        `/api/chatroom/ticket/${ticket.tsId}?roomName=${encodeURIComponent(
           ticket.title
         )}`
       );
@@ -120,7 +135,7 @@ export default function TicketDetailView() {
       </main>
     );
 
-  const isSeller = user?.nickname === ticket.seller.nickname;
+  const isSeller = user?.nickname === ticket.nickname;
 
   return (
     <main className="bg-white flex items-center justify-center py-10 px-4">
@@ -131,17 +146,15 @@ export default function TicketDetailView() {
             <div className="relative w-full h-[450px] bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center border border-gray-100">
               <span
                 className={`absolute top-3 left-3 px-3 py-1.5 text-sm font-semibold rounded-md text-white ${
-                  ticket.status === "판매중" ? "bg-[#6F00B6]" : "bg-gray-400"
+                  ticket.state === "ING" ? "bg-[#6F00B6]" : "bg-gray-400"
                 }`}
               >
-                {ticket.status}
+                {ticket.state === "ING" ? "판매중" : "판매완료"}
               </span>
-              <img
-                src={ticket.imageUrl ?? getDefaultStadiumImage(ticket.stadiumName)}
-                alt="티켓 이미지"
-                className="w-full h-full object-cover"
-              />
-            </div>
+              <img src={ticket.imageUrl ?? getDefaultStadiumImage(ticket.stadiumName)}
+                    alt="티켓 이미지"
+                    className="w-full h-full object-cover"/>
+              </div>
 
             <div className="flex flex-col justify-between">
               <div>
@@ -153,17 +166,30 @@ export default function TicketDetailView() {
                   {[
                     {
                       icon: <FiCalendar size={22} className="text-gray-500" />,
-                      text: ticket.gameDate
-                        ? new Date(ticket.gameDate).toLocaleString()
+                      text: ticket.gameDay
+                        ? new Date(ticket.gameDay).toLocaleString("ko-KR", {
+                            timeZone: "Asia/Seoul",
+                          })
                         : "날짜 정보 없음",
                     },
                     {
+                      icon: <MdOutlineSportsBaseball size={22} className="text-gray-500"/>,
+                      text: `${ticket.home} vs ${ticket.away}`,
+                    },
+                    {
                       icon: <FiMapPin size={22} className="text-gray-500" />,
-                      text: ticket.stadiumName,
+                      text: ticket.stadium,
+                    },
+                    {
+                      icon: <PiSeat size={22} className="text-gray-500" />,
+                      text:
+                        ticket.adjacentSeat === "Y"
+                          ? "인접 좌석: 예"
+                          : "인접 좌석: 아니오",
                     },
                     {
                       icon: <HiOutlineUsers size={22} className="text-gray-500" />,
-                      text: `판매자: ${ticket.seller.nickname}`,
+                      text: `판매자: ${ticket.nickname}`,
                     },
                     {
                       icon: <FiCreditCard size={22} className="text-gray-500" />,
@@ -185,11 +211,11 @@ export default function TicketDetailView() {
                 <div className="mb-8 mt-4">
                   <button
                     onClick={
-                      ticket.status === "판매중" ? handleChatStart : undefined
+                      ticket.state === "ING" ? handleChatStart : undefined
                     }
-                    disabled={ticket.status === "판매완료"}
+                    disabled={ticket.state !== "ING"}
                     className={`w-full px-6 py-3 rounded-lg font-semibold text-lg transition flex items-center justify-center gap-2 ${
-                      ticket.status === "판매중"
+                      ticket.state === "ING"
                         ? "bg-gradient-to-r from-[#8A2BE2] to-[#6F00B6] text-white hover:opacity-90"
                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }`}
@@ -222,6 +248,7 @@ export default function TicketDetailView() {
             </div>
           </div>
 
+          {/* 상세 설명 & 판매자 정보 */}
           <div className="mt-8 pt-8 border-t border-gray-100 grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-8 items-stretch">
             <div className="bg-gray-50 rounded-xl p-6 min-h-[370px] flex flex-col overflow-y-auto border border-gray-100">
               <h3 className="font-semibold text-gray-800 mb-2 text-lg">
@@ -239,14 +266,14 @@ export default function TicketDetailView() {
                 </h4>
                 <div className="flex items-center gap-4 mt-8 mb-8">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8A2BE2] to-[#6F00B6] flex items-center justify-center text-white text-xl font-bold shadow-sm flex-shrink-0">
-                    {ticket.seller.nickname?.charAt(0).toUpperCase() ?? "?"}
+                    {ticket.nickname?.charAt(0).toUpperCase() ?? "?"}
                   </div>
                   <div className="flex flex-col justify-center leading-tight">
                     <p className="text-[15px] font-semibold text-gray-900">
-                      {ticket.seller.nickname ?? "익명"}
+                      {ticket.nickname ?? "익명"}
                     </p>
                     <p className="text-sm text-gray-600 flex items-center gap-1 mt-[2px]">
-                      ⭐ {(ticket.seller.rate ?? 0).toFixed(1)} / 5.0
+                      ⭐ {(ticket.rating ?? 0).toFixed(1)} / 5.0
                     </p>
                   </div>
                 </div>
@@ -259,9 +286,7 @@ export default function TicketDetailView() {
       <ConfirmModal
         isOpen={isDeleteOpen}
         title="티켓 삭제"
-        description={
-          "정말 이 티켓을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다."
-        }
+        description={"정말 이 티켓을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다."}
         confirmText="삭제하기"
         cancelText="취소"
         onClose={() => setIsDeleteOpen(false)}
@@ -269,12 +294,23 @@ export default function TicketDetailView() {
       />
 
       {isEditOpen && (
-        <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)}>
+        <Modal
+          isOpen={isEditOpen}
+          onClose={() => {
+            setIsEditOpen(false);
+            fetchTicket(); // ✅ 수정 완료 후 최신 데이터 다시 불러오기
+          }}
+        >
           <TicketForm
             mode="edit"
             initialValues={ticket}
-            onClose={() => setIsEditOpen(false)}
-            onSuccess={fetchTicket}
+            onClose={() => {
+              setIsEditOpen(false);
+              fetchTicket(); // ✅ 모달 닫을 때 새로고침 효과
+            }}
+            onSuccess={() => {
+              fetchTicket(); // ✅ 수정 성공 시 데이터 갱신
+            }}
           />
         </Modal>
       )}
