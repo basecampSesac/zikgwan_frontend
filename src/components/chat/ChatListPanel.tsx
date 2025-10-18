@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "../../lib/axiosInstance";
+import ChatListItemRow from "./ChatListItemRow";
 
 interface ChatListItem {
   roomId: number;
@@ -21,17 +22,17 @@ export default function ChatListPanel({ onSelect }: Props) {
         const res = await axiosInstance.get("/api/chatroom/all");
         if (res.data.status === "success" && Array.isArray(res.data.data)) {
           setRooms(res.data.data);
-        } else {
-          console.warn("채팅방 목록 형식이 올바르지 않습니다:", res.data);
-          setRooms([]);
         }
       } catch (err) {
         console.warn("채팅방 목록 불러오기 실패:", err);
-        setRooms([]);
       }
     };
     fetchRooms();
   }, []);
+
+  const handleLeaveSuccess = (roomId: number) => {
+    setRooms((prev) => prev.filter((r) => r.roomId !== roomId));
+  };
 
   return (
     <div className="flex flex-col h-full bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100">
@@ -55,24 +56,11 @@ export default function ChatListPanel({ onSelect }: Props) {
           <ul className="divide-y divide-gray-100">
             {rooms.map((room) => (
               <li key={room.roomId}>
-                <button
-                  onClick={() => onSelect(room.roomId, room.roomName)}
-                  className="w-full flex justify-between items-center px-5 py-4 hover:bg-gray-50 transition"
-                >
-                  <div className="flex flex-col text-left overflow-hidden">
-                    <p className="font-medium text-gray-900 truncate">
-                      {room.roomName}
-                    </p>
-                    <p className="text-[13px] text-gray-500 truncate mt-0.5">
-                      {room.lastMessage || "최근 메시지 없음"}
-                    </p>
-                  </div>
-                  {room.unreadCount > 0 && (
-                    <span className="ml-3 bg-gray-900 text-white text-xs font-semibold px-2 py-1 rounded-full">
-                      {room.unreadCount}
-                    </span>
-                  )}
-                </button>
+                <ChatListItemRow
+                  room={room}
+                  onSelect={onSelect}
+                  onLeaveSuccess={() => handleLeaveSuccess(room.roomId)}
+                />
               </li>
             ))}
           </ul>
