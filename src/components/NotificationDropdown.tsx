@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FaRegBell } from "react-icons/fa6";
-import { motion, AnimatePresence } from "framer-motion";
 import { FiTrash2 } from "react-icons/fi";
 import axiosInstance from "../lib/axiosInstance";
 import { useAuthStore } from "../store/authStore";
+import { useNotificationStore } from "../store/notificationStore";
 
 interface Notification {
   id: number;
@@ -16,8 +17,11 @@ interface Notification {
 
 export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [serverNotifications, setServerNotifications] = useState<
+    Notification[]
+  >([]);
   const { user } = useAuthStore();
+  const { notifications, hasUnread, markAllRead } = useNotificationStore();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -25,29 +29,28 @@ export default function NotificationDropdown() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
-      // 버튼 또는 드롭다운 내부 클릭은 무시
       if (
         dropdownRef.current?.contains(target) ||
         buttonRef.current?.contains(target)
       )
         return;
-      setIsOpen(false); // 외부 클릭 시 닫기
+      setIsOpen(false);
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 알림 목록 조회
+  // 서버 알림 목록 조회
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
     try {
       const res = await axiosInstance.get(`/api/notification/all`);
       if (res.data.status === "success") {
-        setNotifications(res.data.data);
+        setServerNotifications(res.data.data);
       }
     } catch (err) {
-      console.error("❌ 알림 목록 조회 실패:", err);
+      console.error("알림 목록 조회 실패:", err);
     }
   }, [user]);
 
@@ -56,13 +59,13 @@ export default function NotificationDropdown() {
     if (!user) return;
     try {
       await axiosInstance.patch(`/api/notification/read/${id}`);
-      setNotifications((prev) =>
+      setServerNotifications((prev) =>
         prev.map((n) =>
           n.id === id ? { ...n, readAt: new Date().toISOString() } : n
         )
       );
     } catch (err) {
-      console.error("❌ 알림 읽음 처리 실패:", err);
+      console.error("알림 읽음 처리 실패:", err);
     }
   };
 
@@ -71,18 +74,19 @@ export default function NotificationDropdown() {
     if (!user) return;
     try {
       await axiosInstance.delete(`/api/notification/${id}`);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      setServerNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
-      console.error("❌ 알림 삭제 실패:", err);
+      console.error("알림 삭제 실패:", err);
     }
   };
 
-  // 드롭다운 열릴 때마다 목록 갱신
+  // 드롭다운 열릴 때 서버 알림 갱신 + 빨간 점 해제
   useEffect(() => {
-    if (isOpen) fetchNotifications();
-  }, [isOpen, fetchNotifications]);
-
-  const unreadExists = notifications.some((n) => !n.readAt);
+    if (isOpen) {
+      fetchNotifications();
+      markAllRead();
+    }
+  }, [isOpen, fetchNotifications, markAllRead]);
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -93,7 +97,7 @@ export default function NotificationDropdown() {
         className="relative p-2 hover:bg-gray-50 rounded-full transition"
       >
         <FaRegBell className="w-6 h-6 text-gray-700" />
-        {unreadExists && (
+        {hasUnread && (
           <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full" />
         )}
       </button>
@@ -119,12 +123,12 @@ export default function NotificationDropdown() {
             </div>
 
             <ul className="max-h-80 overflow-y-auto">
-              {notifications.length === 0 ? (
+              {serverNotifications.length === 0 ? (
                 <li className="px-4 py-6 text-center text-gray-400 text-sm">
                   새로운 알림이 없습니다.
                 </li>
               ) : (
-                notifications.map((n) => (
+                serverNotifications.map((n) => (
                   <li
                     key={n.id}
                     className={`px-4 py-3 flex items-start justify-between gap-3 transition ${
