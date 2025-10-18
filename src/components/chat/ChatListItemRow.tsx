@@ -29,7 +29,6 @@ export default function ChatListItemRow({
 
   return (
     <div className="group relative flex items-center justify-between px-5 py-4 transition-all hover:bg-gray-50">
-      // 본문
       <button
         onClick={() => onSelect(room.roomId, room.roomName)}
         className="flex flex-col text-left overflow-hidden flex-1"
@@ -39,7 +38,6 @@ export default function ChatListItemRow({
           {room.lastMessage || "최근 메시지 없음"}
         </p>
       </button>
-      // 떠나기 버튼 hover 시에만 보이게
       <button
         onClick={handleLeaveRoom}
         className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
@@ -48,7 +46,6 @@ export default function ChatListItemRow({
       >
         떠나기
       </button>
-      // 안 읽은 메시지 표시
       {room.unreadCount > 0 && (
         <span className="ml-3 bg-gray-900 text-white text-xs font-semibold px-2 py-1 rounded-full">
           {room.unreadCount}
