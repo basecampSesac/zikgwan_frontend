@@ -12,7 +12,7 @@ import axiosInstance from "../../lib/axiosInstance";
 interface TicketFormProps {
   mode?: "create" | "edit";
   initialValues?: Partial<{
-    id: number;
+    tsId: number;
     title: string;
     description: string;
     price: number;
@@ -22,6 +22,7 @@ interface TicketFormProps {
     stadium: string;
     adjacentSeat: string;
     gameDay: string;
+    imageUrl: string; // 기존 이미지 URL
   }>;
   onClose?: () => void;
   onSuccess?: () => void;
@@ -51,9 +52,12 @@ export default function TicketForm({
     initialValues?.gameDay ? new Date(initialValues.gameDay) : null
   );
   const [images, setImages] = useState<File[]>([]);
-  const [isSubmitting] = useState(false);
+  const [existingImage, setExistingImage] = useState<string | null>(
+    initialValues?.imageUrl || null
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /** 🔸 입력 변경 핸들러 */
+  /** 입력 변경 핸들러 */
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -63,86 +67,103 @@ export default function TicketForm({
     setForm({ ...form, [name]: value });
   };
 
-  /** 🔸 체크박스 */
+  /** 체크박스 */
   const handleCheckbox = () => {
     setForm({ ...form, adjacentSeat: !form.adjacentSeat });
   };
 
-  /** 🔸 파일 업로드 */
+  /** 파일 업로드 */
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) setImages(Array.from(e.target.files));
   };
 
-  /** 🔸 제출 */
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (isSubmitting) return;
+  /** 제출 */
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
 
-  if (
-    !form.title ||
-    !form.price ||
-    !gameDay ||
-    !form.ticketCount ||
-    !form.home ||
-    !form.away ||
-    !form.stadium
-  ) {
-    addToast("필수 항목을 모두 입력해주세요 ❌", "error");
-    return;
-  }
-
-  if (!user?.userId) {
-    addToast("로그인이 필요합니다.", "error");
-    return;
-  }
-
-  const payload = {
-    title: form.title,
-    description: form.description,
-    price: Number(form.price),
-    gameDay: gameDay.toISOString().slice(0, 19),
-    ticketCount: Number(form.ticketCount),
-    home: form.home,
-    away: form.away,
-    stadium: form.stadium,
-    adjacentSeat: form.adjacentSeat ? "Y" : "N",
-    buyerId: user.userId,
-  };
-
-  try {
-    const formData = new FormData();
-    // JSON 데이터를 Blob으로 변환해서 FormData에 추가
-    formData.append(
-      "ticketSaleRequest",
-      new Blob([JSON.stringify(payload)], { type: "application/json" })
-    );
-
-    // 이미지 파일이 있으면 추가
-    images.forEach((file) => {
-      formData.append("image", file);
-    });
-
-    const res = await axiosInstance.post(
-      `/api/tickets`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
-
-    if (res.data.status === "success") {
-      addToast("티켓이 등록되었습니다 🎉", "success");
-      onSuccess?.();
-      onClose?.();
-    } else {
-      addToast(res.data.message || "등록 실패 ❌", "error");
+    if (
+      !form.title ||
+      !form.price ||
+      !gameDay ||
+      !form.ticketCount ||
+      !form.home ||
+      !form.away ||
+      !form.stadium
+    ) {
+      addToast("필수 항목을 모두 입력해주세요 ❌", "error");
+      return;
     }
-  } catch (err) {
-    console.error("티켓 등록 오류:", err);
-    addToast("서버 오류가 발생했습니다.", "error");
-  }
-};
 
+    if (!user?.userId) {
+      addToast("로그인이 필요합니다.", "error");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const payload = {
+      title: form.title,
+      description: form.description,
+      price: Number(form.price),
+      gameDay: gameDay.toISOString().slice(0, 19),
+      ticketCount: Number(form.ticketCount),
+      home: form.home,
+      away: form.away,
+      stadium: form.stadium,
+      adjacentSeat: form.adjacentSeat ? "Y" : "N",
+      buyerId: user.userId,
+      state: initialValues?.state || "ING", // ✅ 수정 시 기존 상태 유지
+    };
+
+    try {
+      const formData = new FormData();
+      formData.append(
+        "ticketSaleRequest",
+        new Blob([JSON.stringify(payload)], { type: "application/json" })
+      );
+
+            if (images.length > 0) {
+        images.forEach((file) => formData.append("image", file));
+      } else if (existingImage && mode === "edit") {
+        // 기존 이미지 유지
+        payload.existingImageUrl = existingImage;
+      }
+
+      let res;
+      if (mode === "edit" && initialValues?.tsId) {
+        // 수정 모드: PUT 요청
+        res = await axiosInstance.put(
+          `/api/tickets/${initialValues.tsId}`,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
+      } else {
+        // 생성 모드: POST 요청
+        res = await axiosInstance.post(`/api/tickets`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
+
+      if (res.data.status === "success") {
+        addToast(
+          mode === "edit" ? "티켓이 수정되었습니다 ✅" : "티켓이 등록되었습니다 🎉",
+          "success"
+        );
+        onSuccess?.();
+        onClose?.();
+      } else {
+        addToast(res.data.message || "저장 실패 ❌", "error");
+      }
+    } catch (err) {
+      console.error("티켓 저장 오류:", err);
+      addToast("서버 오류가 발생했습니다.", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col w-full">
@@ -304,6 +325,18 @@ const handleSubmit = async (e: React.FormEvent) => {
             className="input-border h-24"
           />
         </label>
+
+        {/* 기존 이미지 미리보기 */}
+        {existingImage && images.length === 0 && (
+          <div className="mt-2">
+            <span className="text-sm text-gray-500">현재 이미지:</span>
+            <img
+              src={existingImage}
+              alt="기존 티켓 이미지"
+              className="mt-1 w-32 h-32 object-cover rounded-md border"
+            />
+          </div>
+        )}
 
         {/* 이미지 업로드 */}
         <label className="block">
