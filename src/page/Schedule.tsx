@@ -23,29 +23,57 @@ export default function SchedulePage() {
     fetchMatches();
   }, [fetchMatches]);
 
-  // 오늘 날짜 찾기
-  useEffect(() => {
-    if (dates.length > 0) {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const todayIdx = dates.indexOf(todayStr);
-      const idx = todayIdx !== -1 ? todayIdx : Math.floor(dates.length / 2);
-      setCurrentIndex(idx);
-      setWindowStart(Math.max(0, idx - 4));
-    }
+  // 오늘 날짜
+  const today = new Date();
+  const todayStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
+
+  // 날짜 정렬
+  const sortedDates = useMemo(() => {
+    return [...new Set(dates)].sort();
   }, [dates]);
 
-  const currentDate = dates[currentIndex];
+  // 오늘 날짜 찾기
+  useEffect(() => {
+    if (sortedDates.length === 0) return;
+
+    let todayIdx = sortedDates.indexOf(todayStr);
+
+    // 오늘 날짜가 없으면 오늘을 배열에 추가하고 정렬
+    if (todayIdx === -1) {
+      const extended = [...sortedDates, todayStr].sort();
+      todayIdx = extended.indexOf(todayStr);
+
+      // 중앙 정렬 (오늘 기준)
+      setCurrentIndex(todayIdx);
+      setWindowStart(Math.max(0, todayIdx - 4));
+    } else {
+      setCurrentIndex(todayIdx);
+      setWindowStart(Math.max(0, todayIdx - 4));
+    }
+  }, [sortedDates, todayStr]);
+
+  const currentDate = sortedDates[currentIndex] || todayStr; // fallback
   const todayMatches = useMemo(
     () => matches.filter((m: Match) => m.date === currentDate),
     [matches, currentDate]
   );
-  const currentMonth = currentDate
-    ? new Date(currentDate).getMonth() + 1
-    : null;
+  const currentMonth = new Date(currentDate).getMonth() + 1;
 
   const visibleDates = useMemo(() => {
-    return dates.slice(windowStart, windowStart + 9);
-  }, [dates, windowStart]);
+    const slice = sortedDates.slice(windowStart, windowStart + 9);
+
+    // 오늘 날짜가 범위 안에 없으면 중앙으로 이동
+    if (!slice.includes(todayStr)) {
+      const idx = sortedDates.indexOf(todayStr);
+      if (idx !== -1) {
+        const newStart = Math.max(0, idx - 4);
+        return sortedDates.slice(newStart, newStart + 9);
+      }
+    }
+    return slice;
+  }, [sortedDates, todayStr, windowStart]);
 
   // 이동 핸들러
   const handlePrev = () => {
@@ -61,10 +89,10 @@ export default function SchedulePage() {
 
   const handleNext = () => {
     startTransition(() => {
-      if (currentIndex < dates.length - 1) {
+      if (currentIndex < sortedDates.length - 1) {
         setCurrentIndex((i) => i + 1);
         if (currentIndex + 1 >= windowStart + 9) {
-          setWindowStart((s) => Math.min(dates.length - 9, s + 1));
+          setWindowStart((s) => Math.min(sortedDates.length - 9, s + 1));
         }
       }
     });
@@ -89,7 +117,6 @@ export default function SchedulePage() {
 
         {/* 월 헤더 + 슬라이드 네비 */}
         <section className="mb-10">
-          {/* 월 헤더 + 네비 */}
           <div className="w-full bg-gray-100 border border-gray-200 py-4 mb-3 flex items-center justify-between rounded-md">
             <button
               onClick={handlePrev}
@@ -102,12 +129,12 @@ export default function SchedulePage() {
             </button>
 
             <span className="text-2xl font-bold text-gray-700">
-              {currentMonth ? `${currentMonth}월` : ""}
+              {currentMonth}월
             </span>
 
             <button
               onClick={handleNext}
-              disabled={currentIndex === dates.length - 1 || isPending}
+              disabled={currentIndex === sortedDates.length - 1 || isPending}
               className={`px-4 text-gray-500 hover:text-gray-700 disabled:opacity-40 ${
                 isPending ? "cursor-wait opacity-60" : ""
               }`}
@@ -119,7 +146,7 @@ export default function SchedulePage() {
           {/* 날짜 탭 */}
           <div className="grid grid-cols-9 gap-2">
             {visibleDates.map((date) => {
-              const idx = dates.indexOf(date);
+              const idx = sortedDates.indexOf(date);
               return (
                 <button
                   key={date}

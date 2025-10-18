@@ -5,6 +5,7 @@ import { FiTrash2 } from "react-icons/fi";
 import axiosInstance from "../lib/axiosInstance";
 import { useAuthStore } from "../store/authStore";
 import { useNotificationStore } from "../store/notificationStore";
+import { formatNotificationTime } from "../utils/format"; //
 
 interface Notification {
   id: number;
@@ -47,7 +48,11 @@ export default function NotificationDropdown() {
     try {
       const res = await axiosInstance.get(`/api/notification/all`);
       if (res.data.status === "success") {
-        setServerNotifications(res.data.data);
+        // 최신순 정렬
+        const sorted = [...res.data.data].sort(
+          (a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
+        );
+        setServerNotifications(sorted);
       }
     } catch (err) {
       console.error("알림 목록 조회 실패:", err);
@@ -113,7 +118,14 @@ export default function NotificationDropdown() {
             className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-md ring-1 ring-gray-200/60 z-50 overflow-hidden backdrop-blur-md"
           >
             <div className="px-4 py-3 bg-white/70 border-b border-gray-300/60 flex justify-between items-center">
-              <h3 className="font-medium text-gray-800 text-sm">새 메시지</h3>
+              <h3 className="font-medium text-gray-800 text-sm">
+                새 메시지
+                {serverNotifications.length > 0 && (
+                  <span className="text-gray-400 text-xs ml-1">
+                    ({serverNotifications.length})
+                  </span>
+                )}
+              </h3>
               <button
                 onClick={fetchNotifications}
                 className="text-xs text-gray-400 hover:text-gray-600 transition"
@@ -139,21 +151,16 @@ export default function NotificationDropdown() {
                     onClick={() => markAsRead(n.id)}
                   >
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900 mb-0.5">
+                      <p className="font-medium= text-[14px] text-gray-900 mb-0.5">
                         {n.senderNickname}
                       </p>
-                      <p className="text-sm text-gray-600 truncate leading-snug">
+                      <p className="text-sm text-gray-600 text-[13px] leading-snug truncate max-w-[230px]">
                         {n.message.length > 25
                           ? n.message.slice(0, 25) + "..."
                           : n.message}
                       </p>
-                      <span className="text-xs text-gray-400 mt-0.5 block">
-                        {new Date(n.sentAt).toLocaleString("ko-KR", {
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <span className="text-xs text-gray-400 mt-0.5 block mt-1">
+                        {formatNotificationTime(n.sentAt)}
                       </span>
                     </div>
                     <button
@@ -161,7 +168,7 @@ export default function NotificationDropdown() {
                         e.stopPropagation();
                         deleteNotification(n.id);
                       }}
-                      className="text-gray-400 hover:text-red-500 transition"
+                      className="text-gray-400 hover:text-red-500 transition mt-5"
                       title="삭제"
                     >
                       <FiTrash2 size={16} />
