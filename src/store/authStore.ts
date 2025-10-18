@@ -98,7 +98,6 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
         });
 
         localStorage.setItem("accessToken", data.token);
-        console.log("✅ 자동 로그인 성공");
       } else {
         console.warn("자동 로그인 실패: 서버 응답 오류");
         set({ isAuthenticated: false, user: null, accessToken: null });
