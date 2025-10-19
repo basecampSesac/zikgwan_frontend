@@ -10,6 +10,7 @@ interface ChatListItem {
   lastMessage: string;
   unreadCount: number;
   communityId: number;
+  lastMessageTime?: string | null;
 }
 
 export default function ChatListPanel({
@@ -27,9 +28,42 @@ export default function ChatListPanel({
         const res = await axiosInstance.get("/api/chatroom/all");
         if (res.data.status === "success" && Array.isArray(res.data.data)) {
           const fetchedRooms: ChatListItem[] = res.data.data;
-          setRooms(fetchedRooms);
 
-          for (const room of fetchedRooms) {
+          // 각 방의 최신 메시지 sentAt 가져오기
+          const withLastMessageTime = await Promise.all(
+            fetchedRooms.map(async (room) => {
+              try {
+                const chatRes = await axiosInstance.get(
+                  `/api/chatroom/chat/${room.roomId}`
+                );
+                const messages = chatRes.data.data;
+                const last = messages?.[messages.length - 1];
+                return {
+                  ...room,
+                  lastMessageTime: last?.sentAt || null,
+                  lastMessage: last?.message || room.lastMessage || "",
+                };
+              } catch {
+                return { ...room, lastMessageTime: null };
+              }
+            })
+          );
+
+          // 최신순 정렬 (sentAt 없으면 뒤로)
+          withLastMessageTime.sort((a, b) => {
+            const aTime = a.lastMessageTime
+              ? new Date(a.lastMessageTime).getTime()
+              : 0;
+            const bTime = b.lastMessageTime
+              ? new Date(b.lastMessageTime).getTime()
+              : 0;
+            return bTime - aTime;
+          });
+
+          setRooms(withLastMessageTime);
+
+          // leaderNickname 미리 저장
+          for (const room of withLastMessageTime) {
             if (!room.communityId) continue;
             try {
               const { data } = await axiosInstance.get(
