@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
+import { useToastStore } from "../store/toastStore";
+import axiosInstance from "../lib/axiosInstance";
 
 interface ReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   sellerName: string;
+  tsId: number;
   sellerRating?: number;
   onSubmit: (rating: number) => void;
 }
@@ -13,18 +16,46 @@ export default function ReviewModal({
   isOpen,
   onClose,
   sellerName,
+  tsId,
   sellerRating = 0,
   onSubmit,
 }: ReviewModalProps) {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
+  const { addToast } = useToastStore();
+
+  useEffect(() => {
+    if (!isOpen) {
+      setRating(0);
+      setHover(0);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
-    if (rating === 0) return alert("별점을 선택해주세요!");
-    onSubmit(rating);
-    onClose();
+  // 리뷰 등록
+  const handleSubmit = async () => {
+    if (rating === 0) {
+      addToast("별점을 선택해주세요.", "warning");
+      return;
+    }
+
+    try {
+      const { data } = await axiosInstance.post(`/api/review/rating/${tsId}`, {
+        rating,
+      });
+
+      if (data.status === "success") {
+        addToast(data.data || "리뷰 등록 완료!", "success");
+        onSubmit(rating);
+        onClose();
+      } else {
+        addToast("리뷰 등록에 실패했습니다.", "error");
+      }
+    } catch (err) {
+      console.error("🚨 리뷰 등록 실패:", err);
+      addToast("리뷰 등록 중 오류가 발생했습니다.", "error");
+    }
   };
 
   return (
@@ -52,19 +83,22 @@ export default function ReviewModal({
 
           {/* 별점 선택 */}
           <div className="flex items-center gap-1 mb-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                className={`w-8 h-8 cursor-pointer transition-colors ${
-                  star <= (hover || rating)
-                    ? "fill-yellow-400 text-yellow-400"
-                    : "text-gray-300"
-                }`}
-                onClick={() => setRating(star)}
-                onMouseEnter={() => setHover(star)}
-                onMouseLeave={() => setHover(0)}
-              />
-            ))}
+            {[1, 2, 3, 4, 5].map((star) => {
+              const isActive = star <= (hover || rating);
+              return (
+                <Star
+                  key={star}
+                  className={`w-8 h-8 cursor-pointer transform transition-all duration-300 ${
+                    isActive
+                      ? "fill-yellow-400 text-yellow-400 scale-105"
+                      : "text-gray-300 fill-transparent scale-100"
+                  }`}
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHover(star)}
+                  onMouseLeave={() => setHover(0)}
+                />
+              );
+            })}
             <span className="ml-2 text-gray-500 text-lg">
               {rating > 0 ? `${rating}/5` : "0/5"}
             </span>
@@ -74,7 +108,11 @@ export default function ReviewModal({
         {/* 버튼 영역 - 중앙정렬 */}
         <div className="flex justify-center gap-4">
           <button
-            onClick={onClose}
+            onClick={() => {
+              setRating(0);
+              setHover(0);
+              onClose();
+            }}
             className="px-6 py-2 rounded-lg border border-gray-300 text-gray-600 font-medium hover:bg-gray-100 transition"
           >
             취소하기
