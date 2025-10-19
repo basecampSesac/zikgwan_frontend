@@ -290,6 +290,8 @@ export default function GroupForm({
             name="personnel"
             value={form.personnel}
             onChange={handleChange}
+            min={1}
+            max={10}
             placeholder="예: 5"
             className="input-border"
           />

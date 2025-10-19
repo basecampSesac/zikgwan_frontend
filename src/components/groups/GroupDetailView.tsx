@@ -36,6 +36,7 @@ export default function GroupDetailView() {
   const [roomId, setRoomId] = useState<number | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [members, setMembers] = useState<Array<{ nickname: string; club: string }>>([]);
 
   // 상세 조회
   const fetchGroupDetail = useCallback(async () => {
@@ -89,6 +90,25 @@ export default function GroupDetailView() {
       console.error("채팅방 상세 조회 실패:", err);
     }
   }, [id]);
+
+   // 멤버 조회
+  useEffect(() => {
+  const fetchMembers = async () => {
+      try {
+        const res = await axiosInstance.get(`/api/chatroom/user/${roomId}`);
+        if (res.data.status === "success" && Array.isArray(res.data.data)) {
+          setMembers(res.data.data);
+        } else {
+          setMembers([]);
+        }
+      } catch (err) {
+        console.error("멤버 조회 실패:", err);
+        setMembers([]);
+      }
+    };
+
+    if (roomId) fetchMembers();
+  }, [roomId, id]);
 
   // 초기 로드
   useEffect(() => {
@@ -304,23 +324,25 @@ export default function GroupDetailView() {
                 </ul>
               </div>
 
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+               <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                 <h4 className="font-semibold text-gray-800 mb-3 text-lg">
                   👥 함께하는 멤버
                 </h4>
-                <ul className="space-y-2">
-                  {MOCK_MEMBERS.map((m) => (
-                    <li
-                      key={m.id}
-                      className="flex items-center justify-between bg-white border border-gray-100 rounded-lg px-4 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-50 transition"
-                    >
-                      <span className="font-medium text-gray-800">
-                        {m.nickname}
-                      </span>
-                      <span className="text-xs text-gray-500">{m.team}</span>
-                    </li>
-                  ))}
-                </ul>
+                {members.length === 0 ? (
+                  <p className="text-sm text-gray-500">아직 참여한 멤버가 없습니다.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {members.map((m, idx) => (
+                      <li
+                        key={idx}
+                        className="flex items-center justify-between bg-white border border-gray-100 rounded-lg px-4 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-50 transition"
+                      >
+                        <span className="font-medium text-gray-800">{m.nickname}</span>
+                        <span className="text-xs text-gray-500">{m.club}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           </div>
