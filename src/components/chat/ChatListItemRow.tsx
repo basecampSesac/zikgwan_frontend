@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { useAuthStore } from "../../store/authStore";
+import { useChatWidgetStore } from "../../store/chatWidgetStore";
 import axiosInstance from "../../lib/axiosInstance";
 
 interface ChatListItem {
@@ -18,6 +21,58 @@ export default function ChatListItemRow({
   onSelect,
   onLeaveSuccess,
 }: Props) {
+  const { user } = useAuthStore();
+  const { openedRooms, setLeaderNickname } = useChatWidgetStore();
+
+  const [leaderNickname, setLocalLeaderNickname] = useState<string | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLeader = async () => {
+      try {
+        // 이미 저장된 리더 닉네임이 있으면 바로 사용
+        const existing = openedRooms[room.roomId]?.leaderNickname;
+        if (existing) {
+          setLocalLeaderNickname(existing);
+          setIsLoading(false);
+          return;
+        }
+
+        // 커뮤니티 검색으로 leaderNickname 가져오기
+        const { data } = await axiosInstance.get(
+          `/api/communities/search?keyword=${encodeURIComponent(room.roomName)}`
+        );
+
+        if (data.status === "success" && Array.isArray(data.data)) {
+          const matched = data.data.find(
+            (c: any) => c.title.trim() === room.roomName.trim()
+          );
+
+          if (matched) {
+            const leader = matched.nickname;
+            setLeaderNickname(room.roomId, leader);
+            setLocalLeaderNickname(leader);
+          } else {
+            console.warn(`'${room.roomName}' 이름으로 커뮤니티 매칭 실패`);
+          }
+        }
+      } catch (err) {
+        console.warn(
+          `leaderNickname 검색 실패 (roomName=${room.roomName}):`,
+          err
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLeader();
+  }, [room.roomId, room.roomName, openedRooms, setLeaderNickname]);
+
+  const isLeader = leaderNickname !== null && user?.nickname === leaderNickname;
+
   const handleLeaveRoom = async () => {
     try {
       await axiosInstance.delete(`/api/chatroom/${room.roomId}/leave`);
@@ -38,14 +93,17 @@ export default function ChatListItemRow({
           {room.lastMessage || "최근 메시지 없음"}
         </p>
       </button>
-      <button
-        onClick={handleLeaveRoom}
-        className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
-             px-3 py-1 border border-gray-300 text-gray-500 hover:bg-gray-100
-             rounded-lg text-[13px] font-medium transition-all duration-200"
-      >
-        떠나기
-      </button>
+
+      {!isLoading && !isLeader && (
+        <button
+          onClick={handleLeaveRoom}
+          className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
+               px-3 py-1 border border-gray-300 text-gray-500 hover:bg-gray-100
+               rounded-lg text-[13px] font-medium transition-all duration-200"
+        >
+          떠나기
+        </button>
+      )}
       {room.unreadCount > 0 && (
         <span className="ml-3 bg-gray-900 text-white text-xs font-semibold px-2 py-1 rounded-full">
           {room.unreadCount}
