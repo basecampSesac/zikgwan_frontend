@@ -19,10 +19,10 @@ export default function ChatPopup({
   const { user } = useAuthStore();
 
   const nodeRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<{ scrollToBottom: () => void }>(null);
 
   const [showSearch, setShowSearch] = useState(false);
   const [search, setSearch] = useState("");
-  const chatRef = useRef<{ scrollToBottom: () => void }>(null);
 
   // 외부 클릭 감지
   useEffect(() => {
@@ -59,9 +59,7 @@ export default function ChatPopup({
     setShowSearch(false);
     setSearch("");
     chatRef.current?.scrollToBottom();
-    setTimeout(() => {
-      chatRef.current?.scrollToBottom();
-    }, 100);
+    setTimeout(() => chatRef.current?.scrollToBottom(), 100);
   };
 
   return (
