@@ -160,11 +160,15 @@ export default function GroupList() {
           <div className="text-center text-gray-500 py-20">
             모임 목록을 불러오는 중입니다...
           </div>
-        ) : (
+        ) : groups.length > 0 ? (
           <div className="grid gap-6 grid-cols-[repeat(auto-fill,_minmax(240px,_1fr))]">
             {groups.map((group) => (
               <GroupCard key={group.id} {...group} />
             ))}
+          </div>
+        ) : (
+          <div className="text-center py-20 text-gray-500">
+            등록된 모임이 없습니다.
           </div>
         )}
 

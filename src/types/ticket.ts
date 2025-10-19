@@ -16,6 +16,7 @@ export type TicketUI = {
   stadium: string;
   adjacentSeat: "Y" | "N";
   nickname: string;
+  imageUrl?: string;
   rating: number | null;
   state: string;
   createdAt: string;
