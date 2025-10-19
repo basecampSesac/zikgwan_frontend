@@ -82,8 +82,13 @@ export default function ChatPopup({
                      px-4 py-3 bg-gray-100 text-gray-700 border-b border-gray-200 
                      rounded-t-2xl select-none active:cursor-grabbing"
         >
-          <span className="inline-flex items-center gap-2 font-semibold text-[15px]">
-            💬 {title || `모임 채팅 #${roomId}`}
+          <span className="inline-flex items-center gap-2 font-semibold text-[15px] max-w-[300px] truncate">
+            💬{" "}
+            {title
+              ? title.length > 19
+                ? title.slice(0, 19) + "..."
+                : title
+              : `모임 채팅 #${roomId}`}
           </span>
 
           <div className="flex items-center gap-2">
