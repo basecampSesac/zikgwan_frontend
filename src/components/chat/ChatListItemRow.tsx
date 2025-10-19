@@ -40,23 +40,49 @@ export default function ChatListItemRow({
           return;
         }
 
-        // 커뮤니티 검색으로 leaderNickname 가져오기
-        const { data } = await axiosInstance.get(
+        let leader: string | null = null;
+
+        // 커뮤니티 검색
+        const communityRes = await axiosInstance.get(
           `/api/communities/search?keyword=${encodeURIComponent(room.roomName)}`
         );
 
-        if (data.status === "success" && Array.isArray(data.data)) {
-          const matched = data.data.find(
+        if (
+          communityRes.data.status === "success" &&
+          Array.isArray(communityRes.data.data)
+        ) {
+          const matched = communityRes.data.data.find(
             (c: any) => c.title.trim() === room.roomName.trim()
           );
-
           if (matched) {
-            const leader = matched.nickname;
-            setLeaderNickname(room.roomId, leader);
-            setLocalLeaderNickname(leader);
-          } else {
-            console.warn(`'${room.roomName}' 이름으로 커뮤니티 매칭 실패`);
+            leader = matched.nickname;
           }
+        }
+
+        // 티켓 검색
+        if (!leader) {
+          const ticketRes = await axiosInstance.get(
+            `/api/tickets/all?keyword=${encodeURIComponent(room.roomName)}`
+          );
+
+          if (
+            ticketRes.data.status === "success" &&
+            Array.isArray(ticketRes.data.data?.content)
+          ) {
+            const matchedTicket = ticketRes.data.data.content.find(
+              (t: any) => t.title.trim() === room.roomName.trim()
+            );
+            if (matchedTicket) {
+              leader = matchedTicket.nickname;
+            }
+          }
+        }
+
+        if (leader) {
+          setLeaderNickname(room.roomId, leader);
+          setLocalLeaderNickname(leader);
+        } else {
+          console.warn(`'${room.roomName}' 방의 리더를 찾지 못했습니다.`);
         }
       } catch (err) {
         console.warn(
