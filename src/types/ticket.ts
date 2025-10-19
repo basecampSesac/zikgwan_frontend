@@ -22,3 +22,17 @@ export type TicketUI = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type CompletedTicket = {
+  tsId: number;
+  title: string;
+  price: number;
+  home: string;
+  away: string;
+  stadium: string;
+  state: "END" | "ING";
+  sellerId: number;
+  buyerId: number;
+  updatedAt: string | null;
+  rating: number | null;
+};
