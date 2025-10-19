@@ -114,8 +114,12 @@ export default function ChatListItemRow({
         onClick={() => onSelect(room.roomId, room.roomName)}
         className="flex flex-col text-left overflow-hidden flex-1"
       >
-        <p className="font-medium text-gray-900 truncate">{room.roomName}</p>
-        <p className="text-[13px] text-gray-500 truncate mt-0.5">
+        <p className="font-medium text-gray-900 truncate max-w-[250px]">
+          {room.roomName.length > 20
+            ? room.roomName.slice(0, 20) + "..."
+            : room.roomName}
+        </p>
+        <p className="text-[13px] text-gray-500 truncate mt-0.5 max-w-[200px]">
           {room.lastMessage || "최근 메시지 없음"}
         </p>
       </button>
