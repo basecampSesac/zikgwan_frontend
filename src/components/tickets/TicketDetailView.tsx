@@ -20,14 +20,17 @@ import { HiOutlineUsers } from "react-icons/hi";
 import { PiSeat } from "react-icons/pi";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
 import type { TicketUI } from "../../types/ticket";
+import { useChatWidgetStore } from "../../store/chatWidgetStore";
 
 export default function TicketDetailView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const addToast = useToastStore((s) => s.addToast);
   const { user } = useAuthStore();
+  const { openPopup } = useChatWidgetStore();
 
   const [ticket, setTicket] = useState<TicketUI | null>(null);
+  const [roomId, setRoomId] = useState<number | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,8 +63,8 @@ export default function TicketDetailView() {
           adjacentSeat: t.adjacentSeat ?? "N",
           nickname: t.nickname ?? "익명",
           imageUrl: t.imageUrl
-          ? `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
-          : getDefaultStadiumImage(t.stadium ?? ""),
+            ? `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
+            : getDefaultStadiumImage(t.stadium ?? ""),
 
           rating: t.rating ?? 0,
           state: t.state ?? "ING",
@@ -79,9 +82,26 @@ export default function TicketDetailView() {
     }
   }, [id, addToast]);
 
+  // 채팅방 상세 조회
+  const fetchChatRoom = useCallback(async () => {
+    try {
+      const res = await axiosInstance.get(`/api/chatroom/ticket/${id}`);
+      if (res.data.status === "success" && res.data.data) {
+        setRoomId(res.data.data.roomId);
+        console.log("채팅방 정보 불러오기 성공:", res.data.data);
+      } else {
+        console.warn("채팅방 정보를 불러오지 못했습니다.");
+      }
+    } catch (err) {
+      console.error("채팅방 상세 조회 실패:", err);
+    }
+  }, [id]);
+
+  // 초기 로드
   useEffect(() => {
     fetchTicket();
-  }, [fetchTicket]);
+    fetchChatRoom();
+  }, [fetchTicket, fetchChatRoom]);
 
   /** 삭제 */
   const handleDelete = async () => {
@@ -99,26 +119,17 @@ export default function TicketDetailView() {
     }
   };
 
-  /** 채팅 시작 */
-  const handleChatStart = async () => {
-    if (!ticket) return;
-    try {
-      const res = await axiosInstance.post(
-        `/api/chatroom/ticket/${ticket.tsId}?roomName=${encodeURIComponent(
-          ticket.title
-        )}`
-      );
-
-      if (res.data?.status === "success" && res.data.data?.roomId) {
-        const roomId = res.data.data.roomId;
-        navigate(`/chat/${roomId}`);
-      } else {
-        addToast(res.data.message || "채팅방 생성 실패 ❌", "error");
-      }
-    } catch (err) {
-      console.error("채팅방 생성 실패:", err);
-      addToast("채팅방 생성 중 오류가 발생했습니다.", "error");
+  // 티켓 거래 참여 (채팅방 연결)
+  const handleJoinTicket = () => {
+    if (!user) {
+      addToast("로그인 후 모임에 참여할 수 있어요.", "error");
+      return;
     }
+    if (!roomId) {
+      addToast("채팅방 정보를 불러오지 못했습니다.", "error");
+      return;
+    }
+    openPopup(roomId, ticket!.title);
   };
 
   if (isLoading)
@@ -151,10 +162,14 @@ export default function TicketDetailView() {
               >
                 {ticket.state === "ING" ? "판매중" : "판매완료"}
               </span>
-              <img src={ticket.imageUrl ?? getDefaultStadiumImage(ticket.stadiumName)}
-                    alt="티켓 이미지"
-                    className="w-full h-full object-cover"/>
-              </div>
+              <img
+                src={
+                  ticket.imageUrl ?? getDefaultStadiumImage(ticket.stadiumName)
+                }
+                alt="티켓 이미지"
+                className="w-full h-full object-cover"
+              />
+            </div>
 
             <div className="flex flex-col justify-between">
               <div>
@@ -173,7 +188,12 @@ export default function TicketDetailView() {
                         : "날짜 정보 없음",
                     },
                     {
-                      icon: <MdOutlineSportsBaseball size={22} className="text-gray-500"/>,
+                      icon: (
+                        <MdOutlineSportsBaseball
+                          size={22}
+                          className="text-gray-500"
+                        />
+                      ),
                       text: `${ticket.home} vs ${ticket.away}`,
                     },
                     {
@@ -188,11 +208,15 @@ export default function TicketDetailView() {
                           : "인접 좌석: 아니오",
                     },
                     {
-                      icon: <HiOutlineUsers size={22} className="text-gray-500" />,
+                      icon: (
+                        <HiOutlineUsers size={22} className="text-gray-500" />
+                      ),
                       text: `판매자: ${ticket.nickname}`,
                     },
                     {
-                      icon: <FiCreditCard size={22} className="text-gray-500" />,
+                      icon: (
+                        <FiCreditCard size={22} className="text-gray-500" />
+                      ),
                       text: `가격: ${(ticket.price ?? 0).toLocaleString()}원 (${
                         ticket.ticketCount ?? 1
                       }매)`,
@@ -211,7 +235,7 @@ export default function TicketDetailView() {
                 <div className="mb-8 mt-4">
                   <button
                     onClick={
-                      ticket.state === "ING" ? handleChatStart : undefined
+                      ticket.state === "ING" ? handleJoinTicket : undefined
                     }
                     disabled={ticket.state !== "ING"}
                     className={`w-full px-6 py-3 rounded-lg font-semibold text-lg transition flex items-center justify-center gap-2 ${
@@ -286,7 +310,9 @@ export default function TicketDetailView() {
       <ConfirmModal
         isOpen={isDeleteOpen}
         title="티켓 삭제"
-        description={"정말 이 티켓을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다."}
+        description={
+          "정말 이 티켓을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다."
+        }
         confirmText="삭제하기"
         cancelText="취소"
         onClose={() => setIsDeleteOpen(false)}

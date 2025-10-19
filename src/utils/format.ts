@@ -2,8 +2,10 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
 // 📅 날짜 포맷팅 (2024-05-20 (월) 18:30)
-export const formatDate = (dateStr: string | Date): string => {
+export const formatDate = (dateStr?: string | Date): string => {
+  if (!dateStr) return "-";
   const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+  if (isNaN(date.getTime())) return "-";
   return format(date, "yyyy-MM-dd (EEE) HH:mm", { locale: ko });
 };
 

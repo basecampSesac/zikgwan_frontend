@@ -9,6 +9,7 @@ import type { TicketUI } from "../types/ticket";
 import { useToastStore } from "../store/toastStore";
 
 type SortType = "RECENT" | "LOW" | "HIGH";
+
 interface TicketResponse {
   tsId: number;
   title: string;
@@ -16,11 +17,16 @@ interface TicketResponse {
   gameDay: string;
   price: number;
   ticketCount: number;
+  home: string;
+  away: string;
   stadium: string;
+  adjacentSeat: "Y" | "N";
+  nickname: string;
+  rating?: number | null;
   state: "ING" | "DONE";
   imageUrl?: string;
-  nickname: string;
-  rating?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function TicketList() {
@@ -44,22 +50,26 @@ export default function TicketList() {
       if (res.data.status === "success" && res.data.data) {
         const { content, totalPages } = res.data.data;
 
+        // ✅ 서버 응답 → TicketUI 매핑
         const mapped: TicketUI[] = (content as TicketResponse[]).map((t) => ({
-          id: t.tsId,
+          tsId: t.tsId,
           title: t.title,
           description: t.description,
-          gameDate: t.gameDay,
           price: t.price,
+          gameDay: t.gameDay,
           ticketCount: t.ticketCount,
-          stadiumName: t.stadium,
-          status: t.state === "ING" ? "판매중" : "판매완료",
+          home: t.home,
+          away: t.away,
+          stadium: t.stadium,
+          adjacentSeat: t.adjacentSeat,
+          nickname: t.nickname,
+          rating: t.rating ?? null,
+          state: t.state,
           imageUrl: t.imageUrl
             ? `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
             : "",
-          seller: {
-            nickname: t.nickname,
-            rate: t.rating || 0,
-          },
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
         }));
 
         setTickets(mapped);
@@ -126,7 +136,7 @@ export default function TicketList() {
         ) : tickets.length > 0 ? (
           <div className="grid gap-6 grid-cols-[repeat(auto-fill,_minmax(240px,_1fr))]">
             {tickets.map((ticket) => (
-              <TicketCard key={ticket.id} {...ticket} />
+              <TicketCard key={ticket.tsId} {...ticket} />
             ))}
           </div>
         ) : (

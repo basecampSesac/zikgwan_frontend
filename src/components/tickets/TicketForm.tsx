@@ -123,7 +123,7 @@ export default function TicketForm({
         new Blob([JSON.stringify(payload)], { type: "application/json" })
       );
 
-            if (images.length > 0) {
+      if (images.length > 0) {
         images.forEach((file) => formData.append("image", file));
       } else if (existingImage && mode === "edit") {
         // 기존 이미지 유지
@@ -145,11 +145,23 @@ export default function TicketForm({
         res = await axiosInstance.post(`/api/tickets`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
+
+        if (res.data.status === "success" && res.data.data) {
+          const tsId = res.data.data.tsId;
+          // 채팅방 생성
+          await axiosInstance.post(
+            `/api/chatroom/ticket/${tsId}?roomName=${encodeURIComponent(
+              form.title
+            )}`
+          );
+        }
       }
 
       if (res.data.status === "success") {
         addToast(
-          mode === "edit" ? "티켓이 수정되었습니다 ✅" : "티켓이 등록되었습니다 🎉",
+          mode === "edit"
+            ? "티켓이 수정되었습니다 ✅"
+            : "티켓이 등록되었습니다 🎉",
           "success"
         );
         onSuccess?.();

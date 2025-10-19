@@ -3,26 +3,38 @@ import { useNavigate } from "react-router-dom";
 import type { TicketUI } from "../../types/ticket";
 import { formatDate, formatPrice } from "../../utils/format";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
+import { useState } from "react";
 
 export default function TicketCard({
-  id,
+  tsId,
   title,
-  gameDate,
   price,
+  gameDay,
   ticketCount,
-  stadiumName,
-  seller,
-  status,
+  stadium,
+  nickname,
+  rating,
+  state,
   imageUrl,
 }: TicketUI) {
   const navigate = useNavigate();
 
-  const handleClick = () => navigate(`/tickets/${id}`);
-
-  const imgSrc =
+  // 구장 이미지
+  const resolvedImageUrl =
     imageUrl && imageUrl.trim() !== ""
-      ? imageUrl
-      : getDefaultStadiumImage(stadiumName);
+      ? imageUrl.startsWith("http")
+        ? imageUrl
+        : imageUrl.startsWith("/")
+        ? imageUrl
+        : `http://localhost:8080/images/${imageUrl.replace(/^\/+/, "")}`
+      : getDefaultStadiumImage(stadium);
+
+  const [imgSrc, setImgSrc] = useState(resolvedImageUrl);
+
+  const handleClick = () => navigate(`/tickets/${tsId}`);
+
+  // 상태 변환 ("ING" → "판매중")
+  const status = state === "ING" ? "판매중" : "판매완료";
 
   return (
     <article
@@ -34,26 +46,26 @@ export default function TicketCard({
         <img
           src={imgSrc}
           alt={title}
-          onError={(e) => {
-            e.currentTarget.src = getDefaultStadiumImage(stadiumName);
-          }}
           className="w-full h-full object-cover transition-transform duration-200 hover:scale-[1.02]"
+          onError={() => {
+            if (imgSrc !== getDefaultStadiumImage(stadium)) {
+              setImgSrc(getDefaultStadiumImage(stadium));
+            }
+          }}
         />
 
         {/* 상태 뱃지 */}
-        {status && (
-          <span
-            className={`absolute top-2 left-2 text-white text-xs font-semibold px-2 py-0.5 rounded-md shadow ${
-              status === "판매중" ? "bg-[#6F00B6]" : "bg-gray-500"
-            }`}
-          >
-            {status}
-          </span>
-        )}
+        <span
+          className={`absolute top-2 left-2 text-white text-xs font-semibold px-2 py-0.5 rounded-md shadow ${
+            status === "판매중" ? "bg-[#6F00B6]" : "bg-gray-500"
+          }`}
+        >
+          {status}
+        </span>
 
         {/* 구장명 */}
         <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
-          {stadiumName}
+          {stadium}
         </span>
       </div>
 
@@ -67,7 +79,7 @@ export default function TicketCard({
         {/* 경기일시 */}
         <div className="flex items-center gap-1 text-gray-500 text-sm">
           <Calendar size={15} className="text-gray-400" />
-          <span>{formatDate(gameDate)}</span>
+          <span>{formatDate(gameDay)}</span>
         </div>
 
         {/* 가격 + 매수 */}
@@ -82,22 +94,22 @@ export default function TicketCard({
 
         {/* 판매자 + 별점 */}
         <div className="flex items-center justify-between mt-1 text-gray-500">
-          {/* 왼쪽: 판매자 */}
+          {/* 판매자 */}
           <div className="flex items-center gap-1 min-w-0">
             <User size={14} className="text-gray-400 flex-shrink-0" />
             <span className="text-[13px] font-medium truncate max-w-[120px]">
-              {seller.nickname}
+              {nickname}
             </span>
           </div>
 
-          {/* 오른쪽: 별점 (평점 값이 있을 때만 표시) */}
-          {seller.rate && (
+          {/* 별점 */}
+          {rating != null && (
             <div className="flex items-center gap-1 flex-shrink-0">
               <Star
                 size={13}
                 className="text-yellow-400 fill-yellow-400 flex-shrink-0"
               />
-              <span className="text-[13px] leading-none">{seller.rate}</span>
+              <span className="text-[13px] leading-none">{rating}</span>
             </div>
           )}
         </div>
