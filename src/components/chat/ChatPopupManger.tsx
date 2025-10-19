@@ -6,11 +6,11 @@ export default function ChatPopupManager() {
 
   return (
     <>
-      {Object.entries(openedRooms).map(([roomId, title], idx) => (
+      {Object.entries(openedRooms).map(([roomId, roomData], idx) => (
         <ChatPopup
           key={roomId}
           roomId={Number(roomId)}
-          title={title}        
+          title={roomData.roomName}
           offsetX={idx}
         />
       ))}
