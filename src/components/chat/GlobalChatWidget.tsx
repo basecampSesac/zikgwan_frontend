@@ -28,12 +28,20 @@ export default function GlobalChatWidget() {
 
   if (!isAuthenticated) return null;
 
+  const handleRoomSelect = (roomId: number, title: string) => {
+    openPopup(roomId, title);
+    closeWidget();
+  };
+
   return (
     <>
       {/* Floating Button */}
       <button
         ref={buttonRef}
-        onClick={() => (isOpen ? closeWidget() : openWidget())}
+        onClick={() => {
+          if (isOpen) closeWidget();
+          else openWidget();
+        }}
         className={`
           fixed bottom-6 right-6 w-14 h-14 flex items-center justify-center
           rounded-full transition-all duration-200 ease-out
@@ -61,12 +69,7 @@ export default function GlobalChatWidget() {
           className="fixed bottom-24 right-6 w-[380px] h-[540px] bg-white rounded-2xl 
                      shadow-lg border border-gray-200 overflow-hidden flex flex-col z-[999]"
         >
-          <ChatListPanel
-            onSelect={(roomId, title) => {
-              openPopup(roomId, title);
-              closeWidget();
-            }}
-          />
+          <ChatListPanel onSelect={handleRoomSelect} />
         </div>
       )}
     </>

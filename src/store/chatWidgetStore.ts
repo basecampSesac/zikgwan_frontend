@@ -1,37 +1,77 @@
 import { create } from "zustand";
 
+interface OpenedRoom {
+  roomName: string;
+  leaderNickname?: string;
+}
+
 interface ChatWidgetState {
-  isOpen: boolean; // 위젯 열림 여부
-  activeRoomId: number | null; // 위젯 내부에서 열려 있는 방
-  openedRooms: Record<number, string>; // 팝업으로 열린 방 목록
+  isOpen: boolean;
+  openedRooms: Record<number, OpenedRoom>;
 
   openWidget: () => void;
   closeWidget: () => void;
-  setActiveRoomId: (roomId: number | null) => void;
-  openPopup: (roomId: number, title: string) => void; // title 추가
+
+  openPopup: (
+    roomId: number,
+    roomName: string,
+    leaderNickname?: string
+  ) => void;
   closePopup: (roomId: number) => void;
+
+  setLeaderNickname: (roomId: number, leaderNickname: string) => void;
 }
 
 export const useChatWidgetStore = create<ChatWidgetState>((set) => ({
   isOpen: false,
-  activeRoomId: null,
   openedRooms: {},
 
-  openWidget: () => set({ isOpen: true }),
-  closeWidget: () => set({ isOpen: false }),
-  setActiveRoomId: (roomId) => set({ activeRoomId: roomId }),
+  openWidget: () => {
+    set({ isOpen: true });
+  },
+  closeWidget: () => {
+    set({ isOpen: false });
+  },
 
-  // 팝업 열기
-  openPopup: (roomId, title) =>
+  openPopup: (roomId, roomName, leaderNickname) => {
+    console.log(
+      `[Store] openPopup() 실행됨 → roomId=${roomId}, roomName=${roomName}, leader=${
+        leaderNickname ?? "없음"
+      }`
+    );
+    console.trace("openPopup 호출 스택");
     set((state) => ({
-      openedRooms: { ...state.openedRooms, [roomId]: title },
-    })),
+      openedRooms: {
+        ...state.openedRooms,
+        [roomId]: { roomName, leaderNickname },
+      },
+    }));
+  },
 
-  // 팝업 닫기 (삭제)
-  closePopup: (roomId) =>
+  closePopup: (roomId) => {
+    console.log(`[Store] closePopup() 실행됨 → roomId=${roomId}`);
     set((state) => {
       const updated = { ...state.openedRooms };
       delete updated[roomId];
       return { openedRooms: updated };
-    }),
+    });
+  },
+
+  setLeaderNickname: (roomId, leaderNickname) => {
+    set((state) => {
+      if (!state.openedRooms[roomId]) {
+        return state;
+      }
+
+      return {
+        openedRooms: {
+          ...state.openedRooms,
+          [roomId]: {
+            ...state.openedRooms[roomId],
+            leaderNickname,
+          },
+        },
+      };
+    });
+  },
 }));

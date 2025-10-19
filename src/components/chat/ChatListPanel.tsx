@@ -1,3 +1,5 @@
+import { useChatWidgetStore } from "../../store/chatWidgetStore";
+import { useAuthStore } from "../../store/authStore";
 import { useEffect, useState } from "react";
 import axiosInstance from "../../lib/axiosInstance";
 import ChatListItemRow from "./ChatListItemRow";
@@ -7,28 +9,46 @@ interface ChatListItem {
   roomName: string;
   lastMessage: string;
   unreadCount: number;
+  communityId: number;
 }
 
-interface Props {
+export default function ChatListPanel({
+  onSelect,
+}: {
   onSelect: (roomId: number, title: string) => void;
-}
-
-export default function ChatListPanel({ onSelect }: Props) {
+}) {
   const [rooms, setRooms] = useState<ChatListItem[]>([]);
+  const { user } = useAuthStore();
+  const { setLeaderNickname } = useChatWidgetStore();
 
   useEffect(() => {
     const fetchRooms = async () => {
       try {
         const res = await axiosInstance.get("/api/chatroom/all");
         if (res.data.status === "success" && Array.isArray(res.data.data)) {
-          setRooms(res.data.data);
+          const fetchedRooms: ChatListItem[] = res.data.data;
+          setRooms(fetchedRooms);
+
+          for (const room of fetchedRooms) {
+            if (!room.communityId) continue;
+            try {
+              const { data } = await axiosInstance.get(
+                `/api/chatroom/community/${room.communityId}`
+              );
+              if (data.status === "success" && data.data?.leaderNickname) {
+                setLeaderNickname(room.roomId, data.data.leaderNickname);
+              }
+            } catch (err) {
+              console.warn(`🚨 방 ${room.roomId} leader 조회 실패`, err);
+            }
+          }
         }
       } catch (err) {
         console.warn("채팅방 목록 불러오기 실패:", err);
       }
     };
     fetchRooms();
-  }, []);
+  }, [user?.nickname, setLeaderNickname]);
 
   const handleLeaveSuccess = (roomId: number) => {
     setRooms((prev) => prev.filter((r) => r.roomId !== roomId));
