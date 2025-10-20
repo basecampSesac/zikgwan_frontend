@@ -15,6 +15,7 @@ import {
   FiMapPin,
   FiCreditCard,
   FiMessageSquare,
+  FiRepeat, // ✅ 추가
 } from "react-icons/fi";
 import { HiOutlineUsers } from "react-icons/hi";
 import { PiSeat } from "react-icons/pi";
@@ -116,6 +117,32 @@ export default function TicketDetailView() {
       addToast("삭제 중 오류가 발생했습니다.", "error");
     } finally {
       setIsDeleteOpen(false);
+    }
+  };
+
+  /** ✅ 판매 상태 토글 (ING ↔ END) */
+  const handleToggleState = async () => {
+    if (!ticket) return;
+    try {
+      const newState = ticket.state === "ING" ? "END" : "ING";
+      const res = await axiosInstance.put(`/api/tickets/state/${ticket.tsId}`, {
+        state: newState,
+      });
+
+      if (res.data?.status === "success") {
+        addToast(
+          newState === "END"
+            ? "판매가 완료되었습니다 🎉"
+            : "판매중으로 변경되었습니다 ✅",
+          "success"
+        );
+        setTicket((prev) => (prev ? { ...prev, state: newState } : prev));
+      } else {
+        addToast(res.data?.message || "상태 변경 실패 ❌", "error");
+      }
+    } catch (err) {
+      console.error("상태 변경 오류:", err);
+      addToast("서버 오류가 발생했습니다.", "error");
     }
   };
 
@@ -253,6 +280,21 @@ export default function TicketDetailView() {
                   <ShareButton />
                   {isSeller && (
                     <>
+                      {/* ✅ 판매상태 변경 버튼 추가 */}
+                      <button
+                        onClick={handleToggleState}
+                        className={`flex items-center gap-1.5 text-sm font-medium transition ${
+                          ticket.state === "ING"
+                            ? "text-[#6F00B6] hover:text-[#8A2BE2]"
+                            : "text-gray-600 hover:text-[#6F00B6]"
+                        }`}
+                      >
+                        <FiRepeat size={16} />{" "}
+                        {ticket.state === "ING"
+                          ? "판매 완료로 변경"
+                          : "판매 중으로 변경"}
+                      </button>
+
                       <button
                         onClick={() => setIsEditOpen(true)}
                         className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition"
