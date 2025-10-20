@@ -127,10 +127,7 @@ export default function TicketForm({
 
       if (images.length > 0) {
         images.forEach((file) => formData.append("image", file));
-      } else if (existingImage && mode === "edit") {
-        // 기존 이미지 유지
-        payload.existingImageUrl = existingImage;
-      }
+      } else (existingImage && mode === "edit") 
 
       let res;
       if (mode === "edit" && initialValues?.tsId) {
