@@ -7,7 +7,9 @@ import ConfirmModal from "../../Modals/ConfirmModal";
 import Modal from "../Modal";
 import TicketForm from "./TicketForm";
 import ShareButton from "../common/ShareButton";
+import { TICKET_TRADE_GUIDE } from "../../data/guides";
 import { MdOutlineSportsBaseball } from "react-icons/md";
+import { FiCheckCircle, FiRefreshCcw } from "react-icons/fi";
 import {
   FiEdit3,
   FiTrash2,
@@ -15,7 +17,7 @@ import {
   FiMapPin,
   FiCreditCard,
   FiMessageSquare,
-  FiRepeat, // ✅ 추가
+  FiRepeat,
 } from "react-icons/fi";
 import { HiOutlineUsers } from "react-icons/hi";
 import { PiSeat } from "react-icons/pi";
@@ -36,7 +38,6 @@ export default function TicketDetailView() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  /** ✅ UTC → KST 변환 유틸 */
   const toKST = (dateStr: string) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -44,19 +45,17 @@ export default function TicketDetailView() {
     return date.toISOString();
   };
 
-  /** 상세 조회 */
   const fetchTicket = useCallback(async () => {
     try {
       const res = await axiosInstance.get(`/api/tickets/${id}`);
       if (res.data?.status === "success" && res.data.data) {
         const t = res.data.data;
-
         setTicket({
           tsId: t.tsId ?? 0,
           title: t.title ?? "제목 없음",
           description: t.description ?? "",
           price: t.price ?? 0,
-          gameDay: toKST(t.gameDay), // ✅ 시간 보정 적용
+          gameDay: toKST(t.gameDay),
           ticketCount: t.ticketCount ?? 1,
           home: t.home ?? "홈팀 정보 없음",
           away: t.away ?? "원정팀 정보 없음",
@@ -66,7 +65,6 @@ export default function TicketDetailView() {
           imageUrl: t.imageUrl
             ? `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
             : getDefaultStadiumImage(t.stadium ?? ""),
-
           rating: t.rating ?? 0,
           state: t.state ?? "ING",
           createdAt: t.createdAt ?? "",
@@ -83,7 +81,6 @@ export default function TicketDetailView() {
     }
   }, [id, addToast]);
 
-  // 채팅방 상세 조회
   const fetchChatRoom = useCallback(async () => {
     try {
       const res = await axiosInstance.get(`/api/chatroom/ticket/${id}`);
@@ -98,13 +95,11 @@ export default function TicketDetailView() {
     }
   }, [id]);
 
-  // 초기 로드
   useEffect(() => {
     fetchTicket();
     fetchChatRoom();
   }, [fetchTicket, fetchChatRoom]);
 
-  /** 삭제 */
   const handleDelete = async () => {
     try {
       const res = await axiosInstance.delete(`/api/tickets/${id}`);
@@ -120,7 +115,6 @@ export default function TicketDetailView() {
     }
   };
 
-  /** ✅ 판매 상태 토글 (ING ↔ END) */
   const handleToggleState = async () => {
     if (!ticket) return;
     try {
@@ -132,8 +126,8 @@ export default function TicketDetailView() {
       if (res.data?.status === "success") {
         addToast(
           newState === "END"
-            ? "판매가 완료되었습니다 🎉"
-            : "판매중으로 변경되었습니다 ✅",
+            ? "거래 상태가 변경되었습니다 ✅"
+            : "거래 상태가 변경되었습니다 ✅",
           "success"
         );
         setTicket((prev) => (prev ? { ...prev, state: newState } : prev));
@@ -146,7 +140,6 @@ export default function TicketDetailView() {
     }
   };
 
-  // 티켓 거래 참여 (채팅방 연결)
   const handleJoinTicket = () => {
     if (!user) {
       addToast("로그인 후 모임에 참여할 수 있어요.", "error");
@@ -174,30 +167,40 @@ export default function TicketDetailView() {
     );
 
   const isSeller = user?.nickname === ticket.nickname;
+  const isEnded = ticket.state === "END";
 
   return (
     <main className="bg-white flex items-center justify-center py-10 px-4">
       <div className="relative w-full max-w-7xl">
         <div className="bg-white rounded-2xl p-10 border border-gray-200 shadow-sm">
-          {/* 상단 */}
+          {/* ===== 상단 ===== */}
           <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-10">
+            {/* 이미지 섹션 */}
             <div className="relative w-full h-[450px] bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center border border-gray-100">
-              <span
-                className={`absolute top-3 left-3 px-3 py-1.5 text-sm font-semibold rounded-md text-white ${
-                  ticket.state === "ING" ? "bg-[#6F00B6]" : "bg-gray-400"
-                }`}
-              >
-                {ticket.state === "ING" ? "판매중" : "판매완료"}
-              </span>
-              <img
-                src={
-                  ticket.imageUrl ?? getDefaultStadiumImage(ticket.stadiumName)
-                }
-                alt="티켓 이미지"
-                className="w-full h-full object-cover"
-              />
-            </div>
+                {!isEnded && (
+                  <span className="absolute top-3 left-3 px-3 py-1.5 text-sm font-semibold rounded-md text-white bg-[#6F00B6] z-20">
+                    판매중
+                  </span>
+                )}
+                <img
+                  src={
+                    ticket.imageUrl
+                      ? ticket.imageUrl
+                      : getDefaultStadiumImage(ticket.stadium)
+                  }
+                  alt="거래 이미지"
+                  className="w-full h-full object-cover"
+                />
+                {isEnded && (
+                  <div className="absolute inset-0 bg-black/55 z-10 flex items-center justify-center">
+                    <span className="text-white text-xl font-semibold tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
+                      판매 완료
+                    </span>
+                  </div>
+                )}
+              </div>
 
+            {/* 정보 섹션 */}
             <div className="flex flex-col justify-between">
               <div>
                 <h2 className="text-3xl font-bold mb-6 text-gray-900 tracking-tight">
@@ -271,28 +274,28 @@ export default function TicketDetailView() {
                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }`}
                   >
-                    <FiMessageSquare size={20} />
-                    판매자와 채팅 시작하기
+                    {isEnded ? "판매가 완료된 상태입니다." : "판매자와 채팅 시작하기"}
                   </button>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 mt-6">
-                  <ShareButton />
                   {isSeller && (
                     <>
-                      {/* ✅ 판매상태 변경 버튼 추가 */}
-                      <button
+                     <button
                         onClick={handleToggleState}
-                        className={`flex items-center gap-1.5 text-sm font-medium transition ${
-                          ticket.state === "ING"
-                            ? "text-[#6F00B6] hover:text-[#8A2BE2]"
-                            : "text-gray-600 hover:text-[#6F00B6]"
-                        }`}
+                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition"
                       >
-                        <FiRepeat size={16} />{" "}
-                        {ticket.state === "ING"
-                          ? "판매 완료로 변경"
-                          : "판매 중으로 변경"}
+                        {ticket.state === "ING" ? (
+                          <>
+                            <FiCheckCircle size={15} />
+                            거래 완료로 변경
+                          </>
+                        ) : (
+                          <>
+                            <FiRefreshCcw size={15} />
+                            거래 재개하기
+                          </>
+                        )}
                       </button>
 
                       <button
@@ -307,6 +310,7 @@ export default function TicketDetailView() {
                       >
                         <FiTrash2 size={16} /> 삭제
                       </button>
+                       <ShareButton />
                     </>
                   )}
                 </div>
@@ -314,7 +318,7 @@ export default function TicketDetailView() {
             </div>
           </div>
 
-          {/* 상세 설명 & 판매자 정보 */}
+          {/* ===== 상세 설명 + 가이드 + 판매자 ===== */}
           <div className="mt-8 pt-8 border-t border-gray-100 grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-8 items-stretch">
             <div className="bg-gray-50 rounded-xl p-6 min-h-[370px] flex flex-col overflow-y-auto border border-gray-100">
               <h3 className="font-semibold text-gray-800 mb-2 text-lg">
@@ -326,6 +330,17 @@ export default function TicketDetailView() {
             </div>
 
             <div className="space-y-6">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+                <h4 className="font-semibold text-gray-800 mb-2 text-lg">
+                  티켓 거래 가이드
+                </h4>
+                <ul className="list-disc pl-5 text-gray-600 text-sm leading-relaxed">
+                  {TICKET_TRADE_GUIDE.map((text, idx) => (
+                    <li key={idx}>{text}</li>
+                  ))}
+                </ul>
+              </div>
+
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                 <h4 className="font-semibold text-gray-800 mb-3 text-lg">
                   💁 판매자 정보
@@ -346,8 +361,8 @@ export default function TicketDetailView() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </div> 
+      </div> 
 
       <ConfirmModal
         isOpen={isDeleteOpen}
@@ -366,7 +381,7 @@ export default function TicketDetailView() {
           isOpen={isEditOpen}
           onClose={() => {
             setIsEditOpen(false);
-            fetchTicket(); // ✅ 수정 완료 후 최신 데이터 다시 불러오기
+            fetchTicket();
           }}
         >
           <TicketForm
@@ -374,10 +389,10 @@ export default function TicketDetailView() {
             initialValues={ticket}
             onClose={() => {
               setIsEditOpen(false);
-              fetchTicket(); // ✅ 모달 닫을 때 새로고침 효과
+              fetchTicket();
             }}
             onSuccess={() => {
-              fetchTicket(); // ✅ 수정 성공 시 데이터 갱신
+              fetchTicket();
             }}
           />
         </Modal>
