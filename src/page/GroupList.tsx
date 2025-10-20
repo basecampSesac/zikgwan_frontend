@@ -1,34 +1,32 @@
 import { useEffect, useState, useCallback } from "react";
-import { AiOutlineLeft, AiOutlineRight } from "react-icons/ai";
 import SearchPanel from "../components/SearchPanel";
 import GroupCard from "../components/groups/GroupCard";
 import ListHeader from "../components/ListHeader";
+import Pagination from "../components/Pagination";
 import GroupForm from "../components/groups/GroupForm";
 import Modal from "../components/Modal";
 import axiosInstance from "../lib/axiosInstance";
-import type { CommunityItem, ApiResponse, GroupUI } from "../types/group";
+import type { CommunityItem, GroupUI } from "../types/group";
 import { useAuthStore } from "../store/authStore";
 import { useToastStore } from "../store/toastStore";
 import { useGroupUpdateStore } from "../store/groupUpdateStore";
 
 type SortType = "RECENT" | "MOST" | "LEAST";
 
-interface PageResponse<T> {
-  content: T[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  last: boolean;
-}
-
 export default function GroupList() {
   const [groups, setGroups] = useState<GroupUI[]>([]);
+  const [filters, setFilters] = useState({
+    keyword: "",
+    team: "",
+    stadium: "",
+    date: "",
+  });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [sortType, setSortType] = useState<SortType>("RECENT");
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   const { isAuthenticated } = useAuthStore();
   const { addToast } = useToastStore();
@@ -36,17 +34,37 @@ export default function GroupList() {
 
   // 모임 목록 + 이미지 불러오기
   const fetchGroups = useCallback(
-    async (sort: SortType = "RECENT", pageNum: number = 0) => {
+    async (
+      sort: SortType = "RECENT",
+      pageNum: number = 0,
+      filter = filters
+    ) => {
       setLoading(true);
       try {
-        const res = await axiosInstance.get<
-          ApiResponse<PageResponse<CommunityItem>>
-        >(`/api/communities?page=${pageNum}&size=12&sortType=${sort}`);
+        const hasSearch =
+          filter.keyword || filter.team || filter.stadium || filter.date;
+
+        const endpoint = hasSearch
+          ? "/api/communities/search"
+          : "/api/communities";
+
+        const params = hasSearch
+          ? {
+              title: filter.keyword || undefined,
+              team: filter.team || undefined,
+              stadium: filter.stadium || undefined,
+              date: filter.date || undefined,
+            }
+          : { page: pageNum, size: 12, sortType: sort };
+
+        const res = await axiosInstance.get(endpoint, { params });
 
         if (res.data.status === "success" && res.data.data) {
-          const { content, totalPages } = res.data.data;
+          const resultData = Array.isArray(res.data.data)
+            ? res.data.data
+            : res.data.data.content;
 
-          const mappedGroups: GroupUI[] = content.map((g) => ({
+          const mapped: GroupUI[] = resultData.map((g: CommunityItem) => ({
             id: g.communityId,
             title: g.title,
             content: g.description,
@@ -55,28 +73,36 @@ export default function GroupList() {
             teams: `${g.home} vs ${g.away}`,
             personnel: g.memberCount,
             leader: g.nickname,
-            status: g.state === "ING" ? "모집중" : "모집마감",
+            status:
+              g.state === "ING" ? ("모집중" as const) : ("모집마감" as const),
             imageUrl: g.imageUrl
               ? `http://localhost:8080/images/${g.imageUrl.replace(/^\/+/, "")}`
               : undefined,
           }));
-
-          setGroups(mappedGroups);
-          setTotalPages(totalPages);
+          setGroups(mapped);
+          setTotalPages(
+            Array.isArray(res.data.data) ? 1 : res.data.data.totalPages
+          );
+          setTotalCount(
+            Array.isArray(res.data.data)
+              ? res.data.data.length
+              : res.data.data.totalElements
+          );
           setPage(pageNum);
         }
-      } catch (error) {
-        console.error("모임 목록 조회 실패:", error);
+      } catch (err) {
+        console.error("모임 목록 조회 실패:", err);
+        addToast("모임 목록을 불러오지 못했습니다.", "error");
       } finally {
-        setLoading(false);
+        setTimeout(() => setLoading(false), 200);
       }
     },
-    []
+    [filters, addToast]
   );
 
   useEffect(() => {
     fetchGroups(sortType, 0);
-  }, [sortType, fetchGroups]);
+  }, []);
 
   useEffect(() => {
     if (updated) {
@@ -85,7 +111,7 @@ export default function GroupList() {
     }
   }, [updated, sortType, fetchGroups, resetUpdate]);
 
-  const handleSortChange = (value: string): void => {
+  const handleSortChange = (value: string) => {
     const nextSort: SortType =
       value === "인원 많은순"
         ? "MOST"
@@ -93,10 +119,11 @@ export default function GroupList() {
         ? "LEAST"
         : "RECENT";
     setSortType(nextSort);
+    fetchGroups(nextSort, 0, filters);
   };
 
   const handlePageChange = (pageNum: number) => {
-    fetchGroups(sortType, pageNum);
+    fetchGroups(sortType, pageNum, filters);
   };
 
   const handleCreateClick = () => {
@@ -109,7 +136,6 @@ export default function GroupList() {
 
   const handleCreateSuccess = (newGroup?: CommunityItem) => {
     if (!newGroup) return;
-
     const formattedGroup: GroupUI = {
       id: newGroup.communityId,
       title: newGroup.title,
@@ -127,95 +153,60 @@ export default function GroupList() {
           )}`
         : undefined,
     };
-
     setGroups((prev) => [formattedGroup, ...prev]);
   };
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-screen relative z-9999">
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* 검색 패널 */}
         <div className="mb-6">
           <SearchPanel
             title="모임 검색"
-            onSearch={setGroups}
-            onReset={() => fetchGroups(sortType, 0)}
+            mode="group"
+            onFilterChange={(newFilters) => {
+              setFilters(newFilters);
+              fetchGroups(sortType, 0, newFilters);
+            }}
+            onReset={() => {
+              const empty = { keyword: "", team: "", stadium: "", date: "" };
+              setFilters(empty);
+              fetchGroups(sortType, 0, empty);
+            }}
           />
         </div>
 
         {/* 헤더 */}
-        <div className="flex justify-between items-center mb-6">
-          <ListHeader
-            title="모임"
-            count={groups.length}
-            sortOptions={["최신순", "인원 많은순", "인원 적은순"]}
-            onSortChange={handleSortChange}
-            buttonText="+ 모임 등록"
-            onButtonClick={handleCreateClick}
-          />
-        </div>
+        <ListHeader
+          title="모임"
+          count={totalCount}
+          sortOptions={["최신순", "인원 많은순", "인원 적은순"]}
+          onSortChange={handleSortChange}
+          buttonText="+ 모임 등록"
+          onButtonClick={handleCreateClick}
+        />
 
         {/* 카드 리스트 */}
-        {loading ? (
-          <div className="text-center text-gray-500 py-20">
-            모임 목록을 불러오는 중입니다...
-          </div>
-        ) : groups.length > 0 ? (
-          <div className="grid gap-6 grid-cols-[repeat(auto-fill,_minmax(240px,_1fr))]">
-            {groups.map((group) => (
-              <GroupCard key={group.id} {...group} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20 text-gray-500">
-            등록된 모임이 없습니다.
-          </div>
-        )}
+        <div className="min-h-[300px]">
+          {groups.length > 0 ? (
+            <div className="grid gap-6 grid-cols-[repeat(auto-fill,_minmax(240px,_1fr))]">
+              {groups.map((group) => (
+                <GroupCard key={group.id} {...group} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center text-gray-500 py-20">
+              등록된 모임이 없습니다.
+            </div>
+          )}
+        </div>
 
         {/* 페이지네이션 */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center mt-12 gap-3 text-sm">
-            <button
-              onClick={() => handlePageChange(Math.max(0, page - 1))}
-              disabled={page === 0}
-              className={`flex items-center justify-center px-3 py-2 rounded-md transition-all duration-150 ${
-                page === 0
-                  ? "text-gray-300 bg-gray-50 cursor-not-allowed"
-                  : "text-gray-500 bg-white hover:bg-gray-100"
-              }`}
-            >
-              <AiOutlineLeft size={18} />
-            </button>
-
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => handlePageChange(i)}
-                className={`px-4 py-2 rounded-md font-medium transition-all duration-150 ${
-                  page === i
-                    ? "bg-gray-200 text-gray-800"
-                    : "text-gray-600 bg-white hover:bg-gray-100"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-
-            <button
-              onClick={() =>
-                handlePageChange(Math.min(totalPages - 1, page + 1))
-              }
-              disabled={page === totalPages - 1}
-              className={`flex items-center justify-center px-3 py-2 rounded-md transition-all duration-150 ${
-                page === totalPages - 1
-                  ? "text-gray-300 bg-gray-50 cursor-not-allowed"
-                  : "text-gray-500 bg-white hover:bg-gray-100"
-              }`}
-            >
-              <AiOutlineRight size={18} />
-            </button>
-          </div>
-        )}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       </div>
 
       {/* 등록 모달 */}

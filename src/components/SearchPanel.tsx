@@ -1,23 +1,28 @@
 import { Search } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
-import axiosInstance from "../lib/axiosInstance";
+import { useState, useEffect } from "react";
 import { STADIUMS } from "../constants/stadiums";
 import { FiChevronDown } from "react-icons/fi";
 import ReactDatePicker from "react-datepicker";
 import { ko } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
-import type { CommunityItem, GroupUI } from "../types/group";
 
 interface SearchPanelProps {
   title: string;
-  onSearch?: (results: GroupUI[]) => void;
+  mode?: "group" | "ticket";
+  onFilterChange?: (filters: {
+    keyword: string;
+    team: string;
+    stadium: string;
+    date: string;
+  }) => void;
   onReset?: () => void;
 }
 
 export default function SearchPanel({
   title,
-  onSearch,
+  mode = "group",
+  onFilterChange,
   onReset,
 }: SearchPanelProps) {
   const [keyword, setKeyword] = useState("");
@@ -26,87 +31,35 @@ export default function SearchPanel({
   const [date, setDate] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  const mapCommunities = (data: any): GroupUI[] => {
-    if (!data) return [];
-
-    const list = Array.isArray(data)
-      ? data
-      : Array.isArray(data.content)
-      ? data.content
-      : [];
-
-    return list.map((g: CommunityItem) => ({
-      id: g.communityId,
-      title: g.title,
-      content: g.description,
-      date: g.date,
-      stadiumName: g.stadium,
-      teams: `${g.home} vs ${g.away}`,
-      personnel: g.memberCount,
-      leader: g.nickname,
-      status: g.state === "ING" ? "모집중" : "모집마감",
-    }));
+  const handleSearch = () => {
+    onFilterChange?.({ keyword, team, stadium, date });
   };
 
-  const handleKeywordSearch = useCallback(async () => {
-    try {
-      if (!keyword.trim()) {
-        const res = await axiosInstance.get("/api/communities");
-
-        if (res.data.status === "success") {
-          const mapped = mapCommunities(res.data.data);
-          onSearch?.(mapped);
-        }
-        return;
-      }
-
-      const res = await axiosInstance.get("/api/communities/search", {
-        params: { title: keyword },
-      });
-      if (res.data.status === "success") {
-        const mapped = mapCommunities(res.data.data);
-        onSearch?.(mapped);
-      }
-    } catch (err) {
-      console.error("❌ 키워드 검색 실패:", err);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearch();
     }
-  }, [keyword, onSearch]);
+  };
 
-  const handleSearch = useCallback(async () => {
-    try {
-      const noFilter = !keyword && !team && !stadium && !date;
-      const endpoint = noFilter
-        ? "/api/communities"
-        : "/api/communities/search";
-
-      const params: Record<string, string> = {};
-      if (keyword.trim()) params.title = keyword.trim();
-      if (team) params.team = team;
-      if (stadium) params.stadium = stadium;
-      if (date) params.date = date;
-      const res = await axiosInstance.get(
-        endpoint,
-        noFilter ? undefined : { params }
-      );
-
-      if (res.data.status === "success") {
-        const mapped = mapCommunities(res.data.data);
-        onSearch?.(mapped);
-      } else {
-        console.warn("⚠️ 검색 응답 status가 success 아님:", res.data);
-      }
-    } catch (err) {
-      console.error("❌ 검색 실패:", err);
-    }
-  }, [keyword, team, stadium, date, onSearch]);
-
-  // 유저가 입력 시 자동 검색
   useEffect(() => {
-    const delay = setTimeout(() => {
-      handleKeywordSearch();
-    }, 400); // 0.4초 동안 입력 없으면 자동 검색
-    return () => clearTimeout(delay);
-  }, [handleKeywordSearch]);
+    const timer = setTimeout(() => {
+      if (keyword.trim()) {
+        onFilterChange?.({ keyword, team, stadium, date });
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [keyword, team, stadium, date]);
+
+  const handleReset = () => {
+    setKeyword("");
+    setTeam("");
+    setStadium("");
+    setDate("");
+    setSelectedDate(null);
+    onReset?.();
+    onFilterChange?.({ keyword: "", team: "", stadium: "", date: "" });
+  };
 
   return (
     <div className="bg-gray-50 rounded-lg p-6 border border-gray-100">
@@ -117,9 +70,14 @@ export default function SearchPanel({
         <Search size={18} className="text-gray-400 mr-2" />
         <input
           type="text"
-          placeholder="경기, 팀명, 경기장으로 검색"
+          placeholder={
+            mode === "group"
+              ? "모임명, 팀명, 경기장으로 검색"
+              : "티켓명, 경기, 구단명으로 검색"
+          }
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
+          onKeyDown={handleKeyDown}
           className="w-full outline-none text-sm text-gray-700 placeholder:text-gray-400"
         />
       </div>
@@ -154,9 +112,13 @@ export default function SearchPanel({
         </div>
 
         {/* 날짜 */}
-        <div className="flex flex-col flex-1">
-          <label className="text-sm font-medium text-gray-600 mb-1">날짜</label>
+
+        <div className="flex flex-col flex-1 z-9999">
+          <label className="text-sm font-medium text-gray-600 mb-1 ">
+            날짜
+          </label>
           <div className="relative">
+            {" "}
             <ReactDatePicker
               locale={ko}
               selected={selectedDate}
@@ -166,13 +128,13 @@ export default function SearchPanel({
               }}
               placeholderText="날짜를 선택하세요"
               dateFormat="yyyy-MM-dd"
-              className="w-full h-10 border border-gray-200 rounded-md px-3 pr-10 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6F00B6]"
+              className="w-full h-10 border border-gray-200 rounded-md px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6F00B6]"
             />
           </div>
         </div>
 
         {/* 경기장 */}
-        <div className="flex flex-col flex-1">
+        <div className="flex flex-col flex-1 ">
           <label className="text-sm font-medium text-gray-600 mb-1">
             경기장
           </label>
@@ -180,12 +142,12 @@ export default function SearchPanel({
             <select
               value={stadium}
               onChange={(e) => setStadium(e.target.value)}
-              className="w-full h-10 border border-gray-200 rounded-md px-3 pr-10 text-sm bg-white focus:outline-none appearance-none"
+              className="w-full h-10 border border-gray-200 z-9999 rounded-md px-3 pr-10 text-sm bg-white focus:outline-none appearance-none"
             >
               <option value="">전체</option>
-              {STADIUMS.map((stadiumName) => (
-                <option key={stadiumName} value={stadiumName}>
-                  {stadiumName}
+              {STADIUMS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
                 </option>
               ))}
             </select>
@@ -210,14 +172,7 @@ export default function SearchPanel({
               <span className="text-sm font-semibold">검색</span>
             </button>
             <button
-              onClick={() => {
-                setKeyword("");
-                setTeam("");
-                setStadium("");
-                setDate("");
-                setSelectedDate(null);
-                onReset?.();
-              }}
+              onClick={handleReset}
               className="flex-1 h-10 flex items-center justify-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors rounded-md"
             >
               <span className="text-sm font-semibold">전체</span>
