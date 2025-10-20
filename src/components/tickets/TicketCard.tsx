@@ -10,7 +10,10 @@ export default function TicketCard({
   title,
   price,
   gameDay,
+  home,
+  away,
   ticketCount,
+  adjacentSeat,
   stadium,
   nickname,
   rating,
@@ -34,7 +37,8 @@ export default function TicketCard({
   const handleClick = () => navigate(`/tickets/${tsId}`);
 
   // 상태 변환 ("ING" → "판매중")
-  const status = state === "ING" ? "판매중" : "판매완료";
+  const status = state === "ING" ? "판매중" : "판매 완료";
+  const isEnded = status === "판매 완료";
 
   return (
     <article
@@ -54,26 +58,34 @@ export default function TicketCard({
           }}
         />
 
-        {/* 상태 뱃지 */}
-        <span
-          className={`absolute top-2 left-2 text-white text-xs font-semibold px-2 py-0.5 rounded-md shadow ${
-            status === "판매중" ? "bg-[#6F00B6]" : "bg-gray-500"
-          }`}
-        >
-          {status}
-        </span>
+        {/* 판매완료 시 블랙 오버레이 + 중앙 문구 */}
+        {isEnded && (
+          <div className="absolute inset-0 bg-black/55 z-10 flex items-center justify-center">
+            <span className="text-white text-lg font-bold tracking-wide">
+              판매 완료
+            </span>
+          </div>
+        )}
 
-        {/* 구장명 */}
-        <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
-          {stadium}
-        </span>
+        {/* 상태 뱃지 (판매중일 때만 표시) */}
+        {!isEnded && (
+           <>
+              <span className="absolute top-2 left-2 text-white text-xs font-semibold px-2 py-0.5 rounded-md shadow bg-[#6F00B6] z-20">
+                  판매중
+              </span>
+              <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded z-20">
+                 {stadium}
+              </span>
+          </>
+        )}
+    
       </div>
 
       {/* 본문 */}
       <div className="flex flex-col gap-2 p-4">
         {/* 제목 */}
         <h3 className="text-[17px] font-bold text-gray-900 line-clamp-1">
-          {title}
+          {home} vs {away}
         </h3>
 
         {/* 경기일시 */}
@@ -82,13 +94,13 @@ export default function TicketCard({
           <span>{formatDate(gameDay)}</span>
         </div>
 
-        {/* 가격 + 매수 */}
+        {/* 가격 + 매수 + 연석 */}
         <div className="flex items-baseline gap-2 mt-2">
           <span className="text-[18px] font-extrabold text-[#111] leading-none">
             {formatPrice(price)}원
           </span>
           <span className="text-sm text-gray-500 leading-none translate-y-[1px]">
-            {ticketCount}매
+            {ticketCount}매   연석:{adjacentSeat}
           </span>
         </div>
 
