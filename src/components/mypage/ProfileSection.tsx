@@ -78,12 +78,12 @@ export default function ProfileSection() {
   // 회원정보 수정
   const handleSave = async () => {
     if (!user) return;
-    if (!currentPassword) {
+    if (!isSocialLogin && !currentPassword) {
       addToast("회원 정보를 수정하려면 현재 비밀번호를 입력해주세요.", "error");
       return;
     }
 
-    if (newPassword && !isPasswordValid) {
+    if (!isSocialLogin && newPassword && !isPasswordValid) {
       addToast(
         "비밀번호는 영문 대소문자, 숫자, 특수문자를 포함한 8~16자여야 합니다.",
         "error"
@@ -91,7 +91,7 @@ export default function ProfileSection() {
       return;
     }
 
-    if (newPassword && newPassword !== confirmPassword) {
+    if (!isSocialLogin && newPassword && newPassword !== confirmPassword) {
       addToast("새 비밀번호가 일치하지 않습니다.", "error");
       return;
     }
@@ -157,7 +157,7 @@ export default function ProfileSection() {
   };
   useEffect(() => {
     if (user?.nickname) setNickname(user.nickname);
-    if (user?.club) setClub(user.club);
+    if (user?.club) setClub(user.club.trim());
   }, [user?.nickname, user?.club]);
 
   // 회원탈퇴
@@ -347,10 +347,10 @@ export default function ProfileSection() {
           className="input-border h-11"
         >
           <option value="">선택 안 함</option>
-          {TEAMS.map((team) => (
-            <option key={team.value} value={team.value}>
-              {team.label}
-            </option>
+            {TEAMS.map((team) => (
+             <option key={team.value} value={team.value}>
+                 {team.label}
+              </option>
           ))}
         </select>
       </label>
