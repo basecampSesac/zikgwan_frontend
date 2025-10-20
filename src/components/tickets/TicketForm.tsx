@@ -7,6 +7,7 @@ import { TEAMS } from "../../constants/teams";
 import { STADIUMS } from "../../constants/stadiums";
 import { useToastStore } from "../../store/toastStore";
 import { useAuthStore } from "../../store/authStore";
+import { getDefaultStadiumImage } from "../../constants/stadiums";
 import axiosInstance from "../../lib/axiosInstance";
 
 interface TicketFormProps {
@@ -51,10 +52,19 @@ export default function TicketForm({
   const [gameDay, setGameDay] = useState<Date | null>(
     initialValues?.gameDay ? new Date(initialValues.gameDay) : null
   );
-  const [images, setImages] = useState<File[]>([]);
-  const [existingImage, setExistingImage] = useState<string | null>(
-    initialValues?.imageUrl || null
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(
+    () => {
+      if (!initialValues?.imageUrl) return null;
+      if (initialValues.imageUrl.includes("/stadiums/")) return null;
+      return initialValues.imageUrl.startsWith("http")
+        ? initialValues.imageUrl
+        : `http://localhost:8080/images/${initialValues.imageUrl.replace(
+            /^\/+/,
+            ""
+          )}`;
+    }
   );
+  const [image, setImage] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [inputKey, setInputKey] = useState<number>(Date.now());
@@ -74,9 +84,12 @@ export default function TicketForm({
     setForm({ ...form, adjacentSeat: !form.adjacentSeat });
   };
 
-  /** 파일 업로드 */
+  // 파일 선택
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setImages(Array.from(e.target.files));
+    if (e.target.files && e.target.files.length > 0) {
+      setImage(e.target.files[0]);
+      setExistingImageUrl(null);
+    }
   };
 
   /** 제출 */
@@ -115,7 +128,7 @@ export default function TicketForm({
       stadium: form.stadium,
       adjacentSeat: form.adjacentSeat ? "Y" : "N",
       buyerId: user.userId,
-      state: initialValues?.state || "ING", // ✅ 수정 시 기존 상태 유지
+      state: initialValues?.state || "ING", // 수정 시 기존 상태 유지
     };
 
     try {
@@ -125,9 +138,21 @@ export default function TicketForm({
         new Blob([JSON.stringify(payload)], { type: "application/json" })
       );
 
-      if (images.length > 0) {
-        images.forEach((file) => formData.append("image", file));
-      } else (existingImage && mode === "edit") 
+
+     if (image) {
+      formData.append("image", image);
+    } else {
+      try {
+        const defaultImagePath = getDefaultStadiumImage(form.stadium);
+        const response = await fetch(defaultImagePath);
+        const blob = await response.blob();
+        formData.append("image", blob, "default.jpg");
+      } catch {
+        formData.append("image", "null");
+      }
+    }
+
+    setIsSubmitting(true);
 
       let res;
       if (mode === "edit" && initialValues?.tsId) {
@@ -337,75 +362,75 @@ export default function TicketForm({
           />
         </label>
 
- {/* 이미지 업로드 (미리보기 + 삭제 가능) */}
-<label className="block">
-  <span className="block text-sm font-medium mb-1 text-gray-600">
-    이미지 업로드 (선택)
-  </span>
+        {/* 이미지 업로드 */}
+        <label className="block">
+          <span className="block text-sm font-medium mb-1 text-gray-600">
+            이미지 업로드 (선택)
+          </span>
 
-  <label
-    htmlFor="imageInput"
-    className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 hover:bg-gray-50 overflow-hidden relative cursor-pointer"
-  >
-    {images.length > 0 ? (
-      <div className="relative h-full aspect-[4/3]">
-        <img
-          src={URL.createObjectURL(images[0])}
-          alt="preview"
-          className="h-full w-auto object-cover rounded-md pointer-events-none"
-        />
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setImages([]); // 업로드된 새 이미지 제거
-            setInputKey(Date.now()); // input 초기화
-          }}
-          className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs z-10"
-        >
-          ×
-        </button>
-      </div>
-    ) : existingImage ? (
-      <div className="relative h-full aspect-[4/3]">
-        <img
-          src={existingImage}
-          alt="preview"
-          className="h-full w-auto object-cover rounded-md pointer-events-none"
-        />
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setExistingImage(null); // 기존 이미지 제거
-            setInputKey(Date.now());
-          }}
-          className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs z-10"
-        >
-          ×
-        </button>
-      </div>
-    ) : (
-      <div className="flex flex-col items-center justify-center text-gray-400 h-full">
-        <Upload className="w-6 h-6" />
-        <span className="text-xs text-gray-500">클릭하여 이미지 선택</span>
-      </div>
-    )}
-  </label>
+          <label
+            htmlFor="imageInput"
+            className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-28 hover:bg-gray-50 overflow-hidden relative cursor-pointer"
+          >
+            {image ? (
+              <div className="relative h-full aspect-[4/3]">
+                <img
+                  src={URL.createObjectURL(image)}
+                  alt="preview"
+                  className="h-full w-auto object-cover rounded-md pointer-events-none"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setImage(null);
+                    setInputKey(Date.now()); // input 재생성으로 자동 업로드 방지
+                  }}
+                  className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs z-10"
+                >
+                  ×
+                </button>
+              </div>
+            ) : existingImageUrl ? (
+              <div className="relative h-full aspect-[4/3]">
+                <img
+                  src={existingImageUrl}
+                  alt="preview"
+                  className="h-full w-auto object-cover rounded-md pointer-events-none"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setExistingImageUrl(null);
+                    setInputKey(Date.now());
+                  }}
+                  className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs z-10"
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-gray-400 h-full">
+                <Upload className="w-6 h-6" />
+                <span className="text-xs text-gray-500">
+                  클릭하여 이미지 선택
+                </span>
+              </div>
+            )}
+          </label>
 
-  <input
-    key={inputKey}
-    id="imageInput"
-    type="file"
-    accept="image/*"
-    onChange={(e) => {
-      if (e.target.files) setImages(Array.from(e.target.files));
-    }}
-    className="hidden"
-  />
-</label>
+          <input
+            key={inputKey}
+            id="imageInput"
+            type="file"
+            accept="image/*"
+            onChange={handleFile}
+            className="hidden"
+          />
+        </label>
         {/* 버튼 */}
         <button
           type="submit"
