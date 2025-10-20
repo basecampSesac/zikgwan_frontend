@@ -19,7 +19,6 @@ import { HiOutlineUsers } from "react-icons/hi";
 import { BiBaseball } from "react-icons/bi";
 import type { CommunityDetail, GroupUI, ApiResponse } from "../../types/group";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
-import { MOCK_MEMBERS } from "../../data/members";
 import { MANNER_GUIDE } from "../../data/guides";
 import { useChatWidgetStore } from "../../store/chatWidgetStore";
 import GroupForm from "../groups/GroupForm";
