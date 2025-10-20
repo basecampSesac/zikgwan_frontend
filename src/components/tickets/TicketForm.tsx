@@ -121,7 +121,9 @@ export default function TicketForm({
       title: form.title,
       description: form.description,
       price: Number(form.price),
-      gameDay: gameDay.toISOString().slice(0, 19),
+      gameDay: new Date(gameDay.getTime() - gameDay.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 19),
       ticketCount: Number(form.ticketCount),
       home: form.home,
       away: form.away,

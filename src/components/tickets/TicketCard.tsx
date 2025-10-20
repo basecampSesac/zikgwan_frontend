@@ -83,26 +83,39 @@ export default function TicketCard({
 
       {/* 본문 */}
       <div className="flex flex-col gap-2 p-4">
-        {/* 제목 */}
-        <h3 className="text-[17px] font-bold text-gray-900 line-clamp-1">
-          {home} vs {away}
-        </h3>
+      {/* 매치업 */}
+        <div className="flex items-center justify-between text-[17px] font-bold text-gray-900 line-clamp-1">
+            <span className="font-medium truncate">{home} vs {away}</span>
+        </div>
+        
+
+      {/* 제목 */}
+      <div className="flex items-center justify-between text-gray-500 text-sm">
+       <span className="truncate max-w-[150px]">{title}</span>
+      </div>
 
         {/* 경기일시 */}
         <div className="flex items-center gap-1 text-gray-500 text-sm">
           <Calendar size={15} className="text-gray-400" />
           <span>{formatDate(gameDay)}</span>
         </div>
-
-        {/* 가격 + 매수 + 연석 */}
-        <div className="flex items-baseline gap-2 mt-2">
-          <span className="text-[18px] font-extrabold text-[#111] leading-none">
+        
+      {/* 가격 + 매수 + 연석 */}
+      <div className="flex items-baseline justify-between mt-2">
+      {/* 왼쪽 묶음: 가격 + 매수 */}
+      <div className="flex items-baseline gap-2 min-w-0">
+          <span className="text-[18px] font-extrabold text-[#111] leading-none truncate max-w-[150px]">
             {formatPrice(price)}원
           </span>
           <span className="text-sm text-gray-500 leading-none translate-y-[1px]">
-            {ticketCount}매   연석:{adjacentSeat}
+            {ticketCount}매
           </span>
-        </div>
+      </div>
+
+      <span className="text-sm font-bold text-gray-700 flex-shrink-0 ml-2">
+        연석: {adjacentSeat === "Y" ? "Y" : "N"}
+      </span>
+      </div>
 
         {/* 판매자 + 별점 */}
         <div className="flex items-center justify-between mt-1 text-gray-500">
