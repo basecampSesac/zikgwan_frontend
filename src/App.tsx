@@ -19,6 +19,7 @@ import NotificationSSE from "./components/notification/NotificationSse";
 import GlobalChatWidget from "./components/chat/GlobalChatWidget";
 import ChatPopupManager from "./components/chat/ChatPopupManger";
 import { getImageUrl } from "./api/imageApi";
+import TicketChatPage from "./page/TicketChatPage";
 
 const router = createBrowserRouter([
   {
@@ -36,6 +37,7 @@ const router = createBrowserRouter([
       { path: "/tickets/:id", Component: TicketDetail },
       { path: "/groups/:id", Component: GroupDetail },
       { path: "/chat/:id", Component: GroupChatPage },
+      { path: "/ticket-chat/:id", Component: TicketChatPage },  // 티켓 채팅 페이지 추가
     ],
   },
 ]);
