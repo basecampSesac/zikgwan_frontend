@@ -22,6 +22,7 @@ import { PiSeat } from "react-icons/pi";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
 import type { TicketUI } from "../../types/ticket";
 import { useChatWidgetStore } from "../../store/chatWidgetStore";
+import { formatDate } from "../../utils/format";
 
 export default function TicketDetailView() {
   const { id } = useParams<{ id: string }>();
@@ -36,14 +37,6 @@ export default function TicketDetailView() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // KST 변환
-  const toKST = (dateStr: string) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    date.setHours(date.getHours() + 9);
-    return date.toISOString();
-  };
-
   // 티켓 상세 조회
   const fetchTicket = useCallback(async () => {
     try {
@@ -55,7 +48,7 @@ export default function TicketDetailView() {
           title: t.title ?? "제목 없음",
           description: t.description ?? "",
           price: t.price ?? 0,
-          gameDay: toKST(t.gameDay),
+          gameDay: t.gameDay,
           ticketCount: t.ticketCount ?? 1,
           home: t.home ?? "홈팀 정보 없음",
           away: t.away ?? "원정팀 정보 없음",
@@ -241,12 +234,8 @@ export default function TicketDetailView() {
                 <div className="text-gray-700 mb-4 divide-y divide-gray-100">
                   {[
                     {
-                      icon: <FiCalendar size={22} className="text-gray-500" />,
-                      text: ticket.gameDay
-                        ? new Date(ticket.gameDay).toLocaleString("ko-KR", {
-                            timeZone: "Asia/Seoul",
-                          })
-                        : "날짜 정보 없음",
+                       icon: <FiCalendar size={22} className="text-gray-500" />,
+                      text: formatDate(ticket.gameDay)
                     },
                     {
                       icon: (
