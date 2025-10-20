@@ -100,7 +100,10 @@ export default function GroupForm({
     const payload = {
       title: form.title,
       description: form.content,
-      date: meetingDate.toISOString().slice(0, 19).replace("T", " "),
+      date: new Date(meetingDate.getTime() - meetingDate.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " "),
       stadium: form.stadiumName,
       home: form.homeTeam,
       away: form.awayTeam,
