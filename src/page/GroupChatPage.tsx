@@ -9,29 +9,15 @@ export default function GroupChatPage() {
   const nickname = localStorage.getItem("nickname") || "익명";
 
   useEffect(() => {
-    
-    // 방 생성 로직때문에 꼬임
-
-    // const createRoom = async () => {
-    //   try {
-    //     const res = await axiosInstance.post(
-    //       `/api/chatroom/community/${id}?roomName=모임채팅방`
-    //     );
-    //     if (res.data.status === "success") {
-    //       setRoomId(res.data.data.roomId);
-    //     }
-    //   } catch (err) {
-    //     console.error("채팅방 생성 실패:", err);
-    //   }
-    // };
-    // createRoom();
 
     // 채팅방 조회
     const getChatRoom = async () => {
       try {
-        const res = await axiosInstance.get(`/api/communities/${id}`);
+        const res = await axiosInstance.get(`/api/chatroom/community/${id}`);
 
         if (res.data.status === "success") {
+          console.log(`roomId 확인 ================== ${res.data.roomId}`);
+          
           setRoomId(res.data.roomId);
         }
       } catch (err) {
