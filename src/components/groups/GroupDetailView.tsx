@@ -35,7 +35,9 @@ export default function GroupDetailView() {
   const [roomId, setRoomId] = useState<number | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [members, setMembers] = useState<Array<{ nickname: string; club: string }>>([]);
+  const [members, setMembers] = useState<
+    Array<{ nickname: string; club: string }>
+  >([]);
 
   // 상세 조회
   const fetchGroupDetail = useCallback(async () => {
@@ -90,9 +92,9 @@ export default function GroupDetailView() {
     }
   }, [id]);
 
-   // 멤버 조회
+  // 멤버 조회
   useEffect(() => {
-  const fetchMembers = async () => {
+    const fetchMembers = async () => {
       try {
         const res = await axiosInstance.get(`/api/chatroom/user/${roomId}`);
         if (res.data.status === "success" && Array.isArray(res.data.data)) {
@@ -112,8 +114,12 @@ export default function GroupDetailView() {
   // 초기 로드
   useEffect(() => {
     fetchGroupDetail();
+
+    // 로그인 상태가 아닐 경우 요청 안 함
+    if (!user) return;
+
     fetchChatRoom();
-  }, [fetchGroupDetail, fetchChatRoom]);
+  }, [fetchGroupDetail, fetchChatRoom, user]);
 
   // 수정 완료 후 반영
   const handleEditClose = async () => {
@@ -323,12 +329,14 @@ export default function GroupDetailView() {
                 </ul>
               </div>
 
-               <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                 <h4 className="font-semibold text-gray-800 mb-3 text-lg">
                   👥 함께하는 멤버
                 </h4>
                 {members.length === 0 ? (
-                  <p className="text-sm text-gray-500">아직 참여한 멤버가 없습니다.</p>
+                  <p className="text-sm text-gray-500">
+                    아직 참여한 멤버가 없습니다.
+                  </p>
                 ) : (
                   <ul className="space-y-2">
                     {members.map((m, idx) => (
@@ -336,7 +344,9 @@ export default function GroupDetailView() {
                         key={idx}
                         className="flex items-center justify-between bg-white border border-gray-100 rounded-lg px-4 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-50 transition"
                       >
-                        <span className="font-medium text-gray-800">{m.nickname}</span>
+                        <span className="font-medium text-gray-800">
+                          {m.nickname}
+                        </span>
                         <span className="text-xs text-gray-500">{m.club}</span>
                       </li>
                     ))}

@@ -16,8 +16,6 @@ import {
   FiCalendar,
   FiMapPin,
   FiCreditCard,
-  FiMessageSquare,
-  FiRepeat,
 } from "react-icons/fi";
 import { HiOutlineUsers } from "react-icons/hi";
 import { PiSeat } from "react-icons/pi";
@@ -38,6 +36,7 @@ export default function TicketDetailView() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // KST 변환
   const toKST = (dateStr: string) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -45,6 +44,7 @@ export default function TicketDetailView() {
     return date.toISOString();
   };
 
+  // 티켓 상세 조회
   const fetchTicket = useCallback(async () => {
     try {
       const res = await axiosInstance.get(`/api/tickets/${id}`);
@@ -81,32 +81,46 @@ export default function TicketDetailView() {
     }
   }, [id, addToast]);
 
-  const fetchChatRoom = useCallback(async () => {
-    try {
-      const res = await axiosInstance.get(`/api/chatroom/ticket/${id}`);
-      if (res.data.status === "success" && res.data.data) {
-        setRoomId(res.data.data.roomId);
-        console.log("채팅방 정보 불러오기 성공:", res.data.data);
-      } else {
-        console.warn("채팅방 정보를 불러오지 못했습니다.");
+  // 현재 로그인 사용자가 참여 중인 채팅방 조회 (단, 판매자는 제외)
+  const fetchChatRoom = useCallback(
+    async (tsId: number, sellerNickname?: string) => {
+      // 판매자라면 실행하지 않음
+      if (user?.nickname === sellerNickname) {
+        console.log("판매자는 채팅방 조회를 생략");
+        return;
       }
-    } catch (err) {
-      console.error("채팅방 상세 조회 실패:", err);
-    }
-  }, [id]);
 
+      try {
+        const res = await axiosInstance.get(`/api/chatroom/ticket/${tsId}`);
+        if (res.data?.status === "success" && res.data.data) {
+          setRoomId(res.data.data.roomId);
+          console.log("채팅방 정보 불러오기 성공:", res.data.data);
+        }
+      } catch (err) {
+        console.log("채팅방이 아직 없음:", err);
+      }
+    },
+    [user?.nickname]
+  );
+
+  // 티켓 상세 → 로그인 후 채팅방 조회
   useEffect(() => {
     fetchTicket();
-    fetchChatRoom();
-  }, [fetchTicket, fetchChatRoom]);
+  }, [fetchTicket]);
 
+  useEffect(() => {
+    if (!user?.userId || !ticket?.tsId) return;
+    fetchChatRoom(ticket.tsId, ticket.nickname);
+  }, [user?.userId, ticket?.tsId, ticket?.nickname, fetchChatRoom]);
+
+  // 티켓 삭제
   const handleDelete = async () => {
     try {
       const res = await axiosInstance.delete(`/api/tickets/${id}`);
       if (res.data?.status === "success") {
-        addToast("티켓이 삭제되었습니다 ✅", "success");
+        addToast("티켓이 삭제되었습니다", "success");
         navigate("/tickets");
-      } else addToast(res.data.message || "삭제 실패 ❌", "error");
+      } else addToast(res.data.message || "삭제 실패", "error");
     } catch (err) {
       console.error("티켓 삭제 오류:", err);
       addToast("삭제 중 오류가 발생했습니다.", "error");
@@ -115,6 +129,7 @@ export default function TicketDetailView() {
     }
   };
 
+  // 상태 변경
   const handleToggleState = async () => {
     if (!ticket) return;
     try {
@@ -122,17 +137,11 @@ export default function TicketDetailView() {
       const res = await axiosInstance.put(`/api/tickets/state/${ticket.tsId}`, {
         state: newState,
       });
-
       if (res.data?.status === "success") {
-        addToast(
-          newState === "END"
-            ? "거래 상태가 변경되었습니다 ✅"
-            : "거래 상태가 변경되었습니다 ✅",
-          "success"
-        );
+        addToast("거래 상태가 변경되었습니다", "success");
         setTicket((prev) => (prev ? { ...prev, state: newState } : prev));
       } else {
-        addToast(res.data?.message || "상태 변경 실패 ❌", "error");
+        addToast(res.data?.message || "상태 변경 실패", "error");
       }
     } catch (err) {
       console.error("상태 변경 오류:", err);
@@ -140,16 +149,41 @@ export default function TicketDetailView() {
     }
   };
 
-  const handleJoinTicket = () => {
+  // 판매자와 채팅 시작 (최초 생성 → 이후 입장)
+  const handleJoinTicket = async () => {
     if (!user) {
-      addToast("로그인 후 모임에 참여할 수 있어요.", "error");
+      addToast("로그인 후 이용해주세요.", "error");
       return;
     }
-    if (!roomId) {
-      addToast("채팅방 정보를 불러오지 못했습니다.", "error");
-      return;
+    if (!ticket) return;
+
+    try {
+      // 이미 채팅방이 있으면 바로 입장
+      if (roomId) {
+        openPopup(roomId, ticket.title, user.nickname);
+        return;
+      }
+
+      // 없으면 새 채팅방 생성
+      const res = await axiosInstance.post(
+        `/api/chatroom/ticket/${ticket.tsId}?roomName=${encodeURIComponent(
+          ticket.title
+        )}`
+      );
+
+      if (res.data?.status !== "success" || !res.data.data) {
+        addToast("채팅방 생성에 실패했습니다.", "error");
+        return;
+      }
+
+      const newRoomId = res.data.data.roomId;
+      setRoomId(newRoomId);
+      addToast("채팅방이 생성되었습니다.", "success");
+      openPopup(newRoomId, ticket.title, user.nickname);
+    } catch (err) {
+      console.error("채팅방 생성 실패:", err);
+      addToast("서버 오류가 발생했습니다.", "error");
     }
-    openPopup(roomId, ticket!.title);
   };
 
   if (isLoading)
@@ -177,28 +211,24 @@ export default function TicketDetailView() {
           <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-10">
             {/* 이미지 섹션 */}
             <div className="relative w-full h-[450px] bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center border border-gray-100">
-                {!isEnded && (
-                  <span className="absolute top-3 left-3 px-3 py-1.5 text-sm font-semibold rounded-md text-white bg-[#6F00B6] z-20">
-                    판매중
+              {!isEnded && (
+                <span className="absolute top-3 left-3 px-3 py-1.5 text-sm font-semibold rounded-md text-white bg-[#6F00B6] z-20">
+                  판매중
+                </span>
+              )}
+              <img
+                src={ticket.imageUrl || getDefaultStadiumImage(ticket.stadium)}
+                alt="거래 이미지"
+                className="w-full h-full object-cover"
+              />
+              {isEnded && (
+                <div className="absolute inset-0 bg-black/55 z-10 flex items-center justify-center">
+                  <span className="text-white text-xl font-semibold tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
+                    판매 완료
                   </span>
-                )}
-                <img
-                  src={
-                    ticket.imageUrl
-                      ? ticket.imageUrl
-                      : getDefaultStadiumImage(ticket.stadium)
-                  }
-                  alt="거래 이미지"
-                  className="w-full h-full object-cover"
-                />
-                {isEnded && (
-                  <div className="absolute inset-0 bg-black/55 z-10 flex items-center justify-center">
-                    <span className="text-white text-xl font-semibold tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
-                      판매 완료
-                    </span>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
+            </div>
 
             {/* 정보 섹션 */}
             <div className="flex flex-col justify-between">
@@ -207,6 +237,7 @@ export default function TicketDetailView() {
                   {ticket.title}
                 </h2>
 
+                {/* 티켓 정보 */}
                 <div className="text-gray-700 mb-4 divide-y divide-gray-100">
                   {[
                     {
@@ -262,42 +293,49 @@ export default function TicketDetailView() {
                   ))}
                 </div>
 
+                {/* 채팅 버튼 */}
                 <div className="mb-8 mt-4">
                   <button
                     onClick={
-                      ticket.state === "ING" ? handleJoinTicket : undefined
+                      !isSeller && ticket.state === "ING"
+                        ? handleJoinTicket
+                        : undefined
                     }
-                    disabled={ticket.state !== "ING"}
+                    disabled={isSeller || ticket.state !== "ING"}
                     className={`w-full px-6 py-3 rounded-lg font-semibold text-lg transition flex items-center justify-center gap-2 ${
-                      ticket.state === "ING"
-                        ? "bg-gradient-to-r from-[#8A2BE2] to-[#6F00B6] text-white hover:opacity-90"
-                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      isSeller || ticket.state !== "ING"
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-gradient-to-r from-[#8A2BE2] to-[#6F00B6] text-white hover:opacity-90"
                     }`}
                   >
-                    {isEnded ? "판매가 완료된 상태입니다." : "판매자와 채팅 시작하기"}
+                    {isSeller
+                      ? "내가 등록한 티켓입니다."
+                      : isEnded
+                      ? "판매가 완료된 상태입니다."
+                      : roomId
+                      ? "채팅방 열기"
+                      : "판매자와 채팅 시작하기"}
                   </button>
                 </div>
 
+                {/* 관리 버튼 */}
                 <div className="flex items-center justify-end gap-3 mt-6">
                   {isSeller && (
                     <>
-                     <button
+                      <button
                         onClick={handleToggleState}
                         className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition"
                       >
                         {ticket.state === "ING" ? (
                           <>
-                            <FiCheckCircle size={15} />
-                            거래 완료로 변경
+                            <FiCheckCircle size={15} /> 거래 완료로 변경
                           </>
                         ) : (
                           <>
-                            <FiRefreshCcw size={15} />
-                            거래 재개하기
+                            <FiRefreshCcw size={15} /> 거래 재개하기
                           </>
                         )}
                       </button>
-
                       <button
                         onClick={() => setIsEditOpen(true)}
                         className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition"
@@ -310,7 +348,7 @@ export default function TicketDetailView() {
                       >
                         <FiTrash2 size={16} /> 삭제
                       </button>
-                       <ShareButton />
+                      <ShareButton />
                     </>
                   )}
                 </div>
@@ -318,7 +356,7 @@ export default function TicketDetailView() {
             </div>
           </div>
 
-          {/* ===== 상세 설명 + 가이드 + 판매자 ===== */}
+          {/* ===== 상세 설명 + 가이드 ===== */}
           <div className="mt-8 pt-8 border-t border-gray-100 grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-8 items-stretch">
             <div className="bg-gray-50 rounded-xl p-6 min-h-[370px] flex flex-col overflow-y-auto border border-gray-100">
               <h3 className="font-semibold text-gray-800 mb-2 text-lg">
@@ -361,9 +399,10 @@ export default function TicketDetailView() {
               </div>
             </div>
           </div>
-        </div> 
-      </div> 
+        </div>
+      </div>
 
+      {/* 삭제 모달 */}
       <ConfirmModal
         isOpen={isDeleteOpen}
         title="티켓 삭제"
@@ -376,14 +415,9 @@ export default function TicketDetailView() {
         onConfirm={handleDelete}
       />
 
+      {/* 수정 모달 */}
       {isEditOpen && (
-        <Modal
-          isOpen={isEditOpen}
-          onClose={() => {
-            setIsEditOpen(false);
-            fetchTicket();
-          }}
-        >
+        <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)}>
           <TicketForm
             mode="edit"
             initialValues={ticket}

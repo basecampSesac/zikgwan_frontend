@@ -169,16 +169,6 @@ export default function TicketForm({
         res = await axiosInstance.post(`/api/tickets`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-
-        if (res.data.status === "success" && res.data.data) {
-          const tsId = res.data.data.tsId;
-          // 채팅방 생성
-          await axiosInstance.post(
-            `/api/chatroom/ticket/${tsId}?roomName=${encodeURIComponent(
-              form.title
-            )}`
-          );
-        }
       }
 
       if (res.data.status === "success") {
