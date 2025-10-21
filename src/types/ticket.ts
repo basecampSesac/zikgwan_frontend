@@ -35,4 +35,5 @@ export type CompletedTicket = {
   buyerId: number;
   updatedAt: string | null;
   rating: number | null;
+  sellerNickname: string;
 };

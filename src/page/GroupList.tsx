@@ -32,7 +32,7 @@ export default function GroupList() {
   const { addToast } = useToastStore();
   const { updated, resetUpdate } = useGroupUpdateStore();
 
-  // ✅ 모임 목록 + 이미지 불러오기
+  // 모임 목록 + 이미지 불러오기
   const fetchGroups = useCallback(
     async (
       sort: SortType = "RECENT",
@@ -54,7 +54,6 @@ export default function GroupList() {
               team: filter.team || undefined,
               stadium: filter.stadium || undefined,
               date: filter.date ? filter.date.split("T")[0] : undefined,
-              // ✅ 검색 시에도 페이지 정보 같이 보냄
               page: pageNum,
               size: 12,
               sortType: sort,
@@ -64,7 +63,7 @@ export default function GroupList() {
         const res = await axiosInstance.get(endpoint, { params });
 
         if (res.data.status === "success" && res.data.data) {
-          // ✅ 페이지형 or 배열형 응답 구분
+          // 페이지형 or 배열형 응답 구분
           let content = [];
           let totalPagesValue = 1;
           let totalElementsValue = 0;
