@@ -1,19 +1,17 @@
 import { useEffect, useState, useMemo, useRef } from "react";
-import { FaStar, FaUser } from "react-icons/fa";
+import { FaStar, FaUser, FaChevronDown } from "react-icons/fa";
 import ReviewModal from "../../components/ReviewModal";
 import type { CompletedTicket } from "../../types/ticket";
 import axiosInstance from "../../lib/axiosInstance";
 import { useToastStore } from "../../store/toastStore";
+import { useAuthStore } from "../../store/authStore";
 
 export default function TicketSection() {
   const { addToast } = useToastStore();
-  const { userId: currentUserId = 1 } = JSON.parse(
-    localStorage.getItem("user") || "{}"
-  );
+  const { user } = useAuthStore();
+  const currentUserId = Number(user?.userId || 0);
 
   const [tickets, setTickets] = useState<CompletedTicket[]>([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<CompletedTicket | null>(
     null
   );
@@ -22,20 +20,12 @@ export default function TicketSection() {
   const observerRef = useRef<HTMLDivElement | null>(null);
 
   // 거래 완료 티켓 조회
-  const fetchTickets = async (pageNum: number) => {
+  const fetchTickets = async () => {
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get(
-        `/api/tickets/completed?page=${pageNum}`
-      );
-
+      const { data } = await axiosInstance.get(`/api/tickets/completed`);
       if (data.status === "success" && Array.isArray(data.data)) {
-        // 페이지네이션 지원용 예시
-        if (data.data.length === 0) {
-          setHasMore(false);
-        } else {
-          setTickets((prev) => [...prev, ...data.data]);
-        }
+        setTickets(data.data);
       } else {
         setError("데이터를 불러오지 못했습니다.");
       }
@@ -50,32 +40,10 @@ export default function TicketSection() {
 
   // 첫 페이지 로드
   useEffect(() => {
-    fetchTickets(1);
-  }, [addToast]);
+    fetchTickets();
+  }, []);
 
   // 무한 스크롤
-  useEffect(() => {
-    if (!observerRef.current || !hasMore) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !loading) {
-          setPage((prev) => prev + 1);
-        }
-      },
-      { threshold: 1.0 }
-    );
-
-    observer.observe(observerRef.current);
-    return () => observer.disconnect();
-  }, [hasMore, loading]);
-
-  // 페이지 변경 시 다음 데이터 로드
-  useEffect(() => {
-    if (page > 1) fetchTickets(page);
-  }, [page]);
-
-  // 날짜별 그룹 정리
   const groupedTickets = useMemo(() => {
     const groups = tickets.reduce((acc, t) => {
       const dateKey = t.updatedAt
@@ -122,9 +90,24 @@ export default function TicketSection() {
 
               <ul className="space-y-4">
                 {list.map((ticket) => {
-                  const isBuyer = Number(ticket.buyerId) === currentUserId;
-                  const isSeller = Number(ticket.sellerId) === currentUserId;
+                  const isBuyer =
+                    Number(ticket.buyerId) === Number(currentUserId);
+                  const isSeller =
+                    Number(ticket.sellerId) === Number(currentUserId);
                   const isRated = ticket.rating !== null;
+                  const hasBuyer =
+                    ticket.buyerId !== null && ticket.buyerId !== undefined;
+
+                  console.log("🎟️ 티켓 정보", {
+                    tsId: ticket.tsId,
+                    title: ticket.title,
+                    buyerId: ticket.buyerId,
+                    sellerId: ticket.sellerId,
+                    rating: ticket.rating,
+                    currentUserId,
+                    isBuyer,
+                    isSeller,
+                  });
 
                   return (
                     <li
@@ -140,7 +123,9 @@ export default function TicketSection() {
                         </p>
                         <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
                           <FaUser size={12} />
-                          <span>판매자 {ticket.sellerId}</span>
+                          <span>
+                            판매자 {ticket.sellerNickname || "알 수 없음"}
+                          </span>
                         </div>
                       </div>
 
@@ -149,19 +134,20 @@ export default function TicketSection() {
                           {ticket.price.toLocaleString()}원
                         </span>
 
+                        {/* 평가 상태별 UI */}
                         {isRated ? (
                           <div className="flex items-center gap-1 text-yellow-500 text-sm font-bold text-[20px] mb-4">
                             <FaStar size={13} className="text-yellow-400" />
                             <span>{ticket.rating?.toFixed(1)}</span>
                           </div>
-                        ) : isBuyer ? (
+                        ) : isBuyer && hasBuyer ? (
                           <button
                             onClick={() => setSelectedTicket(ticket)}
                             className="px-3 py-1 text-[17px] font-semibold text-white bg-[#6F00B6] rounded-md hover:bg-[#57008f] transition mb-4"
                           >
                             거래 평가하기
                           </button>
-                        ) : isSeller ? (
+                        ) : isSeller && hasBuyer ? (
                           <span className="text-xs font-semibold text-gray-400 text-[17px] mb-5">
                             구매자 평가 대기중
                           </span>
@@ -174,21 +160,24 @@ export default function TicketSection() {
             </section>
           ))}
 
-          {hasMore && (
-            <div
-              ref={observerRef}
-              className="flex justify-center items-center py-6 text-gray-400"
-            >
-              {loading ? "불러오는 중..." : "스크롤 시 다음 페이지 불러오기"}
-            </div>
-          )}
+          <div
+            ref={observerRef}
+            className="flex justify-center items-center py-6 text-gray-400"
+          >
+            {!loading && (
+              <FaChevronDown
+                className="text-gray-400 animate-bounce"
+                size={22}
+              />
+            )}
+          </div>
         </div>
       )}
 
       <ReviewModal
         isOpen={!!selectedTicket}
         onClose={() => setSelectedTicket(null)}
-        sellerName={`판매자 ${selectedTicket?.sellerId ?? ""}`}
+        sellerName={`판매자 ${selectedTicket?.sellerNickname ?? ""}`}
         tsId={selectedTicket?.tsId ?? 0}
         sellerRating={selectedTicket?.rating || 0}
         onSubmit={handleReviewSubmit}
