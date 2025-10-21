@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../lib/axiosInstance";
 import { TEAMS } from "../constants/teams";
 import { useToastStore } from "../store/toastStore";
+import axios, { AxiosError } from "axios";
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -34,8 +35,13 @@ export default function SignupPage() {
         verifiedType: "S",
       });
       if (res.data.status !== "success") {
-        setEmailMessage(res.data.message || "이미 사용 중인 이메일입니다.");
-        setEmailAvailable(false);
+        if(res.data.message === "EMAILEXIST") {
+          setEmailMessage("이미 사용 중인 이메일입니다.");
+        }
+        else{
+          setEmailMessage(res.data.message);
+        }
+         setEmailAvailable(false);
         return;
       }
       setEmailMessage("가입이 가능한 이메일입니다.");
@@ -125,8 +131,13 @@ export default function SignupPage() {
         addToast(res.data.message || "회원가입에 실패했습니다.", "error");
       }
     } catch (e) {
+      if (axios.isAxiosError(e)) {
+        const message = e.response?.data?.message || "회원가입 중 오류가 발생했습니다.";
+        addToast(message, "error");
+      } else {
+        addToast("알 수 없는 오류가 발생했습니다.", "error");
+      }
       console.error(e);
-      addToast("회원가입 중 오류가 발생했습니다.", "error");
     }
   };
   // 비밀번호 정책
