@@ -47,7 +47,7 @@ export default function TicketList() {
 
   const { addToast } = useToastStore();
 
-  // ✅ 티켓 목록 조회
+  // 티켓 목록 조회
   const fetchTickets = useCallback(
     async (sort: SortType = "RECENT", pageNum = 0, filter?: typeof filters) => {
       setLoading(true);
@@ -80,7 +80,6 @@ export default function TicketList() {
         const res = await axiosInstance.get(endpoint, { params });
 
         if (res.data.status === "success" && res.data.data) {
-          // ✅ 페이지 객체 vs 배열 응답 구분 처리
           let content: TicketResponse[] = [];
           let totalPagesValue = 1;
           let totalElementsValue = 0;
