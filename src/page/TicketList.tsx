@@ -47,7 +47,7 @@ export default function TicketList() {
 
   const { addToast } = useToastStore();
 
-  // 티켓 목록 조회
+  // ✅ 티켓 목록 조회
   const fetchTickets = useCallback(
     async (sort: SortType = "RECENT", pageNum = 0, filter?: typeof filters) => {
       setLoading(true);
@@ -61,61 +61,66 @@ export default function TicketList() {
 
         const endpoint = hasFilter ? "/api/tickets/search" : "/api/tickets/all";
 
-        const res = await axiosInstance.get(endpoint, {
-          params: hasFilter
-            ? {
-                title: activeFilter.keyword || undefined,
-                team: activeFilter.team || undefined,
-                stadium: activeFilter.stadium || undefined,
-                date: activeFilter.date || undefined,
-              }
-            : {
-                page: pageNum,
-                size: 12,
-                sortType: sort,
-              },
-        });
+        const params = hasFilter
+          ? {
+              title: activeFilter.keyword || undefined,
+              team: activeFilter.team || undefined,
+              stadium: activeFilter.stadium || undefined,
+              gameDay: activeFilter.date || undefined,
+              page: pageNum,
+              size: 12,
+              sortType: sort,
+            }
+          : {
+              page: pageNum,
+              size: 12,
+              sortType: sort,
+            };
+
+        const res = await axiosInstance.get(endpoint, { params });
 
         if (res.data.status === "success" && res.data.data) {
-          const resultData = Array.isArray(res.data.data)
-            ? res.data.data
-            : res.data.data.content;
+          // ✅ 페이지 객체 vs 배열 응답 구분 처리
+          let content: TicketResponse[] = [];
+          let totalPagesValue = 1;
+          let totalElementsValue = 0;
 
-          const mapped: TicketUI[] = (resultData as TicketResponse[]).map(
-            (t) => ({
-              tsId: t.tsId,
-              title: t.title,
-              description: t.description,
-              price: t.price,
-              gameDay: t.gameDay,
-              ticketCount: t.ticketCount,
-              home: t.home,
-              away: t.away,
-              stadium: t.stadium,
-              adjacentSeat: t.adjacentSeat,
-              nickname: t.nickname,
-              rating: t.rating ?? null,
-              state: t.state,
-              imageUrl: t.imageUrl
-                ? `http://localhost:8080/images/${t.imageUrl.replace(
-                    /^\/+/,
-                    ""
-                  )}`
-                : "",
-              createdAt: t.createdAt,
-              updatedAt: t.updatedAt,
-            })
-          );
+          if (res.data.data.content) {
+            // 페이지 객체 응답
+            content = res.data.data.content;
+            totalPagesValue = res.data.data.totalPages;
+            totalElementsValue = res.data.data.totalElements;
+          } else if (Array.isArray(res.data.data)) {
+            // 배열 응답 (검색 API)
+            content = res.data.data.slice(pageNum * 12, pageNum * 12 + 12);
+            totalPagesValue = Math.ceil(res.data.data.length / 12);
+            totalElementsValue = res.data.data.length;
+          }
+
+          const mapped: TicketUI[] = content.map((t) => ({
+            tsId: t.tsId,
+            title: t.title,
+            description: t.description,
+            price: t.price,
+            gameDay: t.gameDay,
+            ticketCount: t.ticketCount,
+            home: t.home,
+            away: t.away,
+            stadium: t.stadium,
+            adjacentSeat: t.adjacentSeat,
+            nickname: t.nickname,
+            rating: t.rating ?? null,
+            state: t.state,
+            imageUrl: t.imageUrl
+              ? `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
+              : "",
+            createdAt: t.createdAt,
+            updatedAt: t.updatedAt,
+          }));
 
           setTickets(mapped);
-          setTotalPages(
-            Array.isArray(res.data.data) ? 1 : res.data.data.totalPages
-          );
-          setTotalCount(
-            Array.isArray(res.data.data)
-              ? res.data.data.length
-              : res.data.data.totalElements
-          );
+          setTotalPages(totalPagesValue);
+          setTotalCount(totalElementsValue);
           setPage(pageNum);
         }
       } catch (err) {
@@ -128,7 +133,6 @@ export default function TicketList() {
     [filters, addToast]
   );
 
-  // 정렬 변경
   const handleSortChange = (value: string) => {
     const nextSort: SortType =
       value === "낮은 가격순"
@@ -140,12 +144,10 @@ export default function TicketList() {
     fetchTickets(nextSort, 0, filters);
   };
 
-  // 페이지 이동
   const handlePageChange = (pageNum: number) => {
     fetchTickets(sortType, pageNum, filters);
   };
 
-  // 초기 로드
   useEffect(() => {
     fetchTickets(sortType, 0);
   }, []);
