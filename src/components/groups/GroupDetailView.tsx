@@ -180,7 +180,8 @@ export default function GroupDetailView() {
     );
   }
 
-  const isEnded = group.status === "모집마감";
+  const isEnded =
+    group.status === "모집마감" || members.length >= (group.personnel ?? 0);
   const isLeader = user?.nickname === group.leader;
 
   return (
