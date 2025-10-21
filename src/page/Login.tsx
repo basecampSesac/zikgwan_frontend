@@ -116,10 +116,17 @@ export default function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     const nickname = params.get("nickname");
     const email = params.get("email");
+    const error = params.get("error"); // 추가
+
+    if (error) {
+      addToast(error, "error"); // 로그인 실패 메시지 표시
+      return; // 리다이렉트, 로그인 처리 중단
+    }
 
     if (nickname && email) {
       (async () => {
         try {
+          //엔드포인트 변경
           const res = await axiosInstance.post(
             "/api/user/refresh/login",
             {},
@@ -136,6 +143,7 @@ export default function LoginPage() {
               provider: data.provider || "LOCAL",
             };
 
+            // 토큰 저장 및 상태 업데이트
             useAuthStore.getState().login(userInfo, data.token, true);
             addToast(`${data.nickname}님, 환영합니다! 🎉`, "success");
             navigate("/");
