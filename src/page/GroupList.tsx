@@ -169,7 +169,7 @@ export default function GroupList() {
   };
 
   return (
-    <div className="bg-white min-h-screen relative z-9999">
+    <div className="bg-white min-h-screen relative ">
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* 검색 패널 */}
         <div className="mb-6">
