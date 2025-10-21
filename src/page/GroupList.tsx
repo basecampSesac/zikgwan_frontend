@@ -32,7 +32,7 @@ export default function GroupList() {
   const { addToast } = useToastStore();
   const { updated, resetUpdate } = useGroupUpdateStore();
 
-  // 모임 목록 + 이미지 불러오기
+  // ✅ 모임 목록 + 이미지 불러오기
   const fetchGroups = useCallback(
     async (
       sort: SortType = "RECENT",
@@ -53,18 +53,35 @@ export default function GroupList() {
               title: filter.keyword || undefined,
               team: filter.team || undefined,
               stadium: filter.stadium || undefined,
-              date: filter.date || undefined,
+              date: filter.date ? filter.date.split("T")[0] : undefined,
+              // ✅ 검색 시에도 페이지 정보 같이 보냄
+              page: pageNum,
+              size: 12,
+              sortType: sort,
             }
           : { page: pageNum, size: 12, sortType: sort };
 
         const res = await axiosInstance.get(endpoint, { params });
 
         if (res.data.status === "success" && res.data.data) {
-          const resultData = Array.isArray(res.data.data)
-            ? res.data.data
-            : res.data.data.content;
+          // ✅ 페이지형 or 배열형 응답 구분
+          let content = [];
+          let totalPagesValue = 1;
+          let totalElementsValue = 0;
 
-          const mapped: GroupUI[] = resultData.map((g: CommunityItem) => ({
+          if (res.data.data.content) {
+            // 페이지네이션 객체 응답
+            content = res.data.data.content;
+            totalPagesValue = res.data.data.totalPages;
+            totalElementsValue = res.data.data.totalElements;
+          } else if (Array.isArray(res.data.data)) {
+            // 배열 응답 → 프론트에서 페이지네이션 처리
+            content = res.data.data.slice(pageNum * 12, pageNum * 12 + 12);
+            totalPagesValue = Math.ceil(res.data.data.length / 12);
+            totalElementsValue = res.data.data.length;
+          }
+
+          const mapped: GroupUI[] = content.map((g: CommunityItem) => ({
             id: g.communityId,
             title: g.title,
             content: g.description,
@@ -79,15 +96,10 @@ export default function GroupList() {
               ? `http://localhost:8080/images/${g.imageUrl.replace(/^\/+/, "")}`
               : undefined,
           }));
+
           setGroups(mapped);
-          setTotalPages(
-            Array.isArray(res.data.data) ? 1 : res.data.data.totalPages
-          );
-          setTotalCount(
-            Array.isArray(res.data.data)
-              ? res.data.data.length
-              : res.data.data.totalElements
-          );
+          setTotalPages(totalPagesValue);
+          setTotalCount(totalElementsValue);
           setPage(pageNum);
         }
       } catch (err) {
