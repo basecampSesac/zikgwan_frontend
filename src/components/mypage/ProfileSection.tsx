@@ -78,6 +78,7 @@ export default function ProfileSection() {
   // 회원정보 수정
   const handleSave = async () => {
     if (!user) return;
+
     if (!isSocialLogin && !currentPassword) {
       addToast("회원 정보를 수정하려면 현재 비밀번호를 입력해주세요.", "error");
       return;
@@ -101,11 +102,13 @@ export default function ProfileSection() {
         nickname,
         email: user.email,
         club,
-        password: currentPassword,
         provider: user.provider || "LOCAL",
-        ...(newPassword && {
-          newpassword: newPassword,
-          newpasswordconfirm: confirmPassword,
+        ...(!isSocialLogin && {
+          password: currentPassword,
+          ...(newPassword && {
+            newpassword: newPassword,
+            newpasswordconfirm: confirmPassword,
+          }),
         }),
       };
 
@@ -347,10 +350,10 @@ export default function ProfileSection() {
           className="input-border h-11"
         >
           <option value="">선택 안 함</option>
-            {TEAMS.map((team) => (
-             <option key={team.value} value={team.value}>
-                 {team.label}
-              </option>
+          {TEAMS.map((team) => (
+            <option key={team.value} value={team.value}>
+              {team.label}
+            </option>
           ))}
         </select>
       </label>
