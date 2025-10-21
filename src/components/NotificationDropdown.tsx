@@ -6,6 +6,7 @@ import axiosInstance from "../lib/axiosInstance";
 import { useAuthStore } from "../store/authStore";
 import { useNotificationStore } from "../store/notificationStore";
 import { formatNotificationTime } from "../utils/format"; //
+import { useChatWidgetStore } from "../store/chatWidgetStore";
 
 interface Notification {
   id: number;
@@ -25,6 +26,7 @@ export default function NotificationDropdown() {
   const { notifications, hasUnread, markAllRead } = useNotificationStore();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const { openPopup } = useChatWidgetStore();
 
   // 외부 클릭 감지
   useEffect(() => {
@@ -59,8 +61,8 @@ export default function NotificationDropdown() {
     }
   }, [user]);
 
-  // 알림 읽음 처리
-  const markAsRead = async (id: number) => {
+  // 알림 읽음 처리 및 채팅방 열기
+  const markAsRead = async (roomId: number, id: number) => {
     if (!user) return;
     try {
       await axiosInstance.patch(`/api/notification/read/${id}`);
@@ -69,8 +71,14 @@ export default function NotificationDropdown() {
           n.id === id ? { ...n, readAt: new Date().toISOString() } : n
         )
       );
+
+      const res = await axiosInstance.get(`/api/chatroom/detail/${roomId}`);
+
+      if (res.data.status === "success") {
+        openPopup(res.data.data.roomId, res.data.data.roomName);
+      }
     } catch (err) {
-      console.error("알림 읽음 처리 실패:", err);
+      console.error("알림 채팅방 열기 실패:", err);
     }
   };
 
@@ -148,7 +156,7 @@ export default function NotificationDropdown() {
                         ? "bg-gray-50 hover:bg-gray-100/60"
                         : "hover:bg-gray-50/60"
                     }`}
-                    onClick={() => markAsRead(n.id)}
+                    onClick={() => markAsRead(n.roomId, n.id)}
                   >
                     <div className="flex-1">
                       <p className="font-medium= text-[14px] text-gray-900 mb-0.5">
