@@ -32,7 +32,7 @@ export default function CompleteTradeModal({
     if (!isOpen) return;
     const fetchBuyers = async () => {
       try {
-        const res = await axiosInstance.get("/api/tickets/buyer");
+        const res = await axiosInstance.get(`/api/tickets/buyer/${tsId}`);
 
         if (res.data?.status === "success" && Array.isArray(res.data.data)) {
           setBuyers(res.data.data);
