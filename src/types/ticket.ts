@@ -18,6 +18,7 @@ export type TicketUI = {
   nickname: string;
   imageUrl?: string;
   rating: number | null;
+  profileImageUrl?: string;
   state: string;
   createdAt: string;
   updatedAt: string;
