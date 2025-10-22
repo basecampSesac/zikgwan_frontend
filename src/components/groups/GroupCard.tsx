@@ -35,7 +35,6 @@ export default function GroupCard({
   const [imgSrc, setImgSrc] = useState(resolvedImageUrl);
 
   const handleClick = () => {
-    if (isEnded && !isLeader) return;
     navigate(`/groups/${id}`);
   };
 
@@ -114,7 +113,7 @@ export default function GroupCard({
         <button
           disabled={isEnded && !isLeader}
           className={`w-full mt-3 py-2 text-sm font-semibold rounded-lg transition ${
-            isEnded && !isLeader
+            isEnded
               ? "bg-gray-300 text-gray-600 cursor-not-allowed"
               : "bg-gray-200 text-gray-700 hover:bg-gray-300"
           }`}
