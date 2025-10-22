@@ -8,7 +8,7 @@ import Modal from "../Modal";
 import TicketForm from "./TicketForm";
 import ShareButton from "../common/ShareButton";
 import { TICKET_TRADE_GUIDE } from "../../data/guides";
-import { MdOutlineSportsBaseball } from "react-icons/md";
+import { MdOutlineSportsBaseball, MdAirlineSeatReclineNormal } from "react-icons/md";
 import { FiCheckCircle, FiRefreshCcw } from "react-icons/fi";
 import {
   FiEdit3,
@@ -259,11 +259,11 @@ export default function TicketDetailView() {
                       text: ticket.stadium,
                     },
                     {
-                      icon: <PiSeat size={22} className="text-gray-500" />,
+                      icon: <MdAirlineSeatReclineNormal size={25} className="text-gray-500" />,
                       text:
                         ticket.adjacentSeat === "Y"
-                          ? "인접 좌석: 예"
-                          : "인접 좌석: 아니오",
+                          ? "연석 여부: Y"
+                          : "연석 여부: N",
                     },
                     {
                       icon: (
@@ -347,9 +347,9 @@ export default function TicketDetailView() {
                       >
                         <FiTrash2 size={16} /> 삭제
                       </button>
-                      <ShareButton />
                     </>
                   )}
+                  <ShareButton />
                 </div>
               </div>
             </div>
