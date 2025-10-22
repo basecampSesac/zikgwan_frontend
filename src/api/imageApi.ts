@@ -38,7 +38,7 @@ export async function uploadImage(
 // 이미지 조회 URL 생성
 export function getImageUrl(path?: string | null) {
   if (!path) return "";
-  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
+  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8080/images";
 
   if (path.startsWith("http")) return path;
 

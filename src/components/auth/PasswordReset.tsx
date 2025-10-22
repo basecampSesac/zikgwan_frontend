@@ -66,9 +66,11 @@ export default function PasswordReset({ onBack }: PasswordResetProps) {
       } else {
         addToast(res.data.message || "인증번호가 올바르지 않습니다.", "error");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("인증번호 확인 실패:", error);
-      addToast("인증번호 확인 중 오류가 발생했습니다.", "error");
+      const message =
+        error.response?.data?.message || "인증번호 확인 중 오류가 발생했습니다.";
+      addToast(message, "error");
     }
   };
 
@@ -96,9 +98,12 @@ export default function PasswordReset({ onBack }: PasswordResetProps) {
       } else {
         addToast(res.data.message || "비밀번호 변경에 실패했습니다.", "error");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("비밀번호 재설정 오류:", error);
-      addToast("서버 오류가 발생했습니다.", "error");
+      const message =
+        error.response?.data?.message || "서버 오류가 발생했습니다.";
+      addToast(message, "error");
+      
     }
   };
 
