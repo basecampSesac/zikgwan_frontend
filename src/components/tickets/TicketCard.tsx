@@ -4,6 +4,7 @@ import type { TicketUI } from "../../types/ticket";
 import { formatDate, formatPrice } from "../../utils/format";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
 import { useState } from "react";
+import { useAuthStore } from "../../store/authStore";
 
 export default function TicketCard({
   tsId,
@@ -21,6 +22,7 @@ export default function TicketCard({
   imageUrl,
 }: TicketUI) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   // 구장 이미지
   const resolvedImageUrl =
@@ -39,6 +41,7 @@ export default function TicketCard({
   // 상태 변환 ("ING" → "판매중")
   const status = state === "ING" ? "판매중" : "판매 완료";
   const isEnded = status === "판매 완료";
+  const isSeller = user?.nickname === nickname;
 
   return (
     <article
@@ -69,53 +72,53 @@ export default function TicketCard({
 
         {/* 상태 뱃지 (판매중일 때만 표시) */}
         {!isEnded && (
-           <>
-              <span className="absolute top-2 left-2 text-white text-xs font-semibold px-2 py-0.5 rounded-md shadow bg-[#6F00B6] z-20">
-                  판매중
-              </span>
-              <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded z-20">
-                 {stadium}
-              </span>
+          <>
+            <span className="absolute top-2 left-2 text-white text-xs font-semibold px-2 py-0.5 rounded-md shadow bg-[#6F00B6] z-20">
+              판매중
+            </span>
+            <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded z-20">
+              {stadium}
+            </span>
           </>
         )}
-    
       </div>
 
       {/* 본문 */}
       <div className="flex flex-col gap-2 p-4">
-      {/* 매치업 */}
+        {/* 매치업 */}
         <div className="flex items-center justify-between text-[17px] font-bold text-gray-900 line-clamp-1">
-            <span className="font-medium truncate">{home} vs {away}</span>
+          <span className="font-medium truncate">
+            {home} vs {away}
+          </span>
         </div>
-        
 
-      {/* 제목 */}
-      <div className="flex items-center justify-between text-gray-500 text-sm">
-       <span className="truncate max-w-[150px]">{title}</span>
-      </div>
+        {/* 제목 */}
+        <div className="flex items-center justify-between text-gray-500 text-sm">
+          <span className="truncate max-w-[150px]">{title}</span>
+        </div>
 
         {/* 경기일시 */}
         <div className="flex items-center gap-1 text-gray-500 text-sm">
           <Calendar size={15} className="text-gray-400" />
           <span>{formatDate(gameDay)}</span>
         </div>
-        
-      {/* 가격 + 매수 + 연석 */}
-      <div className="flex items-baseline justify-between mt-2">
-      {/* 왼쪽 묶음: 가격 + 매수 */}
-      <div className="flex items-baseline gap-2 min-w-0">
-          <span className="text-[18px] font-extrabold text-[#111] leading-none truncate max-w-[150px]">
-            {formatPrice(price)}원
-          </span>
-          <span className="text-sm text-gray-500 leading-none translate-y-[1px]">
-            {ticketCount}매
-          </span>
-      </div>
 
-      <span className="text-sm font-bold text-gray-700 flex-shrink-0 ml-2">
-        연석: {adjacentSeat === "Y" ? "Y" : "N"}
-      </span>
-      </div>
+        {/* 가격 + 매수 + 연석 */}
+        <div className="flex items-baseline justify-between mt-2">
+          {/* 왼쪽 묶음: 가격 + 매수 */}
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="text-[18px] font-extrabold text-[#111] leading-none truncate max-w-[150px]">
+              {formatPrice(price)}원
+            </span>
+            <span className="text-sm text-gray-500 leading-none translate-y-[1px]">
+              {ticketCount}매
+            </span>
+          </div>
+
+          <span className="text-sm font-bold text-gray-700 flex-shrink-0 ml-2">
+            연석: {adjacentSeat === "Y" ? "Y" : "N"}
+          </span>
+        </div>
 
         {/* 판매자 + 별점 */}
         <div className="flex items-center justify-between mt-1 text-gray-500">
@@ -140,8 +143,15 @@ export default function TicketCard({
         </div>
 
         {/* 버튼 */}
-        <button className="w-full mt-3 py-2 text-sm font-semibold rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">
-          상세보기
+        <button
+          disabled={isEnded && !isSeller}
+          className={`w-full mt-3 py-2 text-sm font-semibold rounded-lg transition ${
+            isEnded && !isSeller
+              ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+          }`}
+        >
+          {isEnded ? (isSeller ? "티켓 관리하기" : "판매 완료") : "상세보기"}
         </button>
       </div>
     </article>
