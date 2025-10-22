@@ -23,6 +23,7 @@ import { getDefaultStadiumImage } from "../../constants/stadiums";
 import type { TicketUI } from "../../types/ticket";
 import { useChatWidgetStore } from "../../store/chatWidgetStore";
 import { formatDate } from "../../utils/format";
+import CompleteTradeModal from "./CompleteTradeModal";
 
 export default function TicketDetailView() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +37,7 @@ export default function TicketDetailView() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
 
   // 티켓 상세 조회
   const fetchTicket = useCallback(async () => {
@@ -55,13 +57,19 @@ export default function TicketDetailView() {
           stadium: t.stadium ?? "정보 없음",
           adjacentSeat: t.adjacentSeat ?? "N",
           nickname: t.nickname ?? "익명",
-          imageUrl: t.imageUrl
-            ? `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
-            : getDefaultStadiumImage(t.stadium ?? ""),
           rating: t.rating ?? 0,
           state: t.state ?? "ING",
           createdAt: t.createdAt ?? "",
           updatedAt: t.updatedAt ?? "",
+          imageUrl: t.imageUrl
+            ? `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
+            : getDefaultStadiumImage(t.stadium ?? ""),
+          profileImageUrl: t.profileImageUrl
+            ? `http://localhost:8080/images/${t.profileImageUrl.replace(
+                /^\/+/,
+                ""
+              )}`
+            : "/images/default-profile.png",
         });
       } else {
         addToast("티켓 정보를 불러오지 못했습니다.", "error");
@@ -234,8 +242,8 @@ export default function TicketDetailView() {
                 <div className="text-gray-700 mb-4 divide-y divide-gray-100">
                   {[
                     {
-                       icon: <FiCalendar size={22} className="text-gray-500" />,
-                      text: formatDate(ticket.gameDay)
+                      icon: <FiCalendar size={22} className="text-gray-500" />,
+                      text: formatDate(ticket.gameDay),
                     },
                     {
                       icon: (
@@ -311,20 +319,22 @@ export default function TicketDetailView() {
                 <div className="flex items-center justify-end gap-3 mt-6">
                   {isSeller && (
                     <>
-                      <button
-                        onClick={handleToggleState}
-                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition"
-                      >
-                        {ticket.state === "ING" ? (
-                          <>
-                            <FiCheckCircle size={15} /> 거래 완료로 변경
-                          </>
-                        ) : (
-                          <>
-                            <FiRefreshCcw size={15} /> 거래 재개하기
-                          </>
-                        )}
-                      </button>
+                      {ticket.state === "ING" ? (
+                        <button
+                          onClick={() => setIsCompleteModalOpen(true)}
+                          className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition"
+                        >
+                          <FiCheckCircle size={15} /> 거래 완료로 변경
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="flex items-center gap-1.5 text-sm text-gray-400 cursor-not-allowed"
+                          title="이미 거래가 완료된 티켓입니다."
+                        >
+                          <FiCheckCircle size={15} /> 거래 완료됨
+                        </button>
+                      )}
                       <button
                         onClick={() => setIsEditOpen(true)}
                         className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#6F00B6] transition"
@@ -372,10 +382,19 @@ export default function TicketDetailView() {
                 <h4 className="font-semibold text-gray-800 mb-3 text-lg">
                   💁 판매자 정보
                 </h4>
+
                 <div className="flex items-center gap-4 mt-8 mb-8">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8A2BE2] to-[#6F00B6] flex items-center justify-center text-white text-xl font-bold shadow-sm flex-shrink-0">
-                    {ticket.nickname?.charAt(0).toUpperCase() ?? "?"}
-                  </div>
+                  {ticket.profileImageUrl ? (
+                    <img
+                      src={ticket.profileImageUrl}
+                      alt={`${ticket.nickname} 프로필`}
+                      className="w-12 h-12 rounded-full object-cover border border-gray-200 shadow-sm flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8A2BE2] to-[#6F00B6] flex items-center justify-center text-white text-xl font-bold shadow-sm flex-shrink-0">
+                      {ticket.nickname?.charAt(0).toUpperCase() ?? "?"}
+                    </div>
+                  )}
                   <div className="flex flex-col justify-center leading-tight">
                     <p className="text-[15px] font-semibold text-gray-900">
                       {ticket.nickname ?? "익명"}
@@ -390,6 +409,16 @@ export default function TicketDetailView() {
           </div>
         </div>
       </div>
+      {/* 거래 완료 모달 */}
+      <CompleteTradeModal
+        isOpen={isCompleteModalOpen}
+        onClose={() => setIsCompleteModalOpen(false)}
+        tsId={ticket.tsId}
+        onSuccess={() => {
+          fetchTicket();
+          setIsCompleteModalOpen(false);
+        }}
+      />
 
       {/* 삭제 모달 */}
       <ConfirmModal
