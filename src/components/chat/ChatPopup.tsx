@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import Draggable from "react-draggable";
-import { IoSearchOutline, IoClose, IoExitOutline } from "react-icons/io5";
+import {
+  IoSearchOutline,
+  IoClose,
+  IoExitOutline,
+  IoPeopleOutline,
+} from "react-icons/io5";
 import { useToastStore } from "../../store/toastStore";
 import ChatRoom from "./ChatRoom";
 import { useChatWidgetStore } from "../../store/chatWidgetStore";
@@ -28,21 +33,25 @@ export default function ChatPopup({
   const [search, setSearch] = useState("");
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [leaderNickname, setLeaderNickname] = useState<string | null>(null);
+  const [memberCount, setMemberCount] = useState<number | null>(null);
 
+  // 상세 정보 불러오기
   useEffect(() => {
-    const fetchRoomInfo = async () => {
+    const fetchRoomDetail = async () => {
       try {
-        const res = await axiosInstance.get(`/api/chatroom/${roomId}`);
+        const res = await axiosInstance.get(`/api/chatroom/detail/${roomId}`);
         if (res.data.status === "success" && res.data.data) {
-          setLeaderNickname(res.data.data.leaderNickname || null);
-          console.log("👑 leader:", res.data.data.leaderNickname);
+          const { leaderNickname, userCount } = res.data.data;
+          setLeaderNickname(leaderNickname || null);
+          setMemberCount(userCount ?? null);
+          console.log("👑 leader:", leaderNickname, "👥 count:", memberCount);
         }
       } catch (err) {
-        console.error("🚨 채팅방 정보 불러오기 실패:", err);
+        console.error("🚨 채팅방 상세정보 불러오기 실패:", err);
       }
     };
 
-    fetchRoomInfo();
+    fetchRoomDetail();
   }, [roomId]);
 
   // 외부 클릭 감지
@@ -129,6 +138,13 @@ export default function ChatPopup({
                   ? title.slice(0, 19) + "..."
                   : title
                 : `모임 채팅 #${roomId}`}
+              {/* ✅ 인원 표시 */}
+              {memberCount !== null && (
+                <span className="inline-flex items-center text-gray-500 text-sm font-normal ml-2">
+                  <IoPeopleOutline size={16} className="mr-1" />
+                  {memberCount}명
+                </span>
+              )}
             </span>
 
             <div className="flex items-center gap-2">
