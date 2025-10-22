@@ -1,3 +1,5 @@
+import React from "react";
+
 interface ConfirmModalProps {
   isOpen: boolean;
   title: string;
@@ -6,6 +8,7 @@ interface ConfirmModalProps {
   cancelText?: string;
   onClose: () => void;
   onConfirm: () => void;
+  children?: React.ReactNode;
 }
 
 export default function ConfirmModal({
@@ -16,6 +19,7 @@ export default function ConfirmModal({
   cancelText = "취소",
   onClose,
   onConfirm,
+  children,
 }: ConfirmModalProps) {
   if (!isOpen) return null;
 
@@ -30,6 +34,7 @@ export default function ConfirmModal({
           {description}
         </p>
 
+        {children && <div className="mb-4">{children}</div>}
         {/* 버튼 (중앙 정렬) */}
         <div className="flex justify-center gap-3">
           <button
