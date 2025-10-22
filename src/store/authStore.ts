@@ -16,6 +16,7 @@ export interface AuthResponse {
   nickname: string;
   club?: string;
   token: string;
+  profileImage?: string;
   provider?: "LOCAL" | "KAKAO" | "GOOGLE" | "NAVER";
 }
 
@@ -26,11 +27,13 @@ interface AuthState {
   email: string;
   password: string;
   nickname: string | null;
+  profileImage: string | null;
 
   setEmail: (email: string) => void;
   setPassword: (pw: string) => void;
   setUser: (user: User | null) => void;
   setNickname: (nickname: string | null) => void;
+  setProfileImage: (imageUrl: string | null) => void;
 
   login: (user: User, accessToken: string, rememberMe: boolean) => void;
   logout: () => Promise<void>;
@@ -45,11 +48,13 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
   email: "",
   password: "",
   nickname: null,
+  profileImage: null,
 
   setEmail: (email) => set({ email }),
   setPassword: (pw) => set({ password: pw }),
   setUser: (user) => set({ user }),
   setNickname: (nickname) => set({ nickname }),
+  setProfileImage: (imageUrl) => set({ profileImage: imageUrl }),
 
   /** 로그인 **/
   login: (user, accessToken, rememberMe) => {
@@ -88,6 +93,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
           email: data.email,
           nickname: data.nickname,
           club: data.club,
+          profileImage: data.profileImage,
           provider: data.provider || "LOCAL",
         };
 
