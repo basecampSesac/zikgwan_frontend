@@ -3,7 +3,7 @@ import React from "react";
 interface ConfirmModalProps {
   isOpen: boolean;
   title: string;
-  description: string;
+  description: string | React.ReactNode;
   confirmText?: string;
   cancelText?: string;
   onClose: () => void;
@@ -24,7 +24,7 @@ export default function ConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-3000">
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
         {/* 제목 */}
         <h2 className="text-xl font-bold mb-2 text-center">{title}</h2>
