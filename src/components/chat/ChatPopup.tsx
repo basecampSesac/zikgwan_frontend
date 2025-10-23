@@ -1,17 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import Draggable from "react-draggable";
-import {
-  IoSearchOutline,
-  IoClose,
-  IoExitOutline,
-  IoPeopleOutline,
-} from "react-icons/io5";
-import { useToastStore } from "../../store/toastStore";
+import { IoSearchOutline, IoClose, IoPeopleOutline } from "react-icons/io5";
 import ChatRoom from "./ChatRoom";
 import { useChatWidgetStore } from "../../store/chatWidgetStore";
 import { useAuthStore } from "../../store/authStore";
 import axiosInstance from "../../lib/axiosInstance";
-import ConfirmModal from "../../Modals/ConfirmModal";
 
 export default function ChatPopup({
   roomId,
@@ -24,15 +17,12 @@ export default function ChatPopup({
 }) {
   const { closePopup } = useChatWidgetStore();
   const { user } = useAuthStore();
-  const { addToast } = useToastStore();
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<{ scrollToBottom: () => void }>(null);
 
   const [showSearch, setShowSearch] = useState(false);
   const [search, setSearch] = useState("");
-  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
-  const [leaderNickname, setLeaderNickname] = useState<string | null>(null);
   const [memberCount, setMemberCount] = useState<number | null>(null);
 
   // 상세 정보 불러오기
@@ -41,10 +31,8 @@ export default function ChatPopup({
       try {
         const res = await axiosInstance.get(`/api/chatroom/detail/${roomId}`);
         if (res.data.status === "success" && res.data.data) {
-          const { leaderNickname, userCount } = res.data.data;
-          setLeaderNickname(leaderNickname || null);
+          const { userCount } = res.data.data;
           setMemberCount(userCount ?? null);
-          console.log("👑 leader:", leaderNickname, "👥 count:", memberCount);
         }
       } catch (err) {
         console.error("🚨 채팅방 상세정보 불러오기 실패:", err);
@@ -92,24 +80,6 @@ export default function ChatPopup({
     setTimeout(() => chatRef.current?.scrollToBottom(), 100);
   };
 
-  // 떠나기 API 호출
-  const handleLeaveRoom = async () => {
-    try {
-      const res = await axiosInstance.delete(`/api/chatroom/${roomId}/leave`);
-      if (res.data.status === "success") {
-        addToast("채팅방을 떠났습니다.", "success");
-        closePopup(roomId);
-      } else {
-        addToast("채팅방 나가기에 실패했습니다.", "error");
-      }
-    } catch (err) {
-      console.error("🚨 채팅방 나가기 실패:", err);
-      addToast("채팅방 나가기 중 오류가 발생했습니다.", "error");
-    } finally {
-      setIsLeaveModalOpen(false);
-    }
-  };
-
   return (
     <>
       <Draggable
@@ -148,17 +118,6 @@ export default function ChatPopup({
             </span>
 
             <div className="flex items-center gap-2">
-              {user?.nickname?.trim().toLowerCase() !==
-                leaderNickname?.trim().toLowerCase() && (
-                <button
-                  onClick={() => setIsLeaveModalOpen(true)}
-                  title="채팅방 떠나기"
-                  className="text-gray-500 hover:text-red-500 pr-1 transition"
-                >
-                  <IoExitOutline size={20} />
-                </button>
-              )}
-
               {/* 검색 버튼 */}
               <button
                 onClick={() => setShowSearch((prev) => !prev)}
@@ -213,23 +172,6 @@ export default function ChatPopup({
           </div>
         </div>
       </Draggable>
-
-      {/* 확인 모달 */}
-      <ConfirmModal
-        isOpen={isLeaveModalOpen}
-        title="채팅방을 떠나시겠습니까?"
-        description={
-          <>
-            떠나면 대화 내용이 삭제되며,
-            <br />
-            다시 참여하려면 새로 입장해야합니다.
-          </>
-        }
-        confirmText="떠나기"
-        cancelText="취소"
-        onClose={() => setIsLeaveModalOpen(false)}
-        onConfirm={handleLeaveRoom}
-      />
     </>
   );
 }
