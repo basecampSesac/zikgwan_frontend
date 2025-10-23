@@ -1,10 +1,16 @@
 import { useEffect, useState, useMemo, useRef } from "react";
-import { FaStar, FaUser, FaChevronDown } from "react-icons/fa";
+import {
+  FaStar,
+  FaUser,
+  FaChevronDown,
+  FaRegCalendarAlt,
+} from "react-icons/fa";
 import ReviewModal from "../../components/ReviewModal";
 import type { CompletedTicket } from "../../types/ticket";
 import axiosInstance from "../../lib/axiosInstance";
 import { useToastStore } from "../../store/toastStore";
 import { useAuthStore } from "../../store/authStore";
+import { formatDate } from "../../utils/format";
 
 export default function TicketSection() {
   const { addToast } = useToastStore();
@@ -98,17 +104,6 @@ export default function TicketSection() {
                   const hasBuyer =
                     ticket.buyerId !== null && ticket.buyerId !== undefined;
 
-                  console.log("🎟️ 티켓 정보", {
-                    tsId: ticket.tsId,
-                    title: ticket.title,
-                    buyerId: ticket.buyerId,
-                    sellerId: ticket.sellerId,
-                    rating: ticket.rating,
-                    currentUserId,
-                    isBuyer,
-                    isSeller,
-                  });
-
                   return (
                     <li
                       key={ticket.tsId}
@@ -121,6 +116,19 @@ export default function TicketSection() {
                         <p className="text-sm text-gray-500">
                           {ticket.home} vs {ticket.away} · {ticket.stadium}
                         </p>
+                        <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+                          <FaRegCalendarAlt
+                            size={11}
+                            className="text-gray-400"
+                          />
+                          <span>
+                            경기일:{" "}
+                            {ticket.gameDay
+                              ? formatDate(ticket.gameDay)
+                              : "미정"}
+                          </span>
+                        </div>
+
                         <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
                           <FaUser size={12} />
                           <span>

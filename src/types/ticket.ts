@@ -37,4 +37,5 @@ export type CompletedTicket = {
   updatedAt: string | null;
   rating: number | null;
   sellerNickname: string;
+  gameDay: string | null;
 };
