@@ -8,6 +8,7 @@ interface ChatListItem {
   roomName: string;
   lastMessage: string;
   unreadCount: number;
+  type?: "C" | "T"; // RoomType 구분 필드
 }
 
 interface Props {
@@ -32,7 +33,6 @@ export default function ChatListItemRow({
   useEffect(() => {
     const fetchLeader = async () => {
       try {
-        // 이미 저장된 리더 닉네임이 있으면 바로 사용
         const existing = openedRooms[room.roomId]?.leaderNickname;
         if (existing) {
           setLocalLeaderNickname(existing);
@@ -42,7 +42,7 @@ export default function ChatListItemRow({
 
         let leader: string | null = null;
 
-        // 커뮤니티 검색
+        // 모임 검색
         const communityRes = await axiosInstance.get(
           `/api/communities/search?keyword=${encodeURIComponent(room.roomName)}`
         );
@@ -54,9 +54,7 @@ export default function ChatListItemRow({
           const matched = communityRes.data.data.find(
             (c: any) => c.title.trim() === room.roomName.trim()
           );
-          if (matched) {
-            leader = matched.nickname;
-          }
+          if (matched) leader = matched.nickname;
         }
 
         // 티켓 검색
@@ -72,23 +70,16 @@ export default function ChatListItemRow({
             const matchedTicket = ticketRes.data.data.content.find(
               (t: any) => t.title.trim() === room.roomName.trim()
             );
-            if (matchedTicket) {
-              leader = matchedTicket.nickname;
-            }
+            if (matchedTicket) leader = matchedTicket.nickname;
           }
         }
 
         if (leader) {
           setLeaderNickname(room.roomId, leader);
           setLocalLeaderNickname(leader);
-        } else {
-          console.warn(`'${room.roomName}' 방의 리더를 찾지 못했습니다.`);
         }
       } catch (err) {
-        console.warn(
-          `leaderNickname 검색 실패 (roomName=${room.roomName}):`,
-          err
-        );
+        console.warn("leaderNickname 검색 실패:", err);
       } finally {
         setIsLoading(false);
       }
@@ -124,16 +115,20 @@ export default function ChatListItemRow({
         </p>
       </button>
 
-      {!isLoading && !isLeader && (
+      {/* 수정: 모임방(C)은 리더만 숨기고, 티켓방(T)은 항상 표시 */}
+      {!isLoading && (room.type === "T" || !isLeader) && (
         <button
           onClick={handleLeaveRoom}
-          className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
-               px-3 py-1 border border-gray-300 text-gray-500 hover:bg-gray-100
-               rounded-lg text-[13px] font-medium transition-all duration-200"
+          className="absolute right-4 top-1/2 -translate-y-1/2
+                     opacity-0 group-hover:opacity-100
+                     px-3 py-1 border border-gray-300 text-gray-500
+                     hover:bg-gray-100 rounded-lg text-[13px]
+                     font-medium transition-all duration-300 ease-in-out"
         >
           떠나기
         </button>
       )}
+
       {room.unreadCount > 0 && (
         <span className="ml-3 bg-gray-900 text-white text-xs font-semibold px-2 py-1 rounded-full">
           {room.unreadCount}
