@@ -39,6 +39,9 @@ export default function ProfileSection() {
     /[0-9]/.test(newPassword) &&
     /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
 
+    //console.log("profileImage:", profileImage);
+    //console.log("user.profileImage:", user?.profileImage);
+
   // 프로필 이미지 변경
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -163,11 +166,30 @@ export default function ProfileSection() {
     if (user?.club) setClub(user.club.trim());
   }, [user?.nickname, user?.club]);
 
+  useEffect(() => {
+    if (!profileImage && !user?.profileImage && user) {
+      const fetchProfileImage = async () => {
+        try {
+          const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
+          if (data.status === "success" && data.data) {
+            const imageUrl = getImageUrl(data.data);
+            setProfileImage(imageUrl);
+            setUser({ ...user, profileImage: imageUrl });
+          }
+        } catch (err) {
+          console.error("프로필 이미지 조회 실패:", err);
+        }
+      };
+      fetchProfileImage();
+    }
+  }, [profileImage, user]);
+
+
   // 회원탈퇴
   const handleDelete = async () => {
     if (!user) return;
     try {
-      const { data } = await axiosInstance.delete(`/api/user/${user.userId}`);
+      const { data } = await axiosInstance.patch(`/api/user/delete/${user.userId}`);
       if (data.status === "success" && data.data === true) {
         addToast("회원탈퇴가 완료되었습니다.", "success");
         logout();
