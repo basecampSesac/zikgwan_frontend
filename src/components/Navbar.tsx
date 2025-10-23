@@ -54,22 +54,22 @@ export function Navbar() {
 
         {/* 오른쪽 버튼 */}
         <div className="flex items-center gap-3 text-sm font-medium relative">
-          <button
-            onClick={() =>
-              isAuthenticated ? navigate("/mypage") : navigate("/login")
-            }
-            className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
-          >
-            마이페이지
-          </button>
-
           {isAuthenticated ? (
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
-            >
-              로그아웃
-            </button>
+            <>
+              <button
+                onClick={() => navigate("/mypage")}
+                className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
+              >
+                마이페이지
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
+              >
+                로그아웃
+              </button>
+              <NotificationDropdown />
+            </>
           ) : (
             <>
               <button
@@ -86,8 +86,6 @@ export function Navbar() {
               </button>
             </>
           )}
-          {/* 알림 */}
-          {isAuthenticated && <NotificationDropdown />}
         </div>
       </div>
     </header>
