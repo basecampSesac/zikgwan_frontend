@@ -36,7 +36,7 @@ export default function GroupDetailView() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [members, setMembers] = useState<
-    Array<{ nickname: string; club: string }>
+    Array<{ nickname: string; club: string; imageUrl: string }>
   >([]);
 
   // 상세 조회
@@ -345,9 +345,30 @@ export default function GroupDetailView() {
                         key={idx}
                         className="flex items-center justify-between bg-white border border-gray-100 rounded-lg px-4 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-50 transition"
                       >
-                        <span className="font-medium text-gray-800">
-                          {m.nickname}
-                        </span>
+                        {/* 왼쪽: 프로필 + 닉네임 */}
+                        <div className="flex items-center gap-3 -ml-1">
+                          {" "}
+                          {/* ← 여기! */}
+                          {m.imageUrl ? (
+                            <img
+                              src={`http://localhost:8080/images/${m.imageUrl.replace(
+                                /^\/+/,
+                                ""
+                              )}`}
+                              alt={`${m.nickname} 프로필`}
+                              className="w-9 h-9 rounded-full object-cover border border-gray-200 shadow-sm flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#8A2BE2] to-[#6F00B6] flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
+                              {m.nickname?.charAt(0).toUpperCase() ?? "?"}
+                            </div>
+                          )}
+                          <span className="font-medium text-gray-900">
+                            {m.nickname ?? "익명"}
+                          </span>
+                        </div>
+
+                        {/* 오른쪽: 구단명 */}
                         <span className="text-xs text-gray-500">{m.club}</span>
                       </li>
                     ))}
