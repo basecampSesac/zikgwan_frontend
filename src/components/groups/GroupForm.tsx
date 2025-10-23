@@ -228,6 +228,7 @@ export default function GroupForm({
             locale={ko}
             placeholderText="날짜와 시간을 선택하세요"
             className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#6F00B6] focus:border-[#6F00B6]"
+            minDate={new Date()}
           />
         </label>
 
