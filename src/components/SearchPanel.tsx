@@ -44,7 +44,7 @@ export default function SearchPanel({
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (keyword.trim()) {
+      {
         onFilterChange?.({ keyword, team, stadium, date });
       }
     }, 500);
