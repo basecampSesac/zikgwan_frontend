@@ -400,7 +400,7 @@ export default function TicketDetailView() {
                       {ticket.nickname ?? "익명"}
                     </p>
                     <p className="text-sm text-gray-600 flex items-center gap-1 mt-[2px]">
-                      ⭐ {(ticket.rating ?? 0).toFixed(1)} / 5.0
+                      ⭐ {(ticket.rating ?? 0).toFixed(2)} / 5.0
                     </p>
                   </div>
                 </div>
