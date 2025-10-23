@@ -113,7 +113,7 @@ export default function SearchPanel({
 
         {/* 날짜 */}
 
-        <div className="flex flex-col flex-1">
+        <div className="flex flex-col flex-1 z-100">
           <label className="text-sm font-medium text-gray-600 mb-1 ">
             날짜
           </label>
