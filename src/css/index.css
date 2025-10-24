@@ -124,3 +124,13 @@ button {
 ::-webkit-scrollbar-track {
   background-color: transparent;
 }
+
+.react-datepicker__close-icon::after {
+  background-color: #6F00B6 !important; 
+  color: #ffffff !important; 
+  font-weight: bold !important;
+}
+
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}
