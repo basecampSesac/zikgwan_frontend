@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef } from "react";
 import { STADIUMS } from "../constants/stadiums";
 import { FiChevronDown } from "react-icons/fi";
 import ReactDatePicker from "react-datepicker";
@@ -17,19 +17,108 @@ interface SearchPanelProps {
     date: string;
   }) => void;
   onReset?: () => void;
+  externalRef?: React.RefObject<HTMLElement>;
 }
+
+function CustomSelect({
+  options,
+  value,
+  onChange,
+  placeholder = "전체",
+  id,
+  openSelectId,
+  setOpenSelectId,
+}: {
+  options: { label: string; value: string }[];
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  id: string;
+  openSelectId: string | null;
+  setOpenSelectId: (id: string | null) => void;
+}) {
+  const isOpen = openSelectId === id;
+
+  const handleToggle = () => {
+    setOpenSelectId(isOpen ? null : id);
+  };
+
+  const handleSelect = (val: string) => {
+    onChange(val);
+    setOpenSelectId(null);
+  };
+
+  const selectedLabel = options.find((o) => o.value === value)?.label;
+
+  return (
+    <div className="relative w-full custom-select">
+      <button
+        type="button"
+        onClick={handleToggle}
+        className={`w-full h-10 flex items-center justify-between px-3 text-sm border rounded-md bg-white focus:outline-none
+          ${isOpen ? "border-[#6F00B6] ring-1 ring-[#6F00B6]" : "border-gray-200"} transition-colors`}
+      >
+        <span className={!selectedLabel ? "text-gray-400" : "text-gray-700"}>
+          {selectedLabel || placeholder}
+        </span>
+        <FiChevronDown size={18} className="text-gray-400" />
+      </button>
+
+      {isOpen && (
+        <ul className="absolute z-50 w-full mt-1 max-h-48 overflow-auto border border-gray-300 rounded-md bg-white shadow-md">
+          {options.map((o) => (
+            <li
+              key={o.value}
+              className="px-3 py-2 text-sm cursor-pointer rounded-md hover:bg-purple-50 hover:text-purple-700 transition-colors text-gray-700"
+              onClick={() => handleSelect(o.value)}
+            >
+              {o.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// DatePicker 버튼
+const CustomDateInput = forwardRef<HTMLButtonElement, {
+  value?: string;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  placeholder?: string;
+  setOpenSelectId?: (id: string | null) => void;
+  isOpen?: boolean;
+}>(({ value, onClick, placeholder, setOpenSelectId, isOpen }, ref) => (
+  <button
+    type="button"
+    ref={ref}
+    onClick={(e) => {
+      e.stopPropagation();
+      setOpenSelectId?.("date");
+      onClick?.(e);
+    }}
+    className={`w-full h-10 text-left border rounded-md px-3 text-sm bg-white transition-colors
+      ${isOpen ? "border-[#6F00B6] ring-1 ring-[#6F00B6]" : "border-gray-200"}`}
+  >
+    {value || <span className="text-gray-400">{placeholder}</span>}
+  </button>
+));
+CustomDateInput.displayName = "CustomDateInput";
 
 export default function SearchPanel({
   title,
   mode = "group",
   onFilterChange,
   onReset,
+  externalRef,
 }: SearchPanelProps) {
   const [keyword, setKeyword] = useState("");
   const [team, setTeam] = useState("");
   const [stadium, setStadium] = useState("");
   const [date, setDate] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [openSelectId, setOpenSelectId] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   const handleSearch = () => {
     onFilterChange?.({ keyword, team, stadium, date });
@@ -41,12 +130,24 @@ export default function SearchPanel({
       handleSearch();
     }
   };
+  
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        !document.getElementById("search-panel-container")?.contains(target) &&
+        !(externalRef?.current?.contains(target) ?? false)
+      ) {
+        setOpenSelectId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [externalRef]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      {
-        onFilterChange?.({ keyword, team, stadium, date });
-      }
+      onFilterChange?.({ keyword, team, stadium, date });
     }, 500);
     return () => clearTimeout(timer);
   }, [keyword, team, stadium, date]);
@@ -62,7 +163,7 @@ export default function SearchPanel({
   };
 
   return (
-    <div className="bg-gray-50 rounded-lg p-6 border border-gray-100">
+    <div id="search-panel-container" className="bg-gray-50 rounded-lg p-6 border border-gray-100">
       <h2 className="text-lg font-semibold mb-4 text-gray-700">{title}</h2>
 
       {/* 검색어 입력 */}
@@ -70,99 +171,115 @@ export default function SearchPanel({
         <Search size={18} className="text-gray-400 mr-2" />
         <input
           type="text"
-          placeholder={
-            mode === "group"
-              ? "모임명, 팀명, 경기장으로 검색"
-              : "티켓명, 경기, 구단명으로 검색"
-          }
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           onKeyDown={handleKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder={
+            isFocused
+              ? ""
+              : mode === "group"
+              ? "모임명, 팀명, 경기장으로 검색"
+              : "티켓명, 경기, 구단명으로 검색"
+          }
           className="w-full outline-none text-sm text-gray-700 placeholder:text-gray-400"
         />
       </div>
 
       <div className="flex items-end gap-4">
-        {/* 구단 */}
+        {/* 구단 선택 */}
         <div className="flex flex-col flex-1">
           <label className="text-sm font-medium text-gray-600 mb-1">구단</label>
-          <div className="relative">
-            <select
-              value={team}
-              onChange={(e) => setTeam(e.target.value)}
-              className="w-full h-10 border border-gray-200 rounded-md px-3 pr-10 text-sm bg-white focus:outline-none appearance-none"
-            >
-              <option value="">전체</option>
-              <option value="LG">LG 트윈스</option>
-              <option value="두산">두산 베어스</option>
-              <option value="KIA">KIA 타이거즈</option>
-              <option value="NC">NC 다이노스</option>
-              <option value="삼성">삼성 라이온즈</option>
-              <option value="SSG">SSG 랜더스</option>
-              <option value="한화">한화 이글스</option>
-              <option value="KT">KT 위즈</option>
-              <option value="롯데">롯데 자이언츠</option>
-              <option value="키움">키움 히어로즈</option>
-            </select>
-            <FiChevronDown
-              size={18}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-            />
-          </div>
+          <CustomSelect
+            id="team"
+            options={[
+              { label: "전체", value: "" },
+              { label: "LG 트윈스", value: "LG" },
+              { label: "두산 베어스", value: "두산" },
+              { label: "KIA 타이거즈", value: "KIA" },
+              { label: "NC 다이노스", value: "NC" },
+              { label: "삼성 라이온즈", value: "삼성" },
+              { label: "SSG 랜더스", value: "SSG" },
+              { label: "한화 이글스", value: "한화" },
+              { label: "KT 위즈", value: "KT" },
+              { label: "롯데 자이언츠", value: "롯데" },
+              { label: "키움 히어로즈", value: "키움" },
+            ]}
+            value={team}
+            onChange={setTeam}
+            openSelectId={openSelectId}
+            setOpenSelectId={setOpenSelectId}
+          />
         </div>
 
-        {/* 날짜 */}
-
-        <div className="flex flex-col flex-1 z-100">
-          <label className="text-sm font-medium text-gray-600 mb-1 ">
-            날짜
-          </label>
-          <div className="relative">
-            {" "}
-            <ReactDatePicker
-              locale={ko}
-              selected={selectedDate}
-              onChange={(date) => {
-                setSelectedDate(date);
-                setDate(date ? format(date, "yyyy-MM-dd") : "");
-              }}
-              placeholderText="날짜를 선택하세요"
-              dateFormat="yyyy-MM-dd"
-              className="w-full h-10 border border-gray-200 rounded-md px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6F00B6]"
-            />
-          </div>
+        {/* 날짜 선택 */}
+        <div className="flex flex-col flex-1">
+          <label className="text-sm font-medium text-gray-600 mb-1">날짜</label>
+          <ReactDatePicker
+            locale={ko}
+            selected={selectedDate}
+            onChange={(date) => {
+              setSelectedDate(date);
+              setDate(date ? format(date, "yyyy-MM-dd") : "");
+              setOpenSelectId(null);
+            }}
+            placeholderText="날짜를 선택하세요"
+            dateFormat="yyyy-MM-dd"
+            isClearable
+            customInput={
+              <CustomDateInput
+                setOpenSelectId={setOpenSelectId}
+                isOpen={openSelectId === "date"}
+              />
+            }
+            renderCustomHeader={({
+              date,
+              decreaseMonth,
+              increaseMonth,
+              prevMonthButtonDisabled,
+              nextMonthButtonDisabled,
+            }) => (
+              <div className="flex items-center justify-center gap-2 px-2 py-1">
+                <button
+                  onClick={decreaseMonth}
+                  disabled={prevMonthButtonDisabled}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ◀
+                </button>
+                <span className="text-sm font-medium">{format(date, "yyyy년 MM월")}</span>
+                <button
+                  onClick={increaseMonth}
+                  disabled={nextMonthButtonDisabled}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ▶
+                </button>
+              </div>
+            )}
+          />
         </div>
 
-        {/* 경기장 */}
-        <div className="flex flex-col flex-1 ">
-          <label className="text-sm font-medium text-gray-600 mb-1">
-            경기장
-          </label>
-          <div className="relative">
-            <select
-              value={stadium}
-              onChange={(e) => setStadium(e.target.value)}
-              className="w-full h-10 border border-gray-200 z-9999 rounded-md px-3 pr-10 text-sm bg-white focus:outline-none appearance-none"
-            >
-              <option value="">전체</option>
-              {STADIUMS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-            <FiChevronDown
-              size={18}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-            />
-          </div>
+        {/* 경기장 선택 */}
+        <div className="flex flex-col flex-1">
+          <label className="text-sm font-medium text-gray-600 mb-1">경기장</label>
+          <CustomSelect
+            id="stadium"
+            options={[
+              { label: "전체", value: "" },
+              ...STADIUMS.map((s) => ({ label: s, value: s })),
+            ]}
+            value={stadium}
+            onChange={setStadium}
+            openSelectId={openSelectId}
+            setOpenSelectId={setOpenSelectId}
+          />
         </div>
 
-        {/* 검색 + 전체보기 버튼 영역 */}
+        {/* 검색/전체보기 버튼 */}
         <div className="flex flex-col w-40">
-          <label className="text-sm font-medium text-transparent mb-1">
-            검색
-          </label>
+          <label className="text-sm font-medium text-transparent mb-1">검색</label>
           <div className="flex gap-2">
             <button
               onClick={handleSearch}
