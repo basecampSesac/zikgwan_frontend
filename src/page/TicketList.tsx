@@ -126,7 +126,7 @@ export default function TicketList() {
         console.error("티켓 목록 조회 실패:", err);
         addToast("티켓 목록을 불러오지 못했습니다.", "error");
       } finally {
-        setLoading(false);
+        setTimeout(() => setLoading(false), 200);
       }
     },
     [filters, addToast]

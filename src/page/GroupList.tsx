@@ -191,7 +191,7 @@ export default function GroupList() {
         <ListHeader
           title="모임"
           count={totalCount}
-          sortOptions={["최신순", "인원 많은순", "인원 적은순"]}
+          sortOptions={["최신순", "인원 적은순", "인원 많은순"]}
           onSortChange={handleSortChange}
           buttonText="+ 모임 등록"
           onButtonClick={handleCreateClick}
