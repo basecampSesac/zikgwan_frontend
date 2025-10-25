@@ -4,7 +4,7 @@ import type { GroupUI } from "../../types/group";
 import { formatDate } from "../../utils/format";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
 import { useAuthStore } from "../../store/authStore";
-import { useState } from "react";
+import { useState ,useEffect} from "react";
 
 export default function GroupCard({
   id,
@@ -19,10 +19,11 @@ export default function GroupCard({
 }: GroupUI) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-
   const isEnded = status === "모집마감";
   const isLeader = user?.nickname === leader;
 
+  /*
+  //기존 로컬 서버 경로 변환 코드 주석 처리
   const resolvedImageUrl =
     imageUrl && imageUrl.trim() !== ""
       ? imageUrl.startsWith("http")
@@ -31,8 +32,17 @@ export default function GroupCard({
         ? imageUrl
         : `http://localhost:8080/images/${imageUrl.replace(/^\/+/, "")}`
       : getDefaultStadiumImage(stadiumName);
+  */
 
-  const [imgSrc, setImgSrc] = useState(resolvedImageUrl);
+  const [imgSrc, setImgSrc] = useState(getDefaultStadiumImage(stadiumName));
+
+  useEffect(() => {
+  if (imageUrl && imageUrl.trim() !== "") {
+    setImgSrc(imageUrl); // S3 URL 그대로 사용
+  } else {
+    setImgSrc(getDefaultStadiumImage(stadiumName)); // fallback
+  }
+}, [imageUrl, stadiumName]);
 
   const handleClick = () => {
     navigate(`/groups/${id}`);
