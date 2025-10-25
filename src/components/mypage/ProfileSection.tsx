@@ -39,9 +39,6 @@ export default function ProfileSection() {
     /[0-9]/.test(newPassword) &&
     /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
 
-    //console.log("profileImage:", profileImage);
-    //console.log("user.profileImage:", user?.profileImage);
-
   // 프로필 이미지 변경
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -54,24 +51,15 @@ export default function ProfileSection() {
     setUploading(true);
 
     try {
-      await uploadImage("U", file, user.userId);
+      const imageUrl = await uploadImage("U", file, user.userId); //URL 바로 받음
 
-      const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
-
-      if (data.status === "success" && data.data) {
-        const imageUrl = getImageUrl(data.data);
-        setProfileImage(imageUrl);
-        setUser({ ...user, profileImage: imageUrl });
-        addToast("프로필 이미지가 변경되었습니다.", "success");
-      } else {
-        throw new Error(data.message || "이미지 조회 실패");
-      }
+      setProfileImage(imageUrl);
+      setUser({ ...user, profileImage: imageUrl });
+      addToast("프로필 이미지가 변경되었습니다.", "success");
     } catch (err) {
-      console.error("🚨 프로필 업로드 오류:", err);
+      console.error("프로필 업로드 오류:", err);
       setProfileImage(prevImage);
-      setErrorMessage(
-        "프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요."
-      );
+      setErrorMessage("프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요.");
       addToast("프로필 이미지 업로드 실패", "error");
     } finally {
       setUploading(false);
@@ -167,22 +155,31 @@ export default function ProfileSection() {
   }, [user?.nickname, user?.club]);
 
   useEffect(() => {
-    if (!profileImage && !user?.profileImage && user) {
-      const fetchProfileImage = async () => {
-        try {
-          const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
-          if (data.status === "success" && data.data) {
-            const imageUrl = getImageUrl(data.data);
-            setProfileImage(imageUrl);
-            setUser({ ...user, profileImage: imageUrl });
-          }
-        } catch (err) {
-          console.error("프로필 이미지 조회 실패:", err);
+     if (!user) return; // 유저 없으면 아무것도 하지 않음
+  if (profileImage) return; // 이미 프로필 이미지가 세팅돼 있으면 재요청 X
+
+  // user.profileImage가 있다면 그대로 사용
+  if (user.profileImage) {
+    setProfileImage(user.profileImage);
+    return;
+  }
+
+  // 없을 때만 서버에서 조회
+  const fetchProfileImage = async () => {
+      try {
+        const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
+        if (data.status === "success" && data.data) {
+          const imageUrl = getImageUrl(data.data);
+          setProfileImage(imageUrl);
+          setUser({ ...user, profileImage: imageUrl });
         }
-      };
-      fetchProfileImage();
-    }
-  }, [profileImage, user]);
+      } catch (err) {
+        console.error("프로필 이미지 조회 실패:", err);
+      }
+    };
+
+    fetchProfileImage();
+  }, [user]);
 
 
   // 회원탈퇴

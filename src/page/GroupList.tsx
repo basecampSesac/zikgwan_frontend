@@ -91,9 +91,13 @@ export default function GroupList() {
             leader: g.nickname,
             status:
               g.state === "ING" ? ("모집중" as const) : ("모집마감" as const),
-            imageUrl: g.imageUrl
-              ? `http://localhost:8080/images/${g.imageUrl.replace(/^\/+/, "")}`
-              : undefined,
+            //기존 코드 (로컬 이미지 경로로 강제 변환)
+            // imageUrl: g.imageUrl
+            //   ? `http://localhost:8080/images/${g.imageUrl.replace(/^\/+/, "")}`
+            //   : undefined,
+
+            //수정된 코드 (백엔드에서 받은 URL 그대로 사용)
+            imageUrl: g.imageUrl || undefined,
           }));
 
           setGroups(mapped);
@@ -157,12 +161,13 @@ export default function GroupList() {
       personnel: newGroup.memberCount,
       leader: newGroup.nickname,
       status: newGroup.state === "ING" ? "모집중" : "모집마감",
-      imageUrl: newGroup.imageUrl
-        ? `http://localhost:8080/images/${newGroup.imageUrl.replace(
-            /^\/+/,
-            ""
-          )}`
-        : undefined,
+      //기존 코드 (로컬 이미지 경로로 강제 변환)
+      // imageUrl: newGroup.imageUrl
+      //   ? `http://localhost:8080/images/${newGroup.imageUrl.replace(/^\/+/, "")}`
+      //   : undefined,
+
+      //수정된 코드
+      imageUrl: newGroup.imageUrl || undefined,
     };
     setGroups((prev) => [formattedGroup, ...prev]);
   };

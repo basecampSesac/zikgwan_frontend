@@ -48,9 +48,14 @@ export default function GroupDetailView() {
 
       if (res.data.status === "success" && res.data.data) {
         const g = res.data.data;
+        /*
+        //로컬 이미지 저장
         const fullImageUrl = g.imageUrl
           ? `http://localhost:8080/images/${g.imageUrl.replace(/^\/+/, "")}`
           : undefined;
+          */
+         //AWS S3 이미지 저장
+        const fullImageUrl = g.imageUrl ? g.imageUrl : undefined;
 
         const mapped: GroupUI = {
           id: g.communityId,
@@ -350,11 +355,18 @@ export default function GroupDetailView() {
                           {" "}
                           {/* ← 여기! */}
                           {m.imageUrl ? (
+                            /*
+                              // 기존 코드: 로컬 서버 경로 강제
                             <img
-                              src={`http://localhost:8080/images/${m.imageUrl.replace(
-                                /^\/+/,
-                                ""
-                              )}`}
+                              src={`http://localhost:8080/images/${m.imageUrl.replace(/^\/+/, "")}`}
+                              alt={`${m.nickname} 프로필`}
+                              className="w-9 h-9 rounded-full object-cover border border-gray-200 shadow-sm flex-shrink-0"
+                            />
+                            */
+
+                            // 수정된 코드: S3 URL 그대로 사용
+                            <img
+                              src={m.imageUrl}
                               alt={`${m.nickname} 프로필`}
                               className="w-9 h-9 rounded-full object-cover border border-gray-200 shadow-sm flex-shrink-0"
                             />
