@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Star } from "lucide-react";
 import { useToastStore } from "../store/toastStore";
 import axiosInstance from "../lib/axiosInstance";
@@ -7,8 +7,10 @@ interface ReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   sellerName: string;
-  tsId: number;
+  sellerId: number;
+  sellerImage?: string | null;
   sellerRating?: number;
+  tsId: number;
   onSubmit: (rating: number) => void;
 }
 
@@ -16,24 +18,16 @@ export default function ReviewModal({
   isOpen,
   onClose,
   sellerName,
+  sellerImage,
   tsId,
-  sellerRating = 0,
   onSubmit,
 }: ReviewModalProps) {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const { addToast } = useToastStore();
 
-  useEffect(() => {
-    if (!isOpen) {
-      setRating(0);
-      setHover(0);
-    }
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
-  // 리뷰 등록
   const handleSubmit = async () => {
     if (rating === 0) {
       addToast("별점을 선택해주세요.", "warning");
@@ -61,7 +55,6 @@ export default function ReviewModal({
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
       <div className="bg-white w-[400px] rounded-2xl p-8 shadow-xl">
-        {/* 제목 */}
         <h2 className="text-xl font-bold text-center mb-2">
           판매자와의 거래, 어땠나요?
         </h2>
@@ -69,43 +62,71 @@ export default function ReviewModal({
           별점을 남기면 서로가 더 믿고 거래할 수 있어요.
         </p>
 
-        {/* 판매자 정보 + 별점 선택 */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gray-200 rounded-full" />
+            {sellerImage ? (
+              <img
+                src={sellerImage}
+                alt={`${sellerName} 프로필`}
+                className="w-12 h-12 rounded-full object-cover border border-gray-200 transition-opacity duration-300 opacity-100"
+                onError={(e) => (e.currentTarget.src = "/default-profile.png")}
+              />
+            ) : (
+              <div className="w-12 h-12 bg-gray-200 rounded-full" />
+            )}
             <div className="flex flex-col items-start">
               <p className="font-semibold">{sellerName}</p>
-              <p className="text-sm text-gray-500">
-                ★ {sellerRating.toFixed(1)}
-              </p>
             </div>
           </div>
 
           {/* 별점 선택 */}
-          <div className="flex items-center gap-1 mb-2">
+          <div className="flex items-center gap-1 mb-2 select-none">
             {[1, 2, 3, 4, 5].map((star) => {
-              const isActive = star <= (hover || rating);
+              const displayValue = hover || rating;
+              const full = displayValue >= star;
+              const half = displayValue + 0.5 === star;
+
               return (
-                <Star
+                <div
                   key={star}
-                  className={`w-8 h-8 cursor-pointer transform transition-all duration-300 ${
-                    isActive
-                      ? "fill-yellow-400 text-yellow-400 scale-105"
-                      : "text-gray-300 fill-transparent scale-100"
-                  }`}
-                  onClick={() => setRating(star)}
-                  onMouseEnter={() => setHover(star)}
+                  className="relative w-8 h-8 cursor-pointer"
                   onMouseLeave={() => setHover(0)}
-                />
+                >
+                  <div
+                    className="absolute left-0 top-0 w-1/2 h-full z-10"
+                    onMouseEnter={() => setHover(star - 0.5)}
+                    onClick={() => setRating(star - 0.5)}
+                  />
+                  <div
+                    className="absolute right-0 top-0 w-1/2 h-full z-10"
+                    onMouseEnter={() => setHover(star)}
+                    onClick={() => setRating(star)}
+                  />
+                  <Star className="absolute inset-0 w-8 h-8 text-gray-300 fill-gray-300" />
+                  {half && (
+                    <Star
+                      className="absolute inset-0 w-8 h-8 text-yellow-400 fill-yellow-400 transition-all duration-200"
+                      style={{
+                        maskImage:
+                          "linear-gradient(to right, black 50%, transparent 50%)",
+                        WebkitMaskImage:
+                          "linear-gradient(to right, black 50%, transparent 50%)",
+                      }}
+                    />
+                  )}
+                  {full && (
+                    <Star className="absolute inset-0 w-8 h-8 text-yellow-400 fill-yellow-400" />
+                  )}
+                </div>
               );
             })}
-            <span className="ml-2 text-gray-500 text-lg">
-              {rating > 0 ? `${rating}/5` : "0/5"}
+
+            <span className="ml-2 text-gray-500 text-lg min-w-[50px] text-center">
+              {rating > 0 ? `${rating.toFixed(1)}/5.0` : "0/5.0"}
             </span>
           </div>
         </div>
 
-        {/* 버튼 영역 - 중앙정렬 */}
         <div className="flex justify-center gap-4">
           <button
             onClick={() => {
