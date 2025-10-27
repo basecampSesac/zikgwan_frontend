@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { useState, useEffect, forwardRef } from "react";
+import { useState, useEffect, useRef, forwardRef } from "react";
 import { STADIUMS } from "../constants/stadiums";
 import { FiChevronDown } from "react-icons/fi";
 import ReactDatePicker from "react-datepicker";
@@ -56,7 +56,11 @@ function CustomSelect({
         type="button"
         onClick={handleToggle}
         className={`w-full h-10 flex items-center justify-between px-3 text-sm border rounded-md bg-white focus:outline-none
-          ${isOpen ? "border-[#6F00B6] ring-1 ring-[#6F00B6]" : "border-gray-200"} transition-colors`}
+          ${
+            isOpen
+              ? "border-[#6F00B6] ring-1 ring-[#6F00B6]"
+              : "border-gray-200"
+          } transition-colors`}
       >
         <span className={!selectedLabel ? "text-gray-400" : "text-gray-700"}>
           {selectedLabel || placeholder}
@@ -82,13 +86,16 @@ function CustomSelect({
 }
 
 // DatePicker 버튼
-const CustomDateInput = forwardRef<HTMLButtonElement, {
-  value?: string;
-  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
-  placeholder?: string;
-  setOpenSelectId?: (id: string | null) => void;
-  isOpen?: boolean;
-}>(({ value, onClick, placeholder, setOpenSelectId, isOpen }, ref) => (
+const CustomDateInput = forwardRef<
+  HTMLButtonElement,
+  {
+    value?: string;
+    onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+    placeholder?: string;
+    setOpenSelectId?: (id: string | null) => void;
+    isOpen?: boolean;
+  }
+>(({ value, onClick, placeholder, setOpenSelectId, isOpen }, ref) => (
   <button
     type="button"
     ref={ref}
@@ -120,17 +127,40 @@ export default function SearchPanel({
   const [openSelectId, setOpenSelectId] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
 
-  const handleSearch = () => {
-    onFilterChange?.({ keyword, team, stadium, date });
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    debounceTimer.current = setTimeout(() => {
+      const filters = { keyword, team, stadium, date };
+      onFilterChange?.(filters);
+    }, 400);
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [keyword]);
+
+  const handleReset = () => {
+    const empty = { keyword: "", team: "", stadium: "", date: "" };
+    setKeyword("");
+    setTeam("");
+    setStadium("");
+    setDate("");
+    setSelectedDate(null);
+    onReset?.();
+    onFilterChange?.(empty);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSearch();
+      const filters = { keyword, team, stadium, date };
+      onFilterChange?.(filters);
     }
   };
-  
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -145,25 +175,11 @@ export default function SearchPanel({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [externalRef]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onFilterChange?.({ keyword, team, stadium, date });
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [keyword, team, stadium, date]);
-
-  const handleReset = () => {
-    setKeyword("");
-    setTeam("");
-    setStadium("");
-    setDate("");
-    setSelectedDate(null);
-    onReset?.();
-    onFilterChange?.({ keyword: "", team: "", stadium: "", date: "" });
-  };
-
   return (
-    <div id="search-panel-container" className="bg-gray-50 rounded-lg p-6 border border-gray-100">
+    <div
+      id="search-panel-container"
+      className="bg-gray-50 rounded-lg p-6 border border-gray-100"
+    >
       <h2 className="text-lg font-semibold mb-4 text-gray-700">{title}</h2>
 
       {/* 검색어 입력 */}
@@ -248,7 +264,9 @@ export default function SearchPanel({
                 >
                   ◀
                 </button>
-                <span className="text-sm font-medium">{format(date, "yyyy년 MM월")}</span>
+                <span className="text-sm font-medium">
+                  {format(date, "yyyy년 MM월")}
+                </span>
                 <button
                   onClick={increaseMonth}
                   disabled={nextMonthButtonDisabled}
@@ -263,7 +281,9 @@ export default function SearchPanel({
 
         {/* 경기장 선택 */}
         <div className="flex flex-col flex-1">
-          <label className="text-sm font-medium text-gray-600 mb-1">경기장</label>
+          <label className="text-sm font-medium text-gray-600 mb-1">
+            경기장
+          </label>
           <CustomSelect
             id="stadium"
             options={[
@@ -279,10 +299,12 @@ export default function SearchPanel({
 
         {/* 검색/전체보기 버튼 */}
         <div className="flex flex-col w-40">
-          <label className="text-sm font-medium text-transparent mb-1">검색</label>
+          <label className="text-sm font-medium text-transparent mb-1">
+            검색
+          </label>
           <div className="flex gap-2">
             <button
-              onClick={handleSearch}
+              onClick={() => onFilterChange?.({ keyword, team, stadium, date })}
               className="flex-1 h-10 flex items-center justify-center gap-2 bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors rounded-md"
             >
               <Search size={16} />
