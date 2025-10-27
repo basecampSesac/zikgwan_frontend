@@ -35,17 +35,19 @@ export default function ConfirmModal({
         </p>
 
         {children && <div className="mb-4">{children}</div>}
+
         {/* 버튼 (중앙 정렬) */}
         <div className="flex justify-center gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50"
+            className="px-4 py-2 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition"
           >
             {cancelText}
           </button>
+
           <button
             onClick={onConfirm}
-            className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+            className="px-4 py-2 rounded-md font-semibold text-white transition-colors bg-[#6F00B6] hover:bg-[#8A2BE2]"
           >
             {confirmText}
           </button>

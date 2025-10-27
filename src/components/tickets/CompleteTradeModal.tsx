@@ -30,14 +30,40 @@ export default function CompleteTradeModal({
   // 구매자 목록 불러오기
   useEffect(() => {
     if (!isOpen) return;
-    const fetchBuyers = async () => {
+
+    const preloadBuyerImages = async () => {
       try {
         const res = await axiosInstance.get(`/api/tickets/buyer/${tsId}`);
-
         if (res.data?.status === "success" && Array.isArray(res.data.data)) {
-          setBuyers(res.data.data);
+          const buyersData = res.data.data;
+
+          // 이미지 미리 병렬로 가져오기
+          const withImages = await Promise.all(
+            buyersData.map(async (b) => {
+              try {
+                const { data } = await axiosInstance.get(
+                  `/api/images/U/${b.userId}`
+                );
+                if (data.status === "success" && data.data) {
+                  const resolvedUrl = data.data.startsWith("http")
+                    ? data.data
+                    : `http://localhost:8080/images/${data.data.replace(
+                        /^\/+/,
+                        ""
+                      )}`;
+                  return { ...b, imageUrl: resolvedUrl };
+                }
+                return { ...b, imageUrl: null };
+              } catch (err) {
+                console.warn(`⚠️ 프로필 로드 실패 (userId=${b.userId})`, err);
+                return { ...b, imageUrl: null };
+              }
+            })
+          );
+
+          setBuyers(withImages);
         } else {
-          console.warn("⚠️ [fetchBuyers] 데이터 형식 이상:", res.data);
+          console.warn("⚠️ [fetchBuyers] 데이터 이상:", res.data);
           setBuyers([]);
         }
       } catch (err) {
@@ -45,8 +71,9 @@ export default function CompleteTradeModal({
         addToast("구매자 목록을 불러오지 못했습니다.", "error");
       }
     };
-    fetchBuyers();
-  }, [isOpen, addToast]);
+
+    preloadBuyerImages();
+  }, [isOpen, tsId, addToast]);
 
   // 거래 완료 확정 (구매자 선택 후)
   const handleConfirm = async () => {
@@ -58,15 +85,9 @@ export default function CompleteTradeModal({
     setIsLoading(true);
     try {
       // 구매자 지정
-      console.log("🚀 [PUT] /api/tickets/select 요청 시작:", {
-        tsId,
-        buyerId: selectedBuyer,
-      });
-
       const selectRes = await axiosInstance.put(
         `/api/tickets/select/${tsId}?buyerId=${selectedBuyer}`
       );
-
       if (selectRes.data?.status !== "success") {
         addToast(selectRes.data?.message || "구매자 지정 실패", "error");
         setIsLoading(false);
@@ -74,11 +95,9 @@ export default function CompleteTradeModal({
       }
 
       // 상태 변경 (판매 완료)
-      console.log("🚀 [PUT] /api/tickets/state 요청 시작:", tsId);
       const stateRes = await axiosInstance.put(`/api/tickets/state/${tsId}`, {
         state: "END",
       });
-
       if (stateRes.data?.status === "success") {
         addToast("거래가 완료되었습니다.", "success");
         onSuccess();
@@ -93,8 +112,6 @@ export default function CompleteTradeModal({
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {}, [buyers]);
 
   return (
     <ConfirmModal
@@ -116,24 +133,26 @@ export default function CompleteTradeModal({
             {buyers.map((b) => (
               <button
                 key={b.userId}
-                onClick={() => {
-                  setSelectedBuyer(b.userId);
-                }}
+                onClick={() => setSelectedBuyer(b.userId)}
                 className={`w-full flex items-center gap-3 p-2 rounded-lg border transition ${
                   selectedBuyer === b.userId
                     ? "border-[#6F00B6] bg-[#f7f3fb]"
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
-                <img
-                  src={
-                    b.imageUrl
-                      ? `http://localhost:8080${b.imageUrl}`
-                      : "/default-profile.png"
-                  }
-                  alt={b.nickname}
-                  className="w-10 h-10 rounded-full object-cover border border-gray-200"
-                />
+                {b.imageUrl ? (
+                  <img
+                    src={b.imageUrl}
+                    alt={b.nickname}
+                    className="w-10 h-10 rounded-full object-cover border border-gray-200 transition-opacity duration-300"
+                    onError={(e) =>
+                      (e.currentTarget.src = "/default-profile.png")
+                    }
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gray-200" />
+                )}
+
                 <span
                   className={`font-medium ${
                     selectedBuyer === b.userId

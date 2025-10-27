@@ -21,6 +21,9 @@ export default function TicketSection() {
   const [selectedTicket, setSelectedTicket] = useState<CompletedTicket | null>(
     null
   );
+  const [sellerProfileImage, setSellerProfileImage] = useState<string | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const observerRef = useRef<HTMLDivElement | null>(null);
@@ -66,13 +69,32 @@ export default function TicketSection() {
   }, [tickets]);
 
   // 리뷰 등록
+  const handleOpenReview = async (ticket: CompletedTicket) => {
+    try {
+      const { data } = await axiosInstance.get(
+        `/api/images/U/${ticket.sellerId}`
+      );
+      if (data.status === "success" && data.data) {
+        const rawUrl = data.data.startsWith("http")
+          ? data.data
+          : `http://localhost:8080/images/${data.data.replace(/^\/+/, "")}`;
+        setSellerProfileImage(rawUrl);
+      } else {
+        setSellerProfileImage(null);
+      }
+    } catch (err) {
+      console.error("🚨 판매자 프로필 선제 로드 실패:", err);
+      setSellerProfileImage(null);
+    } finally {
+      setSelectedTicket(ticket);
+    }
+  };
+
   const handleReviewSubmit = (rating: number) => {
     if (!selectedTicket) return;
-
     setTickets((prev) =>
       prev.map((t) => (t.tsId === selectedTicket.tsId ? { ...t, rating } : t))
     );
-
     addToast("리뷰가 등록되었습니다.", "success");
     setSelectedTicket(null);
   };
@@ -96,10 +118,8 @@ export default function TicketSection() {
 
               <ul className="space-y-4">
                 {list.map((ticket) => {
-                  const isBuyer =
-                    Number(ticket.buyerId) === Number(currentUserId);
-                  const isSeller =
-                    Number(ticket.sellerId) === Number(currentUserId);
+                  const isBuyer = Number(ticket.buyerId) === currentUserId;
+                  const isSeller = Number(ticket.sellerId) === currentUserId;
                   const isRated = ticket.rating !== null;
                   const hasBuyer =
                     ticket.buyerId !== null && ticket.buyerId !== undefined;
@@ -117,10 +137,7 @@ export default function TicketSection() {
                           {ticket.home} vs {ticket.away} · {ticket.stadium}
                         </p>
                         <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
-                          <FaRegCalendarAlt
-                            size={11}
-                            className="text-gray-400"
-                          />
+                          <FaRegCalendarAlt size={11} />
                           <span>
                             경기일:{" "}
                             {ticket.gameDay
@@ -128,7 +145,6 @@ export default function TicketSection() {
                               : "미정"}
                           </span>
                         </div>
-
                         <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
                           <FaUser size={12} />
                           <span>
@@ -142,7 +158,6 @@ export default function TicketSection() {
                           {ticket.price.toLocaleString()}원
                         </span>
 
-                        {/* 평가 상태별 UI */}
                         {isRated ? (
                           <div className="flex items-center gap-1 text-yellow-500 text-sm font-bold text-[20px] mb-4">
                             <FaStar size={13} className="text-yellow-400" />
@@ -150,7 +165,7 @@ export default function TicketSection() {
                           </div>
                         ) : isBuyer && hasBuyer ? (
                           <button
-                            onClick={() => setSelectedTicket(ticket)}
+                            onClick={() => handleOpenReview(ticket)}
                             className="px-3 py-1 text-[17px] font-semibold text-white bg-[#6F00B6] rounded-md hover:bg-[#57008f] transition mb-4"
                           >
                             거래 평가하기
@@ -167,7 +182,6 @@ export default function TicketSection() {
               </ul>
             </section>
           ))}
-
           <div
             ref={observerRef}
             className="flex justify-center items-center py-6 text-gray-400"
@@ -186,8 +200,9 @@ export default function TicketSection() {
         isOpen={!!selectedTicket}
         onClose={() => setSelectedTicket(null)}
         sellerName={`판매자 ${selectedTicket?.sellerNickname ?? ""}`}
+        sellerId={selectedTicket?.sellerId ?? 0}
         tsId={selectedTicket?.tsId ?? 0}
-        sellerRating={selectedTicket?.rating || 0}
+        sellerImage={sellerProfileImage}
         onSubmit={handleReviewSubmit}
       />
     </div>
