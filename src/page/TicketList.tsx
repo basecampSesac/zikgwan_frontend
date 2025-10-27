@@ -42,31 +42,27 @@ export default function TicketList() {
   const [sortType, setSortType] = useState<SortType>("RECENT");
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false); // 로딩 텍스트 비활성화용
   const [totalCount, setTotalCount] = useState(0);
 
   const { addToast } = useToastStore();
 
   // 티켓 목록 조회
   const fetchTickets = useCallback(
-    async (sort: SortType = "RECENT", pageNum = 0, filter?: typeof filters) => {
+    async (sort: SortType = "RECENT", pageNum = 0, filter = filters) => {
       setLoading(true);
       try {
-        const activeFilter = filter || filters;
         const hasFilter =
-          activeFilter.keyword ||
-          activeFilter.team ||
-          activeFilter.stadium ||
-          activeFilter.date;
+          filter.keyword || filter.team || filter.stadium || filter.date;
 
         const endpoint = hasFilter ? "/api/tickets/search" : "/api/tickets/all";
 
         const params = hasFilter
           ? {
-              title: activeFilter.keyword || undefined,
-              team: activeFilter.team || undefined,
-              stadium: activeFilter.stadium || undefined,
-              gameDay: activeFilter.date || undefined,
+              title: filter.keyword || undefined,
+              team: filter.team || undefined,
+              stadium: filter.stadium || undefined,
+              gameDay: filter.date || undefined,
               page: pageNum,
               size: 12,
               sortType: sort,
@@ -110,13 +106,17 @@ export default function TicketList() {
             nickname: t.nickname,
             rating: t.rating ?? null,
             state: t.state,
-            imageUrl:  t.imageUrl && t.imageUrl.trim() !== ""
-            ? t.imageUrl.startsWith("http")
-              ? t.imageUrl
-              : t.imageUrl.startsWith("/")
-              ? t.imageUrl
-              : `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
-            : "",
+            imageUrl:
+              t.imageUrl && t.imageUrl.trim() !== ""
+                ? t.imageUrl.startsWith("http")
+                  ? t.imageUrl
+                  : t.imageUrl.startsWith("/")
+                  ? t.imageUrl
+                  : `http://localhost:8080/images/${t.imageUrl.replace(
+                      /^\/+/,
+                      ""
+                    )}`
+                : "",
             createdAt: t.createdAt,
             updatedAt: t.updatedAt,
           }));
@@ -130,7 +130,7 @@ export default function TicketList() {
         console.error("티켓 목록 조회 실패:", err);
         addToast("티켓 목록을 불러오지 못했습니다.", "error");
       } finally {
-        setTimeout(() => setLoading(false), 200);
+        setTimeout(() => setLoading(false), 150);
       }
     },
     [filters, addToast]
@@ -186,21 +186,19 @@ export default function TicketList() {
         />
 
         {/* 카드 리스트 */}
-        {loading ? (
-          <div className="text-center text-gray-500 py-20">
-            티켓을 불러오는 중입니다...
-          </div>
-        ) : tickets.length > 0 ? (
-          <div className="grid gap-6 grid-cols-[repeat(auto-fill,_minmax(240px,_1fr))]">
-            {tickets.map((ticket) => (
-              <TicketCard key={ticket.tsId} {...ticket} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20 text-gray-500">
-            등록된 티켓이 없습니다.
-          </div>
-        )}
+        <div className="min-h-[300px]">
+          {tickets.length > 0 ? (
+            <div className="grid gap-6 grid-cols-[repeat(auto-fill,_minmax(240px,_1fr))] ">
+              {tickets.map((ticket) => (
+                <TicketCard key={ticket.tsId} {...ticket} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center text-gray-500 py-20">
+              등록된 티켓이 없습니다.
+            </div>
+          )}
+        </div>
 
         {/* 페이지네이션 */}
         <Pagination
