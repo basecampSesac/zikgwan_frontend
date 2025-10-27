@@ -5,6 +5,7 @@ import { STADIUM_MAP } from "../constants/stadiums";
 import { AiOutlineLeft, AiOutlineRight } from "react-icons/ai";
 import type { Match } from "../types/match";
 import { formatTabDate } from "../utils/format";
+import { TEAM_LOGO_MAP } from "../constants/teamLogoMap";
 
 function getTeamLabel(value: string) {
   return TEAMS.find((t) => t.value === value)?.label ?? value;
@@ -178,14 +179,30 @@ export default function SchedulePage() {
                   key={`${game.date}-${game.home}-${game.away}`}
                   className="flex justify-between items-center px-8 py-7 bg-white hover:bg-gray-50 transition"
                 >
-                  <div className="flex items-center space-x-6">
-                    <span className="font-bold text-[20px] text-gray-900">
-                      {getTeamLabel(game.home)}
+                  <div className="flex items-center justify-start gap-x-6">
+                    <div className="flex items-center gap-x-2 flex-shrink-0">
+                      <span className="font-bold text-[23px] text-gray-900 whitespace-nowrap">
+                        {getTeamLabel(game.home)}
+                      </span>
+                      <img
+                        src={TEAM_LOGO_MAP[game.home]}
+                        alt={game.home}
+                        className="w-9 h-9 object-contain"
+                      />
+                    </div>
+                    <span className="text-[18px] text-gray-500 font-medium text-center flex-shrink-0">
+                      vs
                     </span>
-                    <span className="text-[18px] text-gray-500">vs</span>
-                    <span className="font-bold text-[20px] text-gray-900">
-                      {getTeamLabel(game.away)}
-                    </span>
+                    <div className="flex items-center gap-x-2 flex-shrink-0">
+                      <img
+                        src={TEAM_LOGO_MAP[game.away]}
+                        alt={game.away}
+                        className="w-9 h-9 object-contain"
+                      />
+                      <span className="font-bold text-[23px] text-gray-900 whitespace-nowrap">
+                        {getTeamLabel(game.away)}
+                      </span>
+                    </div>
                   </div>
                   <span className="px-5 py-2 rounded-full text-[16px] font-semibold bg-[#6F00B6]/10 text-[#6F00B6]">
                     {getStadiumLabel(game.place)}
