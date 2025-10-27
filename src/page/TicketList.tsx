@@ -110,9 +110,13 @@ export default function TicketList() {
             nickname: t.nickname,
             rating: t.rating ?? null,
             state: t.state,
-            imageUrl: t.imageUrl
-              ? `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
-              : "",
+            imageUrl:  t.imageUrl && t.imageUrl.trim() !== ""
+            ? t.imageUrl.startsWith("http")
+              ? t.imageUrl
+              : t.imageUrl.startsWith("/")
+              ? t.imageUrl
+              : `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
+            : "",
             createdAt: t.createdAt,
             updatedAt: t.updatedAt,
           }));
