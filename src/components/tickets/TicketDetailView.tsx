@@ -45,6 +45,23 @@ export default function TicketDetailView() {
       const res = await axiosInstance.get(`/api/tickets/${id}`);
       if (res.data?.status === "success" && res.data.data) {
         const t = res.data.data;
+
+        // 이미지 URL 처리 로직
+      const resolvedImageUrl =
+        t.imageUrl && t.imageUrl.trim() !== ""
+          ? t.imageUrl.startsWith("http")
+            ? t.imageUrl // 이미 http 또는 https로 시작하는 완전한 URL
+            : `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
+          : getDefaultStadiumImage(t.stadium ?? "");
+
+      //프로필 이미지 처리 로직
+      const resolvedProfileImageUrl =
+        t.profileImageUrl && t.profileImageUrl.trim() !== ""
+          ? t.profileImageUrl.startsWith("http")
+            ? t.profileImageUrl
+            : `http://localhost:8080/images/${t.profileImageUrl.replace(/^\/+/, "")}`
+          : "/images/default-profile.png";
+
         setTicket({
           tsId: t.tsId ?? 0,
           title: t.title ?? "제목 없음",
@@ -61,15 +78,8 @@ export default function TicketDetailView() {
           state: t.state ?? "ING",
           createdAt: t.createdAt ?? "",
           updatedAt: t.updatedAt ?? "",
-          imageUrl: t.imageUrl
-            ? `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
-            : getDefaultStadiumImage(t.stadium ?? ""),
-          profileImageUrl: t.profileImageUrl
-            ? `http://localhost:8080/images/${t.profileImageUrl.replace(
-                /^\/+/,
-                ""
-              )}`
-            : "/images/default-profile.png",
+          imageUrl: resolvedImageUrl,
+          profileImageUrl: resolvedProfileImageUrl,
         });
       } else {
         addToast("티켓 정보를 불러오지 못했습니다.", "error");

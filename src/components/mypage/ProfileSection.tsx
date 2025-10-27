@@ -51,10 +51,26 @@ export default function ProfileSection() {
     setUploading(true);
 
     try {
-      const imageUrl = await uploadImage("U", file, user.userId); //URL 바로 받음
+      const res = await uploadImage("U", file, user.userId); //URL 바로 받음
+      
+      // 기존 형태 유지하면서 반환값이 객체일 때 data만 추출
+    const imageUrl =
+      typeof res === "string"
+        ? res
+        : res?.data && typeof res.data === "string"
+        ? res.data
+        : "";
 
-      setProfileImage(imageUrl);
-      setUser({ ...user, profileImage: imageUrl });
+      // URL 형태면 그대로, 상대 경로면 localhost 붙이기
+      const resolvedImageUrl =
+        imageUrl && imageUrl.trim() !== ""
+          ? imageUrl.startsWith("http")
+            ? imageUrl
+            : `http://localhost:8080/images/${imageUrl.replace(/^\/+/, "")}`
+          : "";
+
+      setProfileImage(resolvedImageUrl);
+      setUser({ ...user, profileImage: resolvedImageUrl });
       addToast("프로필 이미지가 변경되었습니다.", "success");
     } catch (err) {
       console.error("프로필 업로드 오류:", err);
@@ -158,9 +174,13 @@ export default function ProfileSection() {
      if (!user) return; // 유저 없으면 아무것도 하지 않음
   if (profileImage) return; // 이미 프로필 이미지가 세팅돼 있으면 재요청 X
 
-  // user.profileImage가 있다면 그대로 사용
+  // user.profileImage가 있다면 URL 형태인지 확인
   if (user.profileImage) {
-    setProfileImage(user.profileImage);
+    const resolvedImageUrl =
+      user.profileImage.startsWith("http")
+        ? user.profileImage
+        : `http://localhost:8080/images/${user.profileImage.replace(/^\/+/, "")}`;
+    setProfileImage(resolvedImageUrl);
     return;
   }
 
@@ -169,7 +189,12 @@ export default function ProfileSection() {
       try {
         const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
         if (data.status === "success" && data.data) {
-          const imageUrl = getImageUrl(data.data);
+          //  URL 형태면 그대로, 상대 경로면 localhost 붙이기
+          const imageUrl =
+            data.data.startsWith("http")
+              ? data.data
+              : `http://localhost:8080/images/${data.data.replace(/^\/+/, "")}`;
+
           setProfileImage(imageUrl);
           setUser({ ...user, profileImage: imageUrl });
         }
