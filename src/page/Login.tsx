@@ -1,3 +1,4 @@
+// cspell:disable
 import { useAuthStore } from "../store/authStore";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";

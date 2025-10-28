@@ -1,10 +1,11 @@
+// cspell:ignore EMAILEXIST chknickname
 import { useState, useEffect } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../lib/axiosInstance";
 import { TEAMS } from "../constants/teams";
 import { useToastStore } from "../store/toastStore";
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -35,13 +36,12 @@ export default function SignupPage() {
         verifiedType: "S",
       });
       if (res.data.status !== "success") {
-        if(res.data.message === "EMAILEXIST") {
+        if (res.data.message === "EMAILEXIST") {
           setEmailMessage("이미 사용 중인 이메일입니다.");
-        }
-        else{
+        } else {
           setEmailMessage(res.data.message);
         }
-         setEmailAvailable(false);
+        setEmailAvailable(false);
         return;
       }
       setEmailMessage("가입이 가능한 이메일입니다.");
@@ -132,7 +132,8 @@ export default function SignupPage() {
       }
     } catch (e) {
       if (axios.isAxiosError(e)) {
-        const message = e.response?.data?.message || "회원가입 중 오류가 발생했습니다.";
+        const message =
+          e.response?.data?.message || "회원가입 중 오류가 발생했습니다.";
         addToast(message, "error");
       } else {
         addToast("알 수 없는 오류가 발생했습니다.", "error");
