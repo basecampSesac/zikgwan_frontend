@@ -39,7 +39,7 @@ export default function CompleteTradeModal({
 
           // 이미지 미리 병렬로 가져오기
           const withImages = await Promise.all(
-            buyersData.map(async (b) => {
+            buyersData.map(async (b: Buyer) => {
               try {
                 const { data } = await axiosInstance.get(
                   `/api/images/U/${b.userId}`
@@ -60,7 +60,6 @@ export default function CompleteTradeModal({
               }
             })
           );
-
           setBuyers(withImages);
         } else {
           console.warn("⚠️ [fetchBuyers] 데이터 이상:", res.data);
