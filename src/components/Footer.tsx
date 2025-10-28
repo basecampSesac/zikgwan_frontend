@@ -1,4 +1,4 @@
-// src/components/Footer.tsx
+// cspell:disable
 export function Footer() {
   return (
     <footer className="border-t border-gray-200 bg-white py-8">

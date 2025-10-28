@@ -5,6 +5,13 @@ import { useNotificationStore } from "../../store/notificationStore";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
+interface ChatNotification {
+  roomId: number;
+  sender: string;
+  message: string;
+  sentAt: string;
+}
+
 export default function NotificationSse() {
   const { user } = useAuthStore();
   const { addNotification } = useNotificationStore();
@@ -29,18 +36,21 @@ export default function NotificationSse() {
 
     eventSourceRef.current = eventSource;
 
-    eventSource.addEventListener("ping", (event: any) => {
-      console.log("서버 heartbeat:", event.data);
+    eventSource.addEventListener("ping", (event) => {
+      const e = event as MessageEvent<string>;
+      console.log("서버 heartbeat:", e.data);
     });
 
-    eventSource.addEventListener("connect", (event: any) => {
-      console.log("SSE 연결 성공:", event.data);
+    eventSource.addEventListener("connect", (event) => {
+      const e = event as MessageEvent<string>;
+      console.log("SSE 연결 성공:", e.data);
     });
 
-    eventSource.addEventListener("chat-notification", (event: any) => {
-      const data = JSON.parse(event.data);
+    eventSource.addEventListener("chat-notification", (event) => {
+      const e = event as MessageEvent<string>;
+      const data: ChatNotification = JSON.parse(e.data);
       console.log("새 알림 수신:", data);
-      addNotification(data); // 전역 상태에 추가
+      addNotification(data);
     });
 
     eventSource.onerror = (err) => {

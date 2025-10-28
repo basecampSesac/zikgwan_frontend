@@ -8,7 +8,7 @@ import {
 import { useChatSocket } from "./useChatSocket";
 import axiosInstance from "../../lib/axiosInstance";
 import { IoCopyOutline, IoReturnDownBackOutline } from "react-icons/io5";
-import EmojiPicker from "emoji-picker-react";
+import EmojiPicker, { type EmojiClickData } from "emoji-picker-react";
 
 interface ChatMessage {
   nickname: string;
@@ -77,7 +77,7 @@ const ChatRoom = forwardRef(function ChatRoom(
   };
 
   // 이모지 선택
-  const handleEmojiClick = (emojiData: any) => {
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
     setInput((prev) => prev + emojiData.emoji);
     setShowEmojiPicker(false);
   };

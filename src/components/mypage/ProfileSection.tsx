@@ -6,7 +6,7 @@ import { useToastStore } from "../../store/toastStore";
 import { TEAMS } from "../../constants/teams";
 import axiosInstance from "../../lib/axiosInstance";
 import axios, { AxiosError } from "axios";
-import { uploadImage, getImageUrl } from "../../api/imageApi";
+import { uploadImage } from "../../api/imageApi";
 
 export default function ProfileSection() {
   const { user, logout, setUser } = useAuthStore();
@@ -52,14 +52,14 @@ export default function ProfileSection() {
 
     try {
       const res = await uploadImage("U", file, user.userId); //URL 바로 받음
-      
+
       // 기존 형태 유지하면서 반환값이 객체일 때 data만 추출
-    const imageUrl =
-      typeof res === "string"
-        ? res
-        : res?.data && typeof res.data === "string"
-        ? res.data
-        : "";
+      const imageUrl =
+        typeof res === "string"
+          ? res
+          : res?.data && typeof res.data === "string"
+          ? res.data
+          : "";
 
       // URL 형태면 그대로, 상대 경로면 localhost 붙이기
       const resolvedImageUrl =
@@ -75,7 +75,9 @@ export default function ProfileSection() {
     } catch (err) {
       console.error("프로필 업로드 오류:", err);
       setProfileImage(prevImage);
-      setErrorMessage("프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요.");
+      setErrorMessage(
+        "프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요."
+      );
       addToast("프로필 이미지 업로드 실패", "error");
     } finally {
       setUploading(false);
@@ -171,29 +173,32 @@ export default function ProfileSection() {
   }, [user?.nickname, user?.club]);
 
   useEffect(() => {
-     if (!user) return; // 유저 없으면 아무것도 하지 않음
-  if (profileImage) return; // 이미 프로필 이미지가 세팅돼 있으면 재요청 X
+    if (!user) return; // 유저 없으면 아무것도 하지 않음
+    if (profileImage) return; // 이미 프로필 이미지가 세팅돼 있으면 재요청 X
 
-  // user.profileImage가 있다면 URL 형태인지 확인
-  if (user.profileImage) {
-    const resolvedImageUrl =
-      user.profileImage.startsWith("http")
+    // user.profileImage가 있다면 URL 형태인지 확인
+    if (user.profileImage) {
+      const resolvedImageUrl = user.profileImage.startsWith("http")
         ? user.profileImage
-        : `http://localhost:8080/images/${user.profileImage.replace(/^\/+/, "")}`;
-    setProfileImage(resolvedImageUrl);
-    return;
-  }
+        : `http://localhost:8080/images/${user.profileImage.replace(
+            /^\/+/,
+            ""
+          )}`;
+      setProfileImage(resolvedImageUrl);
+      return;
+    }
 
-  // 없을 때만 서버에서 조회
-  const fetchProfileImage = async () => {
+    // 없을 때만 서버에서 조회
+    const fetchProfileImage = async () => {
       try {
-        const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
+        const { data } = await axiosInstance.get(
+          `/api/images/U/${user.userId}`
+        );
         if (data.status === "success" && data.data) {
           //  URL 형태면 그대로, 상대 경로면 localhost 붙이기
-          const imageUrl =
-            data.data.startsWith("http")
-              ? data.data
-              : `http://localhost:8080/images/${data.data.replace(/^\/+/, "")}`;
+          const imageUrl = data.data.startsWith("http")
+            ? data.data
+            : `http://localhost:8080/images/${data.data.replace(/^\/+/, "")}`;
 
           setProfileImage(imageUrl);
           setUser({ ...user, profileImage: imageUrl });
@@ -206,12 +211,13 @@ export default function ProfileSection() {
     fetchProfileImage();
   }, [user]);
 
-
   // 회원탈퇴
   const handleDelete = async () => {
     if (!user) return;
     try {
-      const { data } = await axiosInstance.patch(`/api/user/delete/${user.userId}`);
+      const { data } = await axiosInstance.patch(
+        `/api/user/delete/${user.userId}`
+      );
       if (data.status === "success" && data.data === true) {
         addToast("회원탈퇴가 완료되었습니다.", "success");
         logout();

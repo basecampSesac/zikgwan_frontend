@@ -127,7 +127,7 @@ export default function SearchPanel({
   const [openSelectId, setOpenSelectId] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
 
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -140,6 +140,7 @@ export default function SearchPanel({
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword]);
 
   const handleReset = () => {
