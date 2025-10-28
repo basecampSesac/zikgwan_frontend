@@ -1,3 +1,5 @@
+// cspell:disable
+
 // 풀네임 리스트 (UI에서 선택할 때 사용)
 export const STADIUMS: string[] = [
   "광주-기아 챔피언스 필드",

@@ -1,3 +1,4 @@
+// cspell:disable
 import type { GroupUI } from "../types/group";
 import type { TicketUI } from "../types/ticket";
 
