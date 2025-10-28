@@ -3,6 +3,8 @@ import { useEffect, useRef } from "react";
 import SockJS from "sockjs-client";
 import { useAuthStore } from "../../store/authStore";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 interface ChatMessage {
   nickname: string;
   message: string;
@@ -21,7 +23,7 @@ export function useChatSocket(
     if (!roomId || !nickname) return;
 
     const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/ws-connect"),
+      webSocketFactory: () => new SockJS(`${API_URL}/ws-connect`),
       connectHeaders: {
         Authorization: `Bearer ${accessToken}`,
       },
