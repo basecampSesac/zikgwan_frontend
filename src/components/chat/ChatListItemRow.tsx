@@ -2,14 +2,12 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useChatWidgetStore } from "../../store/chatWidgetStore";
 import axiosInstance from "../../lib/axiosInstance";
-
-interface ChatListItem {
-  roomId: number;
-  roomName: string;
-  lastMessage: string;
-  unreadCount: number;
-  type?: "C" | "T"; // RoomType 구분 필드
-}
+import type {
+  ApiResponse,
+  ChatListItem,
+  CommunityItem,
+  TicketItem,
+} from "../../types/chat";
 
 interface Props {
   room: ChatListItem;
@@ -43,7 +41,9 @@ export default function ChatListItemRow({
         let leader: string | null = null;
 
         // 모임 검색
-        const communityRes = await axiosInstance.get(
+        const communityRes = await axiosInstance.get<
+          ApiResponse<CommunityItem[]>
+        >(
           `/api/communities/search?keyword=${encodeURIComponent(room.roomName)}`
         );
 
@@ -52,23 +52,23 @@ export default function ChatListItemRow({
           Array.isArray(communityRes.data.data)
         ) {
           const matched = communityRes.data.data.find(
-            (c: any) => c.title.trim() === room.roomName.trim()
+            (c) => c.title.trim() === room.roomName.trim()
           );
           if (matched) leader = matched.nickname;
         }
 
         // 티켓 검색
         if (!leader) {
-          const ticketRes = await axiosInstance.get(
-            `/api/tickets/all?keyword=${encodeURIComponent(room.roomName)}`
-          );
+          const ticketRes = await axiosInstance.get<
+            ApiResponse<{ content: TicketItem[] }>
+          >(`/api/tickets/all?keyword=${encodeURIComponent(room.roomName)}`);
 
           if (
             ticketRes.data.status === "success" &&
             Array.isArray(ticketRes.data.data?.content)
           ) {
             const matchedTicket = ticketRes.data.data.content.find(
-              (t: any) => t.title.trim() === room.roomName.trim()
+              (t) => t.title.trim() === room.roomName.trim()
             );
             if (matchedTicket) leader = matchedTicket.nickname;
           }
@@ -115,7 +115,6 @@ export default function ChatListItemRow({
         </p>
       </button>
 
-      {/* 수정: 모임방(C)은 리더만 숨기고, 티켓방(T)은 항상 표시 */}
       {!isLoading && (room.type === "T" || !isLeader) && (
         <button
           onClick={handleLeaveRoom}
