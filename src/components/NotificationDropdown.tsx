@@ -23,7 +23,7 @@ export default function NotificationDropdown() {
     Notification[]
   >([]);
   const { user } = useAuthStore();
-  const { notifications, hasUnread, markAllRead } = useNotificationStore();
+  const { hasUnread, markAllRead } = useNotificationStore();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { openPopup } = useChatWidgetStore();
