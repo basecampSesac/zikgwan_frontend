@@ -8,8 +8,10 @@ export default function TicketDetail() {
   const [ticket, setTicket] = useState<TicketUI | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
   useEffect(() => {
-    fetch(`http://localhost:8080/api/tickets/${id}`)
+    fetch(`${API_URL}/api/tickets/${id}`)
       .then(async (res) => {
         if (!res.ok) {
           const data = await res.json();

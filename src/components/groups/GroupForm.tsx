@@ -12,6 +12,8 @@ import type { GroupUI } from "../../types/group";
 import { useGroupUpdateStore } from "../../store/groupUpdateStore";
 import type { CommunityItem } from "../../types/group";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 interface GroupFormProps {
   mode?: "create" | "edit";
   initialValues?: Partial<GroupUI>;
@@ -43,7 +45,7 @@ export default function GroupForm({
       if (initialValues.imageUrl.includes("/stadiums/")) return null;
       return initialValues.imageUrl.startsWith("http")
         ? initialValues.imageUrl
-        : `http://localhost:8080/images/${initialValues.imageUrl.replace(
+        : `${API_URL}/images/${initialValues.imageUrl.replace(
             /^\/+/,
             ""
           )}`;

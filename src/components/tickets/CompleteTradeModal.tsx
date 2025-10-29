@@ -3,6 +3,8 @@ import axiosInstance from "../../lib/axiosInstance";
 import { useToastStore } from "../../store/toastStore";
 import ConfirmModal from "../../Modals/ConfirmModal";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 interface CompleteTradeModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -47,7 +49,7 @@ export default function CompleteTradeModal({
                 if (data.status === "success" && data.data) {
                   const resolvedUrl = data.data.startsWith("http")
                     ? data.data
-                    : `http://localhost:8080/images/${data.data.replace(
+                    : `${API_URL}/images/${data.data.replace(
                         /^\/+/,
                         ""
                       )}`;

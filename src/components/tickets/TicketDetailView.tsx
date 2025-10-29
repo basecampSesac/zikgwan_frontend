@@ -25,6 +25,8 @@ import { useChatWidgetStore } from "../../store/chatWidgetStore";
 import { formatDate } from "../../utils/format";
 import CompleteTradeModal from "./CompleteTradeModal";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 export default function TicketDetailView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -51,7 +53,7 @@ export default function TicketDetailView() {
         t.imageUrl && t.imageUrl.trim() !== ""
           ? t.imageUrl.startsWith("http")
             ? t.imageUrl // 이미 http 또는 https로 시작하는 완전한 URL
-            : `http://localhost:8080/images/${t.imageUrl.replace(/^\/+/, "")}`
+            : `${API_URL}images/${t.imageUrl.replace(/^\/+/, "")}`
           : getDefaultStadiumImage(t.stadium ?? "");
 
       //프로필 이미지 처리 로직
@@ -59,7 +61,7 @@ export default function TicketDetailView() {
         t.profileImageUrl && t.profileImageUrl.trim() !== ""
           ? t.profileImageUrl.startsWith("http")
             ? t.profileImageUrl
-            : `http://localhost:8080/images/${t.profileImageUrl.replace(/^\/+/, "")}`
+            : `${API_URL}/images/${t.profileImageUrl.replace(/^\/+/, "")}`
           : "/images/default-profile.png";
 
         setTicket({

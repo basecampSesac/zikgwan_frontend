@@ -7,6 +7,9 @@ import axiosInstance from "../lib/axiosInstance";
 import { useToastStore } from "../store/toastStore";
 import PasswordReset from "../components/auth/PasswordReset";
 
+
+const  API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 export default function LoginPage() {
   const { email, password, setEmail, setPassword, login } = useAuthStore();
   const navigate = useNavigate();
@@ -43,7 +46,7 @@ export default function LoginPage() {
             `/api/images/U/${data.userId}`
           );
           if (imgRes.data.status === "success" && imgRes.data.data) {
-            const imageUrl = `http://localhost:8080${imgRes.data.data}`;
+            const imageUrl = `${API_URL}${imgRes.data.data}`;
             useAuthStore.getState().setUser({
               ...userInfo,
               profileImage: imageUrl,

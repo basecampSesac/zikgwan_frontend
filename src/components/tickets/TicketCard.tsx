@@ -6,6 +6,8 @@ import { getDefaultStadiumImage } from "../../constants/stadiums";
 import { useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 export default function TicketCard({
   tsId,
   title,
@@ -31,7 +33,7 @@ export default function TicketCard({
         ? imageUrl
         : imageUrl.startsWith("/")
         ? imageUrl
-        : `http://localhost:8080/images/${imageUrl.replace(/^\/+/, "")}`
+        : `${API_URL}/images/${imageUrl.replace(/^\/+/, "")}`
       : getDefaultStadiumImage(stadium);
 
   const [imgSrc, setImgSrc] = useState(resolvedImageUrl);
