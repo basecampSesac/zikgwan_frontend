@@ -8,8 +8,11 @@ import Modal from "../Modal";
 import TicketForm from "./TicketForm";
 import ShareButton from "../common/ShareButton";
 import { TICKET_TRADE_GUIDE } from "../../data/guides";
-import { MdOutlineSportsBaseball, MdAirlineSeatReclineNormal } from "react-icons/md";
-import { FiCheckCircle, FiRefreshCcw } from "react-icons/fi";
+import {
+  MdOutlineSportsBaseball,
+  MdAirlineSeatReclineNormal,
+} from "react-icons/md";
+import { FiCheckCircle } from "react-icons/fi";
 import {
   FiEdit3,
   FiTrash2,
@@ -18,7 +21,6 @@ import {
   FiCreditCard,
 } from "react-icons/fi";
 import { HiOutlineUsers } from "react-icons/hi";
-import { PiSeat } from "react-icons/pi";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
 import type { TicketUI } from "../../types/ticket";
 import { useChatWidgetStore } from "../../store/chatWidgetStore";
@@ -49,20 +51,20 @@ export default function TicketDetailView() {
         const t = res.data.data;
 
         // 이미지 URL 처리 로직
-      const resolvedImageUrl =
-        t.imageUrl && t.imageUrl.trim() !== ""
-          ? t.imageUrl.startsWith("http")
-            ? t.imageUrl // 이미 http 또는 https로 시작하는 완전한 URL
-            : `${API_URL}images/${t.imageUrl.replace(/^\/+/, "")}`
-          : getDefaultStadiumImage(t.stadium ?? "");
+        const resolvedImageUrl =
+          t.imageUrl && t.imageUrl.trim() !== ""
+            ? t.imageUrl.startsWith("http")
+              ? t.imageUrl // 이미 http 또는 https로 시작하는 완전한 URL
+              : `${API_URL}images/${t.imageUrl.replace(/^\/+/, "")}`
+            : getDefaultStadiumImage(t.stadium ?? "");
 
-      //프로필 이미지 처리 로직
-      const resolvedProfileImageUrl =
-        t.profileImageUrl && t.profileImageUrl.trim() !== ""
-          ? t.profileImageUrl.startsWith("http")
-            ? t.profileImageUrl
-            : `${API_URL}/images/${t.profileImageUrl.replace(/^\/+/, "")}`
-          : "/images/default-profile.png";
+        //프로필 이미지 처리 로직
+        const resolvedProfileImageUrl =
+          t.profileImageUrl && t.profileImageUrl.trim() !== ""
+            ? t.profileImageUrl.startsWith("http")
+              ? t.profileImageUrl
+              : `${API_URL}/images/${t.profileImageUrl.replace(/^\/+/, "")}`
+            : "/images/default-profile.png";
 
         setTicket({
           tsId: t.tsId ?? 0,
@@ -271,7 +273,12 @@ export default function TicketDetailView() {
                       text: ticket.stadium,
                     },
                     {
-                      icon: <MdAirlineSeatReclineNormal size={25} className="text-gray-500" />,
+                      icon: (
+                        <MdAirlineSeatReclineNormal
+                          size={25}
+                          className="text-gray-500"
+                        />
+                      ),
                       text:
                         ticket.adjacentSeat === "Y"
                           ? "연석 여부: Y"
@@ -389,24 +396,25 @@ export default function TicketDetailView() {
                   ))}
                 </ul>
               </div>
-
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
                 <h4 className="font-semibold text-gray-800 mb-3 text-lg">
                   💁 판매자 정보
                 </h4>
 
                 <div className="flex items-center gap-4 mt-8 mb-8">
-                  {ticket.profileImageUrl ? (
+                  {ticket.profileImageUrl &&
+                  ticket.profileImageUrl.startsWith("http") ? (
                     <img
                       src={ticket.profileImageUrl}
                       alt={`${ticket.nickname} 프로필`}
                       className="w-12 h-12 rounded-full object-cover border border-gray-200 shadow-sm flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#8A2BE2] to-[#6F00B6] flex items-center justify-center text-white text-xl font-bold shadow-sm flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#7B3FE4] via-[#9D4EDD] to-[#B47AEA] flex items-center justify-center text-white text-xl font-bold shadow-sm flex-shrink-0">
                       {ticket.nickname?.charAt(0).toUpperCase() ?? "?"}
                     </div>
                   )}
+
                   <div className="flex flex-col justify-center leading-tight">
                     <p className="text-[15px] font-semibold text-gray-900">
                       {ticket.nickname ?? "익명"}
