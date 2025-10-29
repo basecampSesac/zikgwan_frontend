@@ -54,7 +54,7 @@ export default function GroupDetailView() {
           ? `http://localhost:8080/images/${g.imageUrl.replace(/^\/+/, "")}`
           : undefined;
           */
-         //AWS S3 이미지 저장
+        //AWS S3 이미지 저장
         const fullImageUrl = g.imageUrl ? g.imageUrl : undefined;
 
         const mapped: GroupUI = {
@@ -352,18 +352,7 @@ export default function GroupDetailView() {
                       >
                         {/* 왼쪽: 프로필 + 닉네임 */}
                         <div className="flex items-center gap-3 -ml-1">
-                          {" "}
-                          {/* ← 여기! */}
                           {m.imageUrl ? (
-                            /*
-                              // 기존 코드: 로컬 서버 경로 강제
-                            <img
-                              src={`http://localhost:8080/images/${m.imageUrl.replace(/^\/+/, "")}`}
-                              alt={`${m.nickname} 프로필`}
-                              className="w-9 h-9 rounded-full object-cover border border-gray-200 shadow-sm flex-shrink-0"
-                            />
-                            */
-
                             // 수정된 코드: S3 URL 그대로 사용
                             <img
                               src={m.imageUrl}
@@ -371,7 +360,7 @@ export default function GroupDetailView() {
                               className="w-9 h-9 rounded-full object-cover border border-gray-200 shadow-sm flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#8A2BE2] to-[#6F00B6] flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#7B3FE4] via-[#9D4EDD] to-[#B47AEA] flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
                               {m.nickname?.charAt(0).toUpperCase() ?? "?"}
                             </div>
                           )}
