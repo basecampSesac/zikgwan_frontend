@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import axiosInstance from "../lib/axiosInstance";
+import { useToastStore } from "../store/toastStore";
 
 export interface User {
   userId: number;
@@ -84,6 +85,8 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
 
   /** 자동 로그인 **/
   tryAutoLogin: async () => {
+    const { addToast } = useToastStore.getState(); // 토스트 스토어에서 addToast 함수 가져오기
+    // ;
     try {
       const res = await axiosInstance.post("/api/user/refresh/login");
       const { status, data } = res.data;
@@ -108,14 +111,30 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
         console.warn("자동 로그인 실패: 서버 응답 오류");
         set({ isAuthenticated: false, user: null, accessToken: null });
       }
-    } catch (err) {
-      console.warn("자동 로그인 실패:", err);
+    } catch (err :any) {
+      // 백엔드에서 전달한 에러 메시지 처리
+      const message =
+        err.response?.data?.message || "세션이 만료되었습니다. 다시 로그인해주세요.";
+
+      // 토스트 메시지 표시
+      addToast(message,"error");
+
+      // 로그인 상태 초기화
+      localStorage.removeItem("accessToken");
+      sessionStorage.removeItem("accessToken");
       set({ isAuthenticated: false, user: null, accessToken: null });
+
+      // 1.5초 후 로그인 페이지 이동
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1500);
     }
   },
 
   /** 토큰 재발급 **/
   refreshAccessToken: async () => {
+    const { addToast } = useToastStore.getState(); // 토스트 스토어에서 addToast 함수 가져오기
+    
     try {
       const res = await axiosInstance.post("/api/user/refresh/login");
       const { status, data } = res.data;
@@ -128,9 +147,23 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
         console.warn("토큰 갱신 실패: 서버 응답 오류");
         set({ isAuthenticated: false, user: null, accessToken: null });
       }
-    } catch (err) {
-      console.error("토큰 갱신 실패:", err);
+    } catch (err:any) {
+      // 백엔드에서 전달한 에러 메시지 처리
+      const message =
+        err.response?.data?.message || "토큰이 만료되었습니다. 다시 로그인해주세요.";
+
+      // 토스트 메시지 표시
+      addToast(message,"error");
+
+      // 로그인 상태 초기화
+      localStorage.removeItem("accessToken");
+      sessionStorage.removeItem("accessToken");
       set({ isAuthenticated: false, user: null, accessToken: null });
+
+      // 1.5초 후 로그인 페이지 이동
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1500);
     }
   },
 }));
