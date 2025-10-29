@@ -20,6 +20,7 @@ import GlobalChatWidget from "./components/chat/GlobalChatWidget";
 import ChatPopupManager from "./components/chat/ChatPopupManger";
 import { getImageUrl } from "./api/imageApi";
 import TicketChatPage from "./page/TicketChatPage";
+import { Analytics } from '@vercel/analytics/react';
 
 const router = createBrowserRouter([
   {
@@ -102,6 +103,7 @@ export default function App() {
       <RouterProvider router={router} />
       <ChatPopupManager />
       <GlobalChatWidget />
+      <Analytics />
     </>
   );
 }

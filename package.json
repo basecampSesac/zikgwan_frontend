@@ -12,6 +12,7 @@
   "dependencies": {
     "@stomp/stompjs": "^7.2.0",
     "@tailwindcss/vite": "^4.1.13",
+    "@vercel/analytics": "^1.5.0",
     "axios": "^1.12.2",
     "date-fns": "^4.1.0",
     "emoji-picker-react": "^4.14.1",
