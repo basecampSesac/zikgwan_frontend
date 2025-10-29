@@ -10,6 +10,8 @@ import { useAuthStore } from "../../store/authStore";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
 import axiosInstance from "../../lib/axiosInstance";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 interface TicketFormProps {
   mode?: "create" | "edit";
   initialValues?: Partial<{
@@ -58,7 +60,7 @@ export default function TicketForm({
       if (initialValues.imageUrl.includes("/stadiums/")) return null;
       return initialValues.imageUrl.startsWith("http")
         ? initialValues.imageUrl
-        : `http://localhost:8080/images/${initialValues.imageUrl.replace(
+        : `${API_URL}/images/${initialValues.imageUrl.replace(
             /^\/+/,
             ""
           )}`;

@@ -8,6 +8,8 @@ import axiosInstance from "../../lib/axiosInstance";
 import axios, { AxiosError } from "axios";
 import { uploadImage } from "../../api/imageApi";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 export default function ProfileSection() {
   const { user, logout, setUser } = useAuthStore();
   const { addToast } = useToastStore();
@@ -61,12 +63,12 @@ export default function ProfileSection() {
           ? res.data
           : "";
 
-      // URL 형태면 그대로, 상대 경로면 localhost 붙이기
+      // URL 형태면 그대로, 상대 경로면 로컬URL 붙이기
       const resolvedImageUrl =
         imageUrl && imageUrl.trim() !== ""
           ? imageUrl.startsWith("http")
             ? imageUrl
-            : `http://localhost:8080/images/${imageUrl.replace(/^\/+/, "")}`
+            : `${API_URL}/images/${imageUrl.replace(/^\/+/, "")}`
           : "";
 
       setProfileImage(resolvedImageUrl);
@@ -180,13 +182,15 @@ export default function ProfileSection() {
     if (user.profileImage) {
       const resolvedImageUrl = user.profileImage.startsWith("http")
         ? user.profileImage
-        : `http://localhost:8080/images/${user.profileImage.replace(
+        : `${API_URL}/images/${user.profileImage.replace(
             /^\/+/,
             ""
           )}`;
       setProfileImage(resolvedImageUrl);
       return;
     }
+
+    console.log(API_URL);
 
     // 없을 때만 서버에서 조회
     const fetchProfileImage = async () => {
@@ -195,10 +199,10 @@ export default function ProfileSection() {
           `/api/images/U/${user.userId}`
         );
         if (data.status === "success" && data.data) {
-          //  URL 형태면 그대로, 상대 경로면 localhost 붙이기
+          //  URL 형태면 그대로, 상대 경로면 로컬URL 붙이기
           const imageUrl = data.data.startsWith("http")
             ? data.data
-            : `http://localhost:8080/images/${data.data.replace(/^\/+/, "")}`;
+            : `${API_URL}/images/${data.data.replace(/^\/+/, "")}`;
 
           setProfileImage(imageUrl);
           setUser({ ...user, profileImage: imageUrl });

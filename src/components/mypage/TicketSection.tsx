@@ -12,6 +12,8 @@ import { useToastStore } from "../../store/toastStore";
 import { useAuthStore } from "../../store/authStore";
 import { formatDate } from "../../utils/format";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 export default function TicketSection() {
   const { addToast } = useToastStore();
   const { user } = useAuthStore();
@@ -77,7 +79,7 @@ export default function TicketSection() {
       if (data.status === "success" && data.data) {
         const rawUrl = data.data.startsWith("http")
           ? data.data
-          : `http://localhost:8080/images/${data.data.replace(/^\/+/, "")}`;
+          : `${API_URL}/images/${data.data.replace(/^\/+/, "")}`;
         setSellerProfileImage(rawUrl);
       } else {
         setSellerProfileImage(null);
