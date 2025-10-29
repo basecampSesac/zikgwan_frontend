@@ -49,10 +49,7 @@ export default function CompleteTradeModal({
                 if (data.status === "success" && data.data) {
                   const resolvedUrl = data.data.startsWith("http")
                     ? data.data
-                    : `${API_URL}/images/${data.data.replace(
-                        /^\/+/,
-                        ""
-                      )}`;
+                    : `${API_URL}/images/${data.data.replace(/^\/+/, "")}`;
                   return { ...b, imageUrl: resolvedUrl };
                 }
                 return { ...b, imageUrl: null };
@@ -151,7 +148,9 @@ export default function CompleteTradeModal({
                     }
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gray-200" />
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#7B3FE4] via-[#9D4EDD] to-[#B47AEA] flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                    {b.nickname?.charAt(0).toUpperCase() ?? "?"}
+                  </div>
                 )}
 
                 <span

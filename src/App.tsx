@@ -20,7 +20,7 @@ import GlobalChatWidget from "./components/chat/GlobalChatWidget";
 import ChatPopupManager from "./components/chat/ChatPopupManger";
 import { getImageUrl } from "./api/imageApi";
 import TicketChatPage from "./page/TicketChatPage";
-import { Analytics } from '@vercel/analytics/react';
+import { Analytics } from "@vercel/analytics/react";
 
 const router = createBrowserRouter([
   {
@@ -38,7 +38,7 @@ const router = createBrowserRouter([
       { path: "/tickets/:id", Component: TicketDetail },
       { path: "/groups/:id", Component: GroupDetail },
       { path: "/chat/:id", Component: GroupChatPage },
-      { path: "/ticket-chat/:id", Component: TicketChatPage },  // 티켓 채팅 페이지 추가
+      { path: "/ticket-chat/:id", Component: TicketChatPage }, // 티켓 채팅 페이지 추가
     ],
   },
 ]);
@@ -51,9 +51,8 @@ export default function App() {
       const token =
         localStorage.getItem("accessToken") ||
         sessionStorage.getItem("accessToken");
-      if (!token) {
-        return;
-      }
+      if (!token) return;
+
       try {
         await tryAutoLogin();
 
@@ -68,18 +67,17 @@ export default function App() {
             const userData = userRes.data.data;
 
             let profileImage = "";
-            try {
-              const imgRes = await axiosInstance.get(
-                `/api/images/U/${user.userId}`
-              );
 
-              if (imgRes.data.status === "success" && imgRes.data.data) {
-                profileImage = getImageUrl(imgRes.data.data);
-              } else {
-                console.warn("⚠️ 사용자 이미지 없음, 기본 이미지 유지");
-              }
-            } catch (err) {
-              console.warn("⚠️ 프로필 이미지 조회 실패:", err);
+            // 프로필 이미지가 등록된 경우에만 세팅
+            if (
+              userData.profileImageUrl &&
+              userData.profileImageUrl.trim() !== ""
+            ) {
+              profileImage = userData.profileImageUrl.startsWith("http")
+                ? userData.profileImageUrl
+                : getImageUrl(userData.profileImageUrl);
+            } else {
+              console.log("프로필 이미지 없음 → 요청 스킵");
             }
 
             // Zustand store에 사용자 정보 + 이미지 반영

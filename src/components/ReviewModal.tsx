@@ -64,18 +64,25 @@ export default function ReviewModal({
 
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center gap-3 mb-4">
-            {sellerImage ? (
+            {sellerImage && sellerImage.startsWith("http") ? (
               <img
                 src={sellerImage}
                 alt={`${sellerName} 프로필`}
                 className="w-12 h-12 rounded-full object-cover border border-gray-200 transition-opacity duration-300 opacity-100"
-                onError={(e) => (e.currentTarget.src = "/default-profile.png")}
               />
             ) : (
-              <div className="w-12 h-12 bg-gray-200 rounded-full" />
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#7B3FE4] via-[#9D4EDD] to-[#B47AEA] flex items-center justify-center text-white text-lg font-bold shadow-sm">
+                {sellerName
+                  ?.replace(/^판매자\s*/, "")
+                  ?.charAt(0)
+                  .toUpperCase() ?? "?"}
+              </div>
             )}
+
             <div className="flex flex-col items-start">
-              <p className="font-semibold">{sellerName}</p>
+              <p className="font-semibold">
+                {sellerName?.replace(/^판매자\s*/, "")}
+              </p>
             </div>
           </div>
 

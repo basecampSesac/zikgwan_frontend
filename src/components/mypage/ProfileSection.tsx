@@ -182,10 +182,7 @@ export default function ProfileSection() {
     if (user.profileImage) {
       const resolvedImageUrl = user.profileImage.startsWith("http")
         ? user.profileImage
-        : `${API_URL}/images/${user.profileImage.replace(
-            /^\/+/,
-            ""
-          )}`;
+        : `${API_URL}/images/${user.profileImage.replace(/^\/+/, "")}`;
       setProfileImage(resolvedImageUrl);
       return;
     }
@@ -243,16 +240,20 @@ export default function ProfileSection() {
 
       {/* 프로필 이미지 */}
       <div className="flex flex-col items-center mb-6">
-        <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden mb-3 border border-gray-300">
-          {(profileImage || user?.profileImage) && (
+        <div className="w-24 h-24 rounded-full overflow-hidden mb-3 border border-gray-300 flex items-center justify-center bg-gray-100 shadow-inner">
+          {profileImage || user?.profileImage ? (
             <img
               src={profileImage || user?.profileImage || ""}
               alt="프로필"
               className="w-full h-full object-cover"
-              onError={(e) => (e.currentTarget.src = "/default-profile.png")}
             />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-white text-3xl font-bold bg-gradient-to-tr from-[#7B3FE4] via-[#9D4EDD] to-[#B47AEA] shadow-md">
+              {user?.nickname?.charAt(0).toUpperCase() ?? "?"}
+            </div>
           )}
         </div>
+
         <label
           className={`px-3 py-1 rounded-md text-sm font-medium text-white cursor-pointer ${
             uploading
