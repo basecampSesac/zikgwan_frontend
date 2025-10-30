@@ -59,9 +59,10 @@ export function Navbar() {
               {/* 닉네임 박스 (이모지 + 닉네임) */}
               <div
                 className="flex items-center gap-2 px-4 py-2 border rounded-lg border-gray-200
-                           text-[#6F00B6] font-semibold bg-white hover:bg-[#f9f5ff] transition select-none"
+             text-[#6F00B6] font-semibold bg-white hover:bg-[#f9f5ff] transition
+             h-[40px] leading-[1.25rem] box-border"
               >
-                <span className="text-lg">⚾</span>
+                <span className="text-base">⚾</span>
                 <span className="truncate max-w-[100px]">
                   {user?.nickname || "유저"}
                 </span>
