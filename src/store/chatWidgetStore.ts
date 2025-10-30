@@ -3,6 +3,7 @@ import { create } from "zustand";
 interface OpenedRoom {
   roomName: string;
   leaderNickname?: string;
+  memberCount?: number;
 }
 
 interface ChatWidgetState {
@@ -15,6 +16,7 @@ interface ChatWidgetState {
   openPopup: (
     roomId: number,
     roomName: string,
+    memberCount?: number,
     leaderNickname?: string
   ) => void;
   closePopup: (roomId: number) => void;
@@ -33,17 +35,17 @@ export const useChatWidgetStore = create<ChatWidgetState>((set) => ({
     set({ isOpen: false });
   },
 
-  openPopup: (roomId, roomName, leaderNickname) => {
+  openPopup: (roomId, roomName, memberCount, leaderNickname) => {
     console.log(
       `[Store] openPopup() 실행됨 → roomId=${roomId}, roomName=${roomName}, leader=${
         leaderNickname ?? "없음"
-      }`
+      }, members=${memberCount ?? "?"}`
     );
     console.trace("openPopup 호출 스택");
     set((state) => ({
       openedRooms: {
         ...state.openedRooms,
-        [roomId]: { roomName, leaderNickname },
+        [roomId]: { roomName, leaderNickname, memberCount },
       },
     }));
   },
