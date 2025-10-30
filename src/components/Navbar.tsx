@@ -5,7 +5,7 @@ import NotificationDropdown from "../components/NotificationDropdown";
 
 export function Navbar() {
   const navigate = useNavigate();
-  const { isAuthenticated, logout } = useAuthStore();
+  const { isAuthenticated, logout, user } = useAuthStore();
   const { addToast } = useToastStore();
 
   const handleLogout = async () => {
@@ -56,6 +56,17 @@ export function Navbar() {
         <div className="flex items-center gap-3 text-sm font-medium relative">
           {isAuthenticated ? (
             <>
+              {/* 닉네임 박스 (이모지 + 닉네임) */}
+              <div
+                className="flex items-center gap-2 px-4 py-2 border rounded-lg border-gray-200
+                           text-[#6F00B6] font-semibold bg-white hover:bg-[#f9f5ff] transition select-none"
+              >
+                <span className="text-lg">⚾</span>
+                <span className="truncate max-w-[100px]">
+                  {user?.nickname || "유저"}
+                </span>
+              </div>
+
               <button
                 onClick={() => navigate("/mypage")}
                 className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
@@ -68,6 +79,7 @@ export function Navbar() {
               >
                 로그아웃
               </button>
+
               <NotificationDropdown />
             </>
           ) : (
