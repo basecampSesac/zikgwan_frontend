@@ -175,7 +175,11 @@ export default function TicketDetailView() {
     try {
       // 이미 채팅방이 있으면 바로 입장
       if (roomId) {
-        openPopup(roomId, ticket.title, user.nickname);
+        // 채팅방 입장 시 멤버 수 정보까지 전달
+        const res = await axiosInstance.get(`/api/chatroom/detail/${roomId}`);
+        const memberCount = res.data?.data?.userCount ?? 0;
+
+        openPopup(roomId, ticket.title, memberCount, user.nickname);
         return;
       }
 
@@ -192,9 +196,17 @@ export default function TicketDetailView() {
       }
 
       const newRoomId = res.data.data.roomId;
+
+      // 새 채팅방 생성 후 멤버 수 조회
+      const detailRes = await axiosInstance.get(
+        `/api/chatroom/detail/${newRoomId}`
+      );
+      const memberCount = detailRes.data?.data?.userCount ?? 0;
+
       setRoomId(newRoomId);
       addToast("채팅방이 생성되었습니다.", "success");
-      openPopup(newRoomId, ticket.title, user.nickname);
+
+      openPopup(newRoomId, ticket.title, memberCount, user.nickname);
     } catch (err) {
       console.error("채팅방 생성 실패:", err);
       addToast("서버 오류가 발생했습니다.", "error");
