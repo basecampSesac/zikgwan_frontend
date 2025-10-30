@@ -1,13 +1,6 @@
-import { useEffect, useState } from "react";
 import { useAuthStore } from "../../store/authStore";
-import { useChatWidgetStore } from "../../store/chatWidgetStore";
+import type { ChatListItem } from "../../types/chat";
 import axiosInstance from "../../lib/axiosInstance";
-import type {
-  ApiResponse,
-  ChatListItem,
-  CommunityItem,
-  TicketItem,
-} from "../../types/chat";
 
 interface Props {
   room: ChatListItem;
@@ -21,74 +14,8 @@ export default function ChatListItemRow({
   onLeaveSuccess,
 }: Props) {
   const { user } = useAuthStore();
-  const { openedRooms, setLeaderNickname } = useChatWidgetStore();
 
-  const [leaderNickname, setLocalLeaderNickname] = useState<string | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchLeader = async () => {
-      try {
-        const existing = openedRooms[room.roomId]?.leaderNickname;
-        if (existing) {
-          setLocalLeaderNickname(existing);
-          setIsLoading(false);
-          return;
-        }
-
-        let leader: string | null = null;
-
-        // 모임 검색
-        const communityRes = await axiosInstance.get<
-          ApiResponse<CommunityItem[]>
-        >(
-          `/api/communities/search?keyword=${encodeURIComponent(room.roomName)}`
-        );
-
-        if (
-          communityRes.data.status === "success" &&
-          Array.isArray(communityRes.data.data)
-        ) {
-          const matched = communityRes.data.data.find(
-            (c) => c.title.trim() === room.roomName.trim()
-          );
-          if (matched) leader = matched.nickname;
-        }
-
-        // 티켓 검색
-        if (!leader) {
-          const ticketRes = await axiosInstance.get<
-            ApiResponse<{ content: TicketItem[] }>
-          >(`/api/tickets/all?keyword=${encodeURIComponent(room.roomName)}`);
-
-          if (
-            ticketRes.data.status === "success" &&
-            Array.isArray(ticketRes.data.data?.content)
-          ) {
-            const matchedTicket = ticketRes.data.data.content.find(
-              (t) => t.title.trim() === room.roomName.trim()
-            );
-            if (matchedTicket) leader = matchedTicket.nickname;
-          }
-        }
-
-        if (leader) {
-          setLeaderNickname(room.roomId, leader);
-          setLocalLeaderNickname(leader);
-        }
-      } catch (err) {
-        console.warn("leaderNickname 검색 실패:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLeader();
-  }, [room.roomId, room.roomName, openedRooms, setLeaderNickname]);
-
-  const isLeader = leaderNickname !== null && user?.nickname === leaderNickname;
+  const isLeader = room.type === "C" && room.leaderId === user?.userId;
 
   const handleLeaveRoom = async () => {
     try {
@@ -115,7 +42,11 @@ export default function ChatListItemRow({
         </p>
       </button>
 
-      {!isLoading && (room.type === "T" || !isLeader) && (
+      {/* 조건
+          - 티켓방(T): 항상 떠나기 가능
+          - 모임방(C): 리더일 경우 버튼 아예 숨김
+      */}
+      {(room.type === "T" || (room.type === "C" && !isLeader)) && (
         <button
           onClick={handleLeaveRoom}
           className="absolute right-4 top-1/2 -translate-y-1/2

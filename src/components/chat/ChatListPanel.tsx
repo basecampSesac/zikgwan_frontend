@@ -3,16 +3,7 @@ import { useAuthStore } from "../../store/authStore";
 import { useEffect, useState } from "react";
 import axiosInstance from "../../lib/axiosInstance";
 import ChatListItemRow from "./ChatListItemRow";
-
-interface ChatListItem {
-  roomId: number;
-  roomName: string;
-  lastMessage: string;
-  unreadCount: number;
-  communityId: number;
-  lastMessageTime?: string | null;
-  type?: "C" | "T"; // 수정: RoomType 구분 필드 추가
-}
+import type { ChatListItem } from "../../types/chat";
 
 // 수정: 탭 타입 정의
 type TabType = "TICKET" | "COMMUNITY";
