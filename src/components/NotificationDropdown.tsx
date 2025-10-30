@@ -5,7 +5,7 @@ import { FiTrash2 } from "react-icons/fi";
 import axiosInstance from "../lib/axiosInstance";
 import { useAuthStore } from "../store/authStore";
 import { useNotificationStore } from "../store/notificationStore";
-import { formatNotificationTime } from "../utils/format"; //
+import { formatNotificationTime } from "../utils/format";
 import { useChatWidgetStore } from "../store/chatWidgetStore";
 
 interface Notification {
@@ -82,7 +82,7 @@ export default function NotificationDropdown() {
     }
   };
 
-  // 알림 삭제 처리
+  // 알림 낱개 삭제
   const deleteNotification = async (id: number) => {
     if (!user) return;
     try {
@@ -90,6 +90,21 @@ export default function NotificationDropdown() {
       setServerNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
       console.error("알림 삭제 실패:", err);
+    }
+  };
+
+  // 알림 전체 삭제
+  const deleteAllNotifications = async () => {
+    if (!user || serverNotifications.length === 0) return;
+    try {
+      await Promise.all(
+        serverNotifications.map((n) =>
+          axiosInstance.delete(`/api/notification/${n.id}`).catch(() => null)
+        )
+      );
+      setServerNotifications([]);
+    } catch (err) {
+      console.error("알림 전체 삭제 실패:", err);
     }
   };
 
@@ -134,11 +149,13 @@ export default function NotificationDropdown() {
                   </span>
                 )}
               </h3>
+
+              {/* 전체 삭제 버튼 */}
               <button
-                onClick={fetchNotifications}
-                className="text-xs text-gray-400 hover:text-gray-600 transition"
+                onClick={deleteAllNotifications}
+                className="text-xs font-semibold text-[#6F00B6] hover:text-[#57008f] transition"
               >
-                새로고침
+                전체삭제
               </button>
             </div>
 
@@ -159,7 +176,7 @@ export default function NotificationDropdown() {
                     onClick={() => markAsRead(n.roomId, n.id)}
                   >
                     <div className="flex-1">
-                      <p className="font-medium= text-[14px] text-gray-900 mb-0.5">
+                      <p className="font-medium text-[14px] text-gray-900 mb-0.5">
                         {n.senderNickname}
                       </p>
                       <p className="text-sm text-gray-600 text-[13px] leading-snug truncate max-w-[230px]">

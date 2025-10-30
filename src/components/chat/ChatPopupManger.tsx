@@ -12,6 +12,7 @@ export default function ChatPopupManager() {
           roomId={Number(roomId)}
           title={roomData.roomName}
           offsetX={idx}
+          initialMemberCount={roomData.memberCount ?? 0}
         />
       ))}
     </>

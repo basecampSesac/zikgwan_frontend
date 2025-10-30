@@ -174,7 +174,7 @@ export default function GroupDetailView() {
       addToast("채팅방 정보를 불러오지 못했습니다.", "error");
       return;
     }
-    openPopup(roomId, group!.title, group!.leader);
+    openPopup(roomId, group!.title, members.length, group!.leader);
   };
 
   if (!group) {
