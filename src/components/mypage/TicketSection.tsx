@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaStar,
   FaUser,
@@ -17,6 +18,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 export default function TicketSection() {
   const { addToast } = useToastStore();
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const currentUserId = Number(user?.userId || 0);
 
   const [tickets, setTickets] = useState<CompletedTicket[]>([]);
@@ -129,7 +131,8 @@ export default function TicketSection() {
                   return (
                     <li
                       key={ticket.tsId}
-                      className="flex items-center gap-6 bg-white border border-gray-100 transition rounded-xl p-5 shadow-sm min-h-[120px]"
+                      onClick={() => navigate(`/tickets/${ticket.tsId}`)}
+                      className="flex items-center gap-6 bg-white border border-gray-100 transition rounded-xl p-5 shadow-sm min-h-[120px] cursor-pointer hover:shadow-md hover:border-gray-200"
                     >
                       <div className="flex-1 flex flex-col justify-center gap-1">
                         <h3 className="text-[18px] font-semibold text-gray-800 truncate">
@@ -167,7 +170,10 @@ export default function TicketSection() {
                           </div>
                         ) : isBuyer && hasBuyer ? (
                           <button
-                            onClick={() => handleOpenReview(ticket)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenReview(ticket);
+                            }}
                             className="px-3 py-1 text-[17px] font-semibold text-white bg-[#6F00B6] rounded-md hover:bg-[#57008f] transition mb-4"
                           >
                             거래 평가하기
