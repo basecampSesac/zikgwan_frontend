@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axiosInstance from "../../lib/axiosInstance";
 import { useToastStore } from "../../store/toastStore";
 import ConfirmModal from "../../Modals/ConfirmModal";
+import UserAvatar from "../common/UserAvatar";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
@@ -138,20 +139,11 @@ export default function CompleteTradeModal({
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
-                {b.imageUrl ? (
-                  <img
-                    src={b.imageUrl}
-                    alt={b.nickname}
-                    className="w-10 h-10 rounded-full object-cover border border-gray-200 transition-opacity duration-300"
-                    onError={(e) =>
-                      (e.currentTarget.src = "/default-profile.png")
-                    }
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#7B3FE4] via-[#9D4EDD] to-[#B47AEA] flex items-center justify-center text-white text-sm font-bold shadow-sm">
-                    {b.nickname?.charAt(0).toUpperCase() ?? "?"}
-                  </div>
-                )}
+                <UserAvatar
+                  imageUrl={b.imageUrl}
+                  nickname={b.nickname}
+                  size={40}
+                />
 
                 <span
                   className={`font-medium ${

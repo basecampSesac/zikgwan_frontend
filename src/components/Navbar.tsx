@@ -52,34 +52,32 @@ export function Navbar() {
           </button>
         </nav>
 
-        {/* 오른쪽 버튼 */}
-        <div className="flex items-center gap-3 text-sm font-medium relative">
+        {/* 오른쪽 영역 */}
+        <div className="flex items-center gap-6 text-base font-semibold text-[#29292D]">
           {isAuthenticated ? (
             <>
               {/* 닉네임 박스 (이모지 + 닉네임) */}
-              <div
-                className="flex items-center gap-2 px-4 py-2 border rounded-lg border-gray-200
-             text-[#6F00B6] font-semibold bg-white hover:bg-[#f9f5ff] transition
-             h-[40px] leading-[1.25rem] box-border"
-              >
-                <span className="text-base">⚾</span>
-                <span className="truncate max-w-[100px]">
-                  {user?.nickname || "유저"}
+              <div className="flex items-center gap-1 text-gray-700">
+                <span className="font-semibold text-[#6F00B6]">
+                  {user?.nickname || "유저"}님,
                 </span>
+                <span>반가워요 👋</span>
               </div>
 
-              <button
-                onClick={() => navigate("/mypage")}
-                className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
-              >
-                마이페이지
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 border rounded-lg text-[#6F00B6] font-semibold border-gray-200 hover:bg-[#f9f5ff] transition"
-              >
-                로그아웃
-              </button>
+              <div className="flex items-center gap-6 text-gray-700">
+                <button
+                  onClick={() => navigate("/mypage")}
+                  className="hover:text-[#6F00B6] transition"
+                >
+                  마이 페이지
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="hover:text-[#6F00B6] transition"
+                >
+                  로그아웃
+                </button>
+              </div>
 
               <NotificationDropdown />
             </>

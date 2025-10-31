@@ -26,6 +26,7 @@ import type { TicketUI } from "../../types/ticket";
 import { useChatWidgetStore } from "../../store/chatWidgetStore";
 import { formatDate } from "../../utils/format";
 import CompleteTradeModal from "./CompleteTradeModal";
+import UserAvatar from "../common/UserAvatar";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
@@ -414,18 +415,11 @@ export default function TicketDetailView() {
                 </h4>
 
                 <div className="flex items-center gap-4 mt-8 mb-8">
-                  {ticket.profileImageUrl &&
-                  ticket.profileImageUrl.startsWith("http") ? (
-                    <img
-                      src={ticket.profileImageUrl}
-                      alt={`${ticket.nickname} 프로필`}
-                      className="w-12 h-12 rounded-full object-cover border border-gray-200 shadow-sm flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#7B3FE4] via-[#9D4EDD] to-[#B47AEA] flex items-center justify-center text-white text-xl font-bold shadow-sm flex-shrink-0">
-                      {ticket.nickname?.charAt(0).toUpperCase() ?? "?"}
-                    </div>
-                  )}
+                  <UserAvatar
+                    imageUrl={ticket.profileImageUrl}
+                    nickname={ticket.nickname}
+                    size={48}
+                  />
 
                   <div className="flex flex-col justify-center leading-tight">
                     <p className="text-[15px] font-semibold text-gray-900">

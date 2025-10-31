@@ -23,6 +23,7 @@ import { MANNER_GUIDE } from "../../data/guides";
 import { useChatWidgetStore } from "../../store/chatWidgetStore";
 import GroupForm from "../groups/GroupForm";
 import Modal from "../Modal";
+import UserAvatar from "../common/UserAvatar";
 
 export default function GroupDetailView() {
   const { id } = useParams<{ id: string }>();
@@ -352,21 +353,16 @@ export default function GroupDetailView() {
                       >
                         {/* 왼쪽: 프로필 + 닉네임 */}
                         <div className="flex items-center gap-3 -ml-1">
-                          {m.imageUrl ? (
-                            // 수정된 코드: S3 URL 그대로 사용
-                            <img
-                              src={m.imageUrl}
-                              alt={`${m.nickname} 프로필`}
-                              className="w-9 h-9 rounded-full object-cover border border-gray-200 shadow-sm flex-shrink-0"
+                          <div className="flex items-center gap-3 -ml-1">
+                            <UserAvatar
+                              imageUrl={m.imageUrl}
+                              nickname={m.nickname}
+                              size={36}
                             />
-                          ) : (
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#7B3FE4] via-[#9D4EDD] to-[#B47AEA] flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
-                              {m.nickname?.charAt(0).toUpperCase() ?? "?"}
-                            </div>
-                          )}
-                          <span className="font-medium text-gray-900">
-                            {m.nickname ?? "익명"}
-                          </span>
+                            <span className="font-medium text-gray-900">
+                              {m.nickname ?? "익명"}
+                            </span>
+                          </div>
                         </div>
 
                         {/* 오른쪽: 구단명 */}
