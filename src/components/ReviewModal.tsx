@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Star } from "lucide-react";
 import { useToastStore } from "../store/toastStore";
 import axiosInstance from "../lib/axiosInstance";
+import UserAvatar from "../components/common/UserAvatar";
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -64,20 +65,11 @@ export default function ReviewModal({
 
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center gap-3 mb-4">
-            {sellerImage && sellerImage.startsWith("http") ? (
-              <img
-                src={sellerImage}
-                alt={`${sellerName} 프로필`}
-                className="w-12 h-12 rounded-full object-cover border border-gray-200 transition-opacity duration-300 opacity-100"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#7B3FE4] via-[#9D4EDD] to-[#B47AEA] flex items-center justify-center text-white text-lg font-bold shadow-sm">
-                {sellerName
-                  ?.replace(/^판매자\s*/, "")
-                  ?.charAt(0)
-                  .toUpperCase() ?? "?"}
-              </div>
-            )}
+            <UserAvatar
+              imageUrl={sellerImage}
+              nickname={sellerName?.replace(/^판매자\s*/, "")}
+              size={48}
+            />
 
             <div className="flex flex-col items-start">
               <p className="font-semibold">
