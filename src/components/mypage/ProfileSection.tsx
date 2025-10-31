@@ -203,9 +203,17 @@ export default function ProfileSection() {
 
           setProfileImage(imageUrl);
           setUser({ ...user, profileImage: imageUrl });
+        } else {
+          setProfileImage("/profileimage.png");
         }
-      } catch (err) {
-        console.error("프로필 이미지 조회 실패:", err);
+      } catch (err: any) {
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
+          setProfileImage("/profileimage.png");
+          return;
+        }
+
+        // 그 외 오류만 로그
+        console.error("🚨 프로필 이미지 조회 실패:", err);
       }
     };
 
@@ -240,20 +248,16 @@ export default function ProfileSection() {
 
       {/* 프로필 이미지 */}
       <div className="flex flex-col items-center mb-6">
-        <div className="w-24 h-24 rounded-full overflow-hidden mb-3 border border-gray-300 flex items-center justify-center bg-gray-100 shadow-inner">
-          {profileImage || user?.profileImage ? (
-            <img
-              src={profileImage || user?.profileImage || ""}
-              alt="프로필"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-white text-3xl font-bold bg-gradient-to-tr from-[#7B3FE4] via-[#9D4EDD] to-[#B47AEA] shadow-md">
-              {user?.nickname?.charAt(0).toUpperCase() ?? "?"}
-            </div>
-          )}
+        <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden mb-3 border border-gray-300">
+          <img
+            src={profileImage || user?.profileImage || "/profileimage.png"}
+            alt="프로필"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = "/profileimage.png";
+            }}
+          />
         </div>
-
         <label
           className={`px-3 py-1 rounded-md text-sm font-medium text-white cursor-pointer ${
             uploading
