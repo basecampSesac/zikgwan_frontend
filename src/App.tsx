@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Layout from "./layouts/Layout";
 import HomePage from "./page/Home";
@@ -13,15 +13,15 @@ import MyPage from "./page/MyPage";
 import TicketDetail from "./page/TicketDetail";
 import GroupDetail from "./page/GroupDetail";
 import GroupChatPage from "./page/GroupChatPage";
+import TicketChatPage from "./page/TicketChatPage";
 import { useAuthStore } from "./store/authStore";
 import axiosInstance from "./lib/axiosInstance";
 import NotificationSSE from "./components/notification/NotificationSse";
 import GlobalChatWidget from "./components/chat/GlobalChatWidget";
 import ChatPopupManager from "./components/chat/ChatPopupManger";
 import { getImageUrl } from "./api/imageApi";
-import TicketChatPage from "./page/TicketChatPage";
 import { Analytics } from "@vercel/analytics/react";
-
+import axios from "axios";
 const router = createBrowserRouter([
   {
     Component: Layout,
@@ -38,57 +38,69 @@ const router = createBrowserRouter([
       { path: "/tickets/:id", Component: TicketDetail },
       { path: "/groups/:id", Component: GroupDetail },
       { path: "/chat/:id", Component: GroupChatPage },
-      { path: "/ticket-chat/:id", Component: TicketChatPage }, // 티켓 채팅 페이지 추가
+      { path: "/ticket-chat/:id", Component: TicketChatPage },
     ],
   },
 ]);
 
 export default function App() {
   const { tryAutoLogin, setUser } = useAuthStore();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initAuth = async () => {
       const token =
         localStorage.getItem("accessToken") ||
         sessionStorage.getItem("accessToken");
-      if (!token) return;
+
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
       try {
         await tryAutoLogin();
 
+        const currentUser = useAuthStore.getState().user;
         const token = useAuthStore.getState().accessToken;
-        const user = useAuthStore.getState().user;
+        const defaultImage = `${window.location.origin}/profileimage.png`;
 
-        if (token && user?.userId) {
-          // 사용자 정보 조회
-          const userRes = await axiosInstance.get(`/api/user/${user.userId}`);
+        if (token && currentUser?.userId) {
+          const userRes = await axiosInstance.get(
+            `/api/user/${currentUser.userId}`
+          );
 
           if (userRes.data.status === "success" && userRes.data.data) {
             const userData = userRes.data.data;
+            let profileImage = defaultImage;
 
-            let profileImage = "";
-
-            // 프로필 이미지가 등록된 경우에만 세팅
-            if (
-              userData.profileImageUrl &&
-              userData.profileImageUrl.trim() !== ""
-            ) {
-              profileImage = userData.profileImageUrl.startsWith("http")
-                ? userData.profileImageUrl
-                : getImageUrl(userData.profileImageUrl);
-            } else {
-              console.log("프로필 이미지 없음 → 요청 스킵");
+            try {
+              const imgRes = await axiosInstance.get(
+                `/api/images/U/${currentUser.userId}`
+              );
+              if (imgRes.data.status === "success" && imgRes.data.data) {
+                profileImage = getImageUrl(imgRes.data.data);
+              } else {
+                profileImage = defaultImage;
+              }
+            } catch (err: any) {
+              if (axios.isAxiosError(err) && err.response?.status === 404) {
+                profileImage = defaultImage;
+              } else {
+                console.error("🚨 프로필 이미지 조회 중 오류:", err);
+              }
             }
 
-            // Zustand store에 사용자 정보 + 이미지 반영
             setUser({
               ...userData,
-              profileImage,
+              profileImage: profileImage || defaultImage,
             });
           }
         }
       } catch (err) {
         console.warn("자동 로그인 복원 중 오류:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
