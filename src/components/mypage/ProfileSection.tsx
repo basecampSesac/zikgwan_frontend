@@ -22,9 +22,7 @@ export default function ProfileSection() {
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(
-    user?.profileImage || null
-  );
+  const [profileImage, setProfileImage] = useState<string>("/profileimage.png");
   const [errorMessage, setErrorMessage] = useState("");
   const [openModal, setOpenModal] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -41,50 +39,70 @@ export default function ProfileSection() {
     /[0-9]/.test(newPassword) &&
     /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
 
-  // 프로필 이미지 변경
+  // 프로필 이미지 업로드
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    const prevImage = profileImage;
-    const previewUrl = URL.createObjectURL(file);
-    setProfileImage(previewUrl);
     setErrorMessage("");
     setUploading(true);
 
     try {
-      const res = await uploadImage("U", file, user.userId); //URL 바로 받음
+      await uploadImage("U", file, user.userId);
 
-      // 기존 형태 유지하면서 반환값이 객체일 때 data만 추출
-      const imageUrl =
-        typeof res === "string"
-          ? res
-          : res?.data && typeof res.data === "string"
-          ? res.data
-          : "";
+      // 업로드 후 서버에서 최신 이미지 URL 다시 조회
+      const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
 
-      // URL 형태면 그대로, 상대 경로면 로컬URL 붙이기
-      const resolvedImageUrl =
-        imageUrl && imageUrl.trim() !== ""
-          ? imageUrl.startsWith("http")
-            ? imageUrl
-            : `${API_URL}/images/${imageUrl.replace(/^\/+/, "")}`
-          : "";
+      if (data.status === "success" && data.data) {
+        // 캐시 방지 쿼리 추가
+        const imageUrl =
+          (data.data.startsWith("http")
+            ? data.data
+            : `${API_URL}/images/${data.data.replace(/^\/+/, "")}`) +
+          `?t=${Date.now()}`;
 
-      setProfileImage(resolvedImageUrl);
-      setUser({ ...user, profileImage: resolvedImageUrl });
-      addToast("프로필 이미지가 변경되었습니다.", "success");
+        setProfileImage(imageUrl);
+        setUser({ ...user, profileImage: imageUrl });
+        addToast("프로필 이미지가 변경되었습니다.", "success");
+      } else {
+        throw new Error(data.message || "이미지 조회 실패");
+      }
     } catch (err) {
       console.error("프로필 업로드 오류:", err);
-      setProfileImage(prevImage);
-      setErrorMessage(
-        "프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요."
-      );
+      setErrorMessage("프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요.");
       addToast("프로필 이미지 업로드 실패", "error");
     } finally {
       setUploading(false);
     }
   };
+
+  //초기 로딩 시 서버에서 프로필 이미지 가져오기
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchProfileImage = async () => {
+      try {
+        const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
+        if (data.status === "success" && data.data) {
+          const imageUrl = data.data.startsWith("http")
+            ? data.data
+            : `${API_URL}/images/${data.data.replace(/^\/+/, "")}`;
+          setProfileImage(imageUrl);
+          setUser({ ...user, profileImage: imageUrl });
+        } else {
+          setProfileImage("/profileimage.png");
+        }
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
+          setProfileImage("/profileimage.png");
+          return;
+        }
+        console.error("🚨 프로필 이미지 조회 실패:", err);
+      }
+    };
+
+    fetchProfileImage();
+  }, [user]);
 
   // 회원정보 수정
   const handleSave = async () => {
@@ -135,6 +153,8 @@ export default function ProfileSection() {
           nickname: data.data.nickname || nickname,
           club: data.data.club || club,
         });
+        console.log("닉네임변경 : "+nickname);
+        console.log("구단변경 : "+club);
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
@@ -143,14 +163,8 @@ export default function ProfileSection() {
       }
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        const axiosError = err as AxiosError<{
-          status: string;
-          message: string;
-        }>;
-        console.error(
-          "회원정보 수정 오류:",
-          axiosError.response?.data || axiosError.message
-        );
+        const axiosError = err as AxiosError<{ status: string; message: string }>;
+        console.error("회원정보 수정 오류:", axiosError.response?.data || axiosError.message);
 
         if (axiosError.response?.status === 401) {
           addToast("세션이 만료되었습니다. 다시 로그인해주세요.", "error");
@@ -158,8 +172,7 @@ export default function ProfileSection() {
           window.location.href = "/login";
         } else {
           addToast(
-            axiosError.response?.data?.message ||
-              "회원정보 수정 중 오류가 발생했습니다.",
+            axiosError.response?.data?.message || "회원정보 수정 중 오류가 발생했습니다.",
             "error"
           );
         }
@@ -169,64 +182,20 @@ export default function ProfileSection() {
       }
     }
   };
+
+  //닉네임, 구단 초기 세팅
   useEffect(() => {
-    if (user?.nickname) setNickname(user.nickname);
-    if (user?.club) setClub(user.club.trim());
-  }, [user?.nickname, user?.club]);
+    if (!user) return;
 
-  useEffect(() => {
-    if (!user) return; // 유저 없으면 아무것도 하지 않음
-    if (profileImage) return; // 이미 프로필 이미지가 세팅돼 있으면 재요청 X
+    setNickname(user.nickname || "");
+    setClub(user.club?.trim() || "");
+  }, [user?.userId]);
 
-    // user.profileImage가 있다면 URL 형태인지 확인
-    if (user.profileImage) {
-      const resolvedImageUrl = user.profileImage.startsWith("http")
-        ? user.profileImage
-        : `${API_URL}/images/${user.profileImage.replace(/^\/+/, "")}`;
-      setProfileImage(resolvedImageUrl);
-      return;
-    }
-
-    console.log(API_URL);
-
-    // 없을 때만 서버에서 조회
-    const fetchProfileImage = async () => {
-      try {
-        const { data } = await axiosInstance.get(
-          `/api/images/U/${user.userId}`
-        );
-        if (data.status === "success" && data.data) {
-          //  URL 형태면 그대로, 상대 경로면 로컬URL 붙이기
-          const imageUrl = data.data.startsWith("http")
-            ? data.data
-            : `${API_URL}/images/${data.data.replace(/^\/+/, "")}`;
-
-          setProfileImage(imageUrl);
-          setUser({ ...user, profileImage: imageUrl });
-        } else {
-          setProfileImage("/profileimage.png");
-        }
-      } catch (err: any) {
-        if (axios.isAxiosError(err) && err.response?.status === 404) {
-          setProfileImage("/profileimage.png");
-          return;
-        }
-
-        // 그 외 오류만 로그
-        console.error("🚨 프로필 이미지 조회 실패:", err);
-      }
-    };
-
-    fetchProfileImage();
-  }, [user]);
-
-  // 회원탈퇴
+  //회원탈퇴
   const handleDelete = async () => {
     if (!user) return;
     try {
-      const { data } = await axiosInstance.patch(
-        `/api/user/delete/${user.userId}`
-      );
+      const { data } = await axiosInstance.patch(`/api/user/delete/${user.userId}`);
       if (data.status === "success" && data.data === true) {
         addToast("회원탈퇴가 완료되었습니다.", "success");
         logout();
@@ -250,7 +219,7 @@ export default function ProfileSection() {
       <div className="flex flex-col items-center mb-6">
         <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden mb-3 border border-gray-300">
           <img
-            src={profileImage || user?.profileImage || "/profileimage.png"}
+            src={profileImage}
             alt="프로필"
             className="w-full h-full object-cover"
             onError={(e) => {
@@ -281,9 +250,7 @@ export default function ProfileSection() {
 
       {/* 이메일 */}
       <label className="block mb-4">
-        <span className="block text-sm font-medium mb-1 text-gray-600">
-          이메일
-        </span>
+        <span className="block text-sm font-medium mb-1 text-gray-600">이메일</span>
         <input
           type="text"
           value={user?.email || ""}
@@ -293,9 +260,7 @@ export default function ProfileSection() {
       </label>
 
       {/* 비밀번호 변경 */}
-      <span className="block text-sm font-medium mb-1 text-gray-600">
-        비밀번호 변경
-      </span>
+      <span className="block text-sm font-medium mb-1 text-gray-600">비밀번호 변경</span>
 
       {/* 현재 비밀번호 */}
       <label className="block mb-4">
@@ -305,9 +270,7 @@ export default function ProfileSection() {
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             placeholder="현재 비밀번호를 입력해주세요."
-            className={`input-border h-11 pr-10 ${
-              isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""
-            }`}
+            className={`input-border h-11 pr-10 ${isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""}`}
             disabled={isSocialLogin}
           />
           <button
@@ -316,11 +279,7 @@ export default function ProfileSection() {
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
             disabled={isSocialLogin}
           >
-            {showCurrentPw ? (
-              <AiOutlineEyeInvisible size={20} />
-            ) : (
-              <AiOutlineEye size={20} />
-            )}
+            {showCurrentPw ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
           </button>
         </div>
       </label>
@@ -333,9 +292,7 @@ export default function ProfileSection() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="새 비밀번호를 입력해주세요."
-            className={`input-border h-11 pr-10 ${
-              isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""
-            }`}
+            className={`input-border h-11 pr-10 ${isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""}`}
             disabled={isSocialLogin}
           />
           <button
@@ -344,11 +301,7 @@ export default function ProfileSection() {
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
             disabled={isSocialLogin}
           >
-            {showNewPw ? (
-              <AiOutlineEyeInvisible size={20} />
-            ) : (
-              <AiOutlineEye size={20} />
-            )}
+            {showNewPw ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
           </button>
         </div>
       </label>
@@ -361,9 +314,7 @@ export default function ProfileSection() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="새 비밀번호를 확인해주세요."
-            className={`input-border h-11 pr-10 ${
-              isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""
-            }`}
+            className={`input-border h-11 pr-10 ${isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""}`}
             disabled={isSocialLogin}
           />
           <button
@@ -372,27 +323,19 @@ export default function ProfileSection() {
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
             disabled={isSocialLogin}
           >
-            {showConfirmPw ? (
-              <AiOutlineEyeInvisible size={20} />
-            ) : (
-              <AiOutlineEye size={20} />
-            )}
+            {showConfirmPw ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
           </button>
         </div>
       </label>
 
       {/* 닉네임 */}
       <label className="block mb-4">
-        <span className="block text-sm font-medium mb-1 text-gray-600">
-          닉네임
-        </span>
+        <span className="block text-sm font-medium mb-1 text-gray-600">닉네임</span>
         <input
           type="text"
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
-          className={`input-border h-11 ${
-            isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""
-          }`}
+          className={`input-border h-11 ${isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""}`}
           placeholder={user?.nickname || "닉네임 입력"}
           disabled={isSocialLogin}
         />
@@ -400,9 +343,7 @@ export default function ProfileSection() {
 
       {/* 구단 */}
       <label className="block mb-6">
-        <span className="block text-sm font-medium mb-1 text-gray-600">
-          좋아하는 구단
-        </span>
+        <span className="block text-sm font-medium mb-1 text-gray-600">좋아하는 구단</span>
         <select
           value={club}
           onChange={(e) => setClub(e.target.value)}
