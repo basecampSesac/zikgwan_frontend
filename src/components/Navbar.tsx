@@ -5,8 +5,12 @@ import NotificationDropdown from "../components/NotificationDropdown";
 
 export function Navbar() {
   const navigate = useNavigate();
-  const { isAuthenticated, logout, user } = useAuthStore();
   const { addToast } = useToastStore();
+
+  // Zustand 최적화: 필요한 값만 구독
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const logout = useAuthStore((state) => state.logout);
+  const userNickname = useAuthStore((state) => state.user?.nickname);
 
   const handleLogout = async () => {
     try {
@@ -56,10 +60,10 @@ export function Navbar() {
         <div className="flex items-center gap-6 text-base font-semibold text-[#29292D]">
           {isAuthenticated ? (
             <>
-              {/* 닉네임 박스 (이모지 + 닉네임) */}
+              {/* 닉네임 박스 */}
               <div className="flex items-center gap-1 text-gray-700">
                 <span className="font-semibold text-[#6F00B6]">
-                  {user?.nickname || "유저"}님,
+                  {userNickname ? `${userNickname}님,` : ""}
                 </span>
                 <span>반가워요 👋</span>
               </div>

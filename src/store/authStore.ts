@@ -42,7 +42,7 @@ interface AuthState {
   refreshAccessToken: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set, _get) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   user: null,
   accessToken: null,
@@ -53,7 +53,24 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
 
   setEmail: (email) => set({ email }),
   setPassword: (pw) => set({ password: pw }),
-  setUser: (user) => set({ user }),
+
+  /**setUser 안정화 (동일 객체면 리렌더링 방지) **/
+  setUser: (newUser) => {
+    const currentUser = get().user;
+    // shallow compare (nickname, club, profileImage 등)
+    if (
+      currentUser &&
+      newUser &&
+      currentUser.userId === newUser.userId &&
+      currentUser.nickname === newUser.nickname &&
+      currentUser.club === newUser.club &&
+      currentUser.profileImage === newUser.profileImage
+    ) {
+      return; // 동일할 경우 무시
+    }
+    set({ user: newUser });
+  },
+
   setNickname: (nickname) => set({ nickname }),
   setProfileImage: (imageUrl) => set({ profileImage: imageUrl }),
 
@@ -73,9 +90,9 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
   logout: async () => {
     try {
       await axiosInstance.get("/api/user/logout");
-      console.log("✅ 서버 로그아웃 완료");
+      console.log("서버 로그아웃 완료");
     } catch (err) {
-      console.error("❌ 로그아웃 중 오류:", err);
+      console.error("로그아웃 중 오류:", err);
     } finally {
       localStorage.removeItem("accessToken");
       sessionStorage.removeItem("accessToken");
@@ -92,7 +109,8 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
       const { status, data } = res.data;
 
       if (status === "success" && data) {
-        const defaultImage = `${window.location.origin}/profileimage.png`;
+        //defaultImage 경로 수정 (origin 제거)
+        const defaultImage = "/profileimage.png";
 
         const userInfo: User = {
           userId: data.userId,
@@ -134,7 +152,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
 
   /** 토큰 재발급 **/
   refreshAccessToken: async () => {
-    const { addToast } = useToastStore.getState(); // 토스트 스토어에서 addToast 함수 가져오기
+    const { addToast } = useToastStore.getState();
 
     try {
       const res = await axiosInstance.post("/api/user/refresh/login");
@@ -143,26 +161,22 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
       if (status === "success" && data?.token) {
         set({ accessToken: data.token });
         localStorage.setItem("accessToken", data.token);
-        console.log("🔄 액세스 토큰 갱신 완료");
+        console.log("액세스 토큰 갱신 완료");
       } else {
         console.warn("토큰 갱신 실패: 서버 응답 오류");
         set({ isAuthenticated: false, user: null, accessToken: null });
       }
     } catch (err: any) {
-      // 백엔드에서 전달한 에러 메시지 처리
       const message =
         err.response?.data?.message ||
         "토큰이 만료되었습니다. 다시 로그인해주세요.";
 
-      // 토스트 메시지 표시
       addToast(message, "error");
 
-      // 로그인 상태 초기화
       localStorage.removeItem("accessToken");
       sessionStorage.removeItem("accessToken");
       set({ isAuthenticated: false, user: null, accessToken: null });
 
-      // 1.5초 후 로그인 페이지 이동
       setTimeout(() => {
         window.location.href = "/login";
       }, 1500);
