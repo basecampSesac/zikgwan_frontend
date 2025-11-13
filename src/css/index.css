@@ -1,0 +1,136 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css");
+
+/* src/index.css */
+@import "./tailwind.css";
+
+@layer base {
+  html {
+    font-family: "Pretendard Variable", system-ui, sans-serif;
+  }
+}
+html {
+  @apply overflow-y-scroll;
+}
+
+/* 크롬, 사파리, 엣지에서 비밀번호 input의 기본 눈 아이콘 제거 */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+}
+
+/* 공통 input 스타일 */
+.input-border {
+  @apply w-full rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#6F00B6];
+  border: 1px solid rgba(112, 115, 124, 0.22);
+}
+
+/* 공통 버튼 스타일 */
+.button-border {
+  @apply w-full py-3 rounded-lg font-semibold transition-colors;
+  border: 1px solid rgba(112, 115, 124, 0.22);
+}
+
+/* 모든 <button> 요소에 기본적으로 pointer 커서 적용 */
+button {
+  @apply cursor-pointer;
+}
+
+/* ============================== */
+/* DatePicker B2C 스타일 커스터마이징 */
+/* ============================== */
+
+/* 달력 전체 박스 */
+.react-datepicker {
+  font-family: "Pretendard Variable", system-ui, sans-serif;
+  border: 1px solid #e5e7eb; /* gray-200 */
+  border-radius: 0.75rem; /* rounded-lg */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* 헤더 (월/년도 선택) */
+.react-datepicker__header {
+  background-color: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* 선택된 날짜 */
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: #6f00b6 !important;
+  color: #fff !important;
+  border-radius: 9999px;
+}
+
+/* hover 효과 */
+.react-datepicker__day:hover {
+  background-color: #f3e8ff !important; /* 연한 보라 hover */
+  border-radius: 9999px;
+}
+
+/* 오늘 날짜 표시 */
+.react-datepicker__day--today {
+  font-weight: 600;
+  color: #6f00b6;
+}
+
+/* 시간 선택 영역 */
+.react-datepicker__time-container {
+  border-left: 1px solid #e5e7eb;
+}
+
+.react-datepicker__time-list-item {
+  border-radius: 0.5rem;
+}
+
+.react-datepicker__time-list-item--selected {
+  background-color: #6f00b6 !important;
+  color: white !important;
+}
+
+/* hover 시 */
+.react-datepicker__time-list-item:hover {
+  background-color: #f3e8ff !important;
+}
+
+/* placeholder input과 어울리게 */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+.react-datepicker__input-container input {
+  @apply w-full rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#6F00B6];
+  border: 1px solid rgba(112, 115, 124, 0.22);
+}
+
+/* 스크롤바 연하게 커스터마이징 */
+::-webkit-scrollbar {
+  width: 6px; /* 얇게 */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.react-datepicker__close-icon::after {
+  background-color: #6F00B6 !important; 
+  color: #ffffff !important; 
+  font-weight: bold !important;
+}
+
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}

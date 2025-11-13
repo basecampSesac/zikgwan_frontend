@@ -1,0 +1,394 @@
+import { useState, useEffect } from "react";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import ConfirmModal from "../../Modals/ConfirmModal";
+import { useAuthStore } from "../../store/authStore";
+import { useToastStore } from "../../store/toastStore";
+import { TEAMS } from "../../constants/teams";
+import axiosInstance from "../../lib/axiosInstance";
+import axios, { AxiosError } from "axios";
+import { uploadImage } from "../../api/imageApi";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
+export default function ProfileSection() {
+  const { user, logout, setUser } = useAuthStore();
+  const { addToast } = useToastStore();
+
+  const [nickname, setNickname] = useState(user?.nickname || "");
+  const [club, setClub] = useState(user?.club || "");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [profileImage, setProfileImage] = useState<string>("/profileimage.png");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [openModal, setOpenModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const provider = user?.provider?.toLowerCase();
+  const isSocialLogin =
+    provider !== undefined && provider !== "local" && provider !== "email";
+
+  const isPasswordValid =
+    newPassword.length >= 8 &&
+    newPassword.length <= 16 &&
+    /[A-Z]/.test(newPassword) &&
+    /[a-z]/.test(newPassword) &&
+    /[0-9]/.test(newPassword) &&
+    /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
+
+  // 프로필 이미지 업로드
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setErrorMessage("");
+    setUploading(true);
+
+    try {
+      await uploadImage("U", file, user.userId);
+
+      // 업로드 후 서버에서 최신 이미지 URL 다시 조회
+      const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
+
+      if (data.status === "success" && data.data) {
+        // 캐시 방지 쿼리 추가
+        const imageUrl =
+          (data.data.startsWith("http")
+            ? data.data
+            : `${API_URL}/images/${data.data.replace(/^\/+/, "")}`) +
+          `?t=${Date.now()}`;
+
+        setProfileImage(imageUrl);
+        setUser({ ...user, profileImage: imageUrl });
+        addToast("프로필 이미지가 변경되었습니다.", "success");
+      } else {
+        throw new Error(data.message || "이미지 조회 실패");
+      }
+    } catch (err) {
+      console.error("프로필 업로드 오류:", err);
+      setErrorMessage("프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요.");
+      addToast("프로필 이미지 업로드 실패", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  //초기 로딩 시 서버에서 프로필 이미지 가져오기
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchProfileImage = async () => {
+      try {
+        const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
+        if (data.status === "success" && data.data) {
+          const imageUrl = data.data.startsWith("http")
+            ? data.data
+            : `${API_URL}/images/${data.data.replace(/^\/+/, "")}`;
+          setProfileImage(imageUrl);
+          setUser({ ...user, profileImage: imageUrl });
+        } else {
+          setProfileImage("/profileimage.png");
+        }
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
+          setProfileImage("/profileimage.png");
+          return;
+        }
+        console.error("🚨 프로필 이미지 조회 실패:", err);
+      }
+    };
+
+    fetchProfileImage();
+  }, [user]);
+
+  // 회원정보 수정
+  const handleSave = async () => {
+    if (!user) return;
+
+    if (!isSocialLogin && !currentPassword) {
+      addToast("회원 정보를 수정하려면 현재 비밀번호를 입력해주세요.", "error");
+      return;
+    }
+
+    if (!isSocialLogin && newPassword && !isPasswordValid) {
+      addToast(
+        "비밀번호는 영문 대소문자, 숫자, 특수문자를 포함한 8~16자여야 합니다.",
+        "error"
+      );
+      return;
+    }
+
+    if (!isSocialLogin && newPassword && newPassword !== confirmPassword) {
+      addToast("새 비밀번호가 일치하지 않습니다.", "error");
+      return;
+    }
+
+    try {
+      const payload = {
+        nickname,
+        email: user.email,
+        club,
+        provider: user.provider || "LOCAL",
+        ...(!isSocialLogin && {
+          password: currentPassword,
+          ...(newPassword && {
+            newpassword: newPassword,
+            newpasswordconfirm: confirmPassword,
+          }),
+        }),
+      };
+
+      const { data } = await axiosInstance.put(
+        `/api/user/${user.userId}`,
+        payload
+      );
+
+      if (data.status === "success") {
+        addToast("회원 정보가 정상적으로 수정되었습니다.", "success");
+        setUser({
+          ...user,
+          nickname: data.data.nickname || nickname,
+          club: data.data.club || club,
+        });
+        console.log("닉네임변경 : "+nickname);
+        console.log("구단변경 : "+club);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        addToast(data.message || "회원 정보 수정에 실패했습니다.", "error");
+      }
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const axiosError = err as AxiosError<{ status: string; message: string }>;
+        console.error("회원정보 수정 오류:", axiosError.response?.data || axiosError.message);
+
+        if (axiosError.response?.status === 401) {
+          addToast("세션이 만료되었습니다. 다시 로그인해주세요.", "error");
+          logout();
+          window.location.href = "/login";
+        } else {
+          addToast(
+            axiosError.response?.data?.message || "회원정보 수정 중 오류가 발생했습니다.",
+            "error"
+          );
+        }
+      } else {
+        console.error("예상치 못한 오류:", err);
+        addToast("알 수 없는 오류가 발생했습니다.", "error");
+      }
+    }
+  };
+
+  //닉네임, 구단 초기 세팅
+  useEffect(() => {
+    if (!user) return;
+
+    setNickname(user.nickname || "");
+    setClub(user.club?.trim() || "");
+  }, [user?.userId]);
+
+  //회원탈퇴
+  const handleDelete = async () => {
+    if (!user) return;
+    try {
+      const { data } = await axiosInstance.patch(`/api/user/delete/${user.userId}`);
+      if (data.status === "success" && data.data === true) {
+        addToast("회원탈퇴가 완료되었습니다.", "success");
+        logout();
+        window.location.href = "/";
+      } else {
+        addToast(data.message || "회원탈퇴에 실패했습니다.", "error");
+      }
+    } catch (err) {
+      console.error("회원탈퇴 오류:", err);
+      addToast("회원탈퇴 중 오류가 발생했습니다.", "error");
+    } finally {
+      setOpenModal(false);
+    }
+  };
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-8 text-center">프로필 수정</h1>
+
+      {/* 프로필 이미지 */}
+      <div className="flex flex-col items-center mb-6">
+        <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden mb-3 border border-gray-300">
+          <img
+            src={profileImage}
+            alt="프로필"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = "/profileimage.png";
+            }}
+          />
+        </div>
+        <label
+          className={`px-3 py-1 rounded-md text-sm font-medium text-white cursor-pointer ${
+            uploading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-[#8A2BE2] hover:bg-[#6F00B6]"
+          }`}
+        >
+          {uploading ? "업로드 중..." : "변경하기"}
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageChange}
+            disabled={uploading}
+          />
+        </label>
+        {errorMessage && (
+          <p className="text-xs text-red-500 mt-2">{errorMessage}</p>
+        )}
+      </div>
+
+      {/* 이메일 */}
+      <label className="block mb-4">
+        <span className="block text-sm font-medium mb-1 text-gray-600">이메일</span>
+        <input
+          type="text"
+          value={user?.email || ""}
+          disabled
+          className="input-border h-11 bg-gray-100 cursor-not-allowed"
+        />
+      </label>
+
+      {/* 비밀번호 변경 */}
+      <span className="block text-sm font-medium mb-1 text-gray-600">비밀번호 변경</span>
+
+      {/* 현재 비밀번호 */}
+      <label className="block mb-4">
+        <div className="relative">
+          <input
+            type={showCurrentPw ? "text" : "password"}
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder="현재 비밀번호를 입력해주세요."
+            className={`input-border h-11 pr-10 ${isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""}`}
+            disabled={isSocialLogin}
+          />
+          <button
+            type="button"
+            onClick={() => !isSocialLogin && setShowCurrentPw((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+            disabled={isSocialLogin}
+          >
+            {showCurrentPw ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
+          </button>
+        </div>
+      </label>
+
+      {/* 새 비밀번호 */}
+      <label className="block mb-4">
+        <div className="relative">
+          <input
+            type={showNewPw ? "text" : "password"}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="새 비밀번호를 입력해주세요."
+            className={`input-border h-11 pr-10 ${isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""}`}
+            disabled={isSocialLogin}
+          />
+          <button
+            type="button"
+            onClick={() => !isSocialLogin && setShowNewPw((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+            disabled={isSocialLogin}
+          >
+            {showNewPw ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
+          </button>
+        </div>
+      </label>
+
+      {/* 새 비밀번호 확인 */}
+      <label className="block mb-6">
+        <div className="relative">
+          <input
+            type={showConfirmPw ? "text" : "password"}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="새 비밀번호를 확인해주세요."
+            className={`input-border h-11 pr-10 ${isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""}`}
+            disabled={isSocialLogin}
+          />
+          <button
+            type="button"
+            onClick={() => !isSocialLogin && setShowConfirmPw((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+            disabled={isSocialLogin}
+          >
+            {showConfirmPw ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
+          </button>
+        </div>
+      </label>
+
+      {/* 닉네임 */}
+      <label className="block mb-4">
+        <span className="block text-sm font-medium mb-1 text-gray-600">닉네임</span>
+        <input
+          type="text"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+          className={`input-border h-11 ${isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""}`}
+          placeholder={user?.nickname || "닉네임 입력"}
+          disabled={isSocialLogin}
+        />
+      </label>
+
+      {/* 구단 */}
+      <label className="block mb-6">
+        <span className="block text-sm font-medium mb-1 text-gray-600">좋아하는 구단</span>
+        <select
+          value={club}
+          onChange={(e) => setClub(e.target.value)}
+          className="input-border h-11"
+        >
+          <option value="">선택 안 함</option>
+          {TEAMS.map((team) => (
+            <option key={team.value} value={team.value}>
+              {team.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {/* 저장하기 */}
+      <button
+        onClick={handleSave}
+        className="w-full h-11 rounded-lg font-semibold bg-[#8A2BE2] text-white hover:bg-[#6F00B6]"
+      >
+        저장하기
+      </button>
+
+      {/* 회원탈퇴 */}
+      <p className="text-xs text-center text-gray-500 mt-4">
+        회원탈퇴를 원하신다면{" "}
+        <span
+          className="underline text-red-600 cursor-pointer"
+          onClick={() => setOpenModal(true)}
+        >
+          여기
+        </span>
+        를 눌러주세요.
+      </p>
+
+      <ConfirmModal
+        isOpen={openModal}
+        title="회원탈퇴"
+        description={
+          "정말로 회원탈퇴를 하시겠습니까?\n모든 데이터가 삭제되며 복구할 수 없습니다."
+        }
+        confirmText="탈퇴하기"
+        cancelText="취소"
+        onClose={() => setOpenModal(false)}
+        onConfirm={handleDelete}
+      />
+    </div>
+  );
+}
