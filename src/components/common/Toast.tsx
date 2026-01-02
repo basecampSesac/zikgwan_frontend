@@ -24,19 +24,20 @@ export default function Toast() {
   const { toasts, removeToast } = useToastStore();
 
   return (
-    <div className="fixed top-20 left-1/2 -translate-x-1/2 flex flex-col gap-4 z-[11000]">
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 flex flex-col gap-4 z-[11000] w-[calc(100vw-32px)] max-w-[500px]">
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`bg-white border rounded-lg shadow-md px-6 py-4 flex items-center gap-4 w-[500px] max-w-[700px] ${
+          className={`bg-white border rounded-lg shadow-md px-4 sm:px-6 py-4 flex items-center gap-4 w-full ${
             variantStyles[toast.type]
           }`}
         >
           {icons[toast.type]}
-          <span className="text-base flex-1">{toast.message}</span>
+          <span className="text-base flex-1 break-words">{toast.message}</span>
           <button
             onClick={() => removeToast(toast.id)}
-            className="text-gray-400 hover:text-gray-600 text-lg"
+            className="text-gray-400 hover:text-gray-600 text-lg shrink-0"
+            aria-label="닫기"
           >
             ✕
           </button>

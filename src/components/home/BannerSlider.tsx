@@ -27,58 +27,58 @@ export default function BannerSlider() {
   ];
 
   return (
-    <div className="relative w-full max-w-[1104px] mx-auto mt-10 mb-4">
-      <Swiper
-        modules={[Navigation, Autoplay]}
-        slidesPerView={2.0} // 한 번에 1.2개 보이게 (양 옆 살짝 노출)
-        spaceBetween={24}
-        centeredSlides={false} // ✨ 중심 고정 해제 → 번쩍임 사라짐
-        loop={true}
-        speed={900} // 전환 속도 (자연스럽게)
-        autoplay={{
-          delay: 4000,
-          disableOnInteraction: false,
-        }}
-        navigation={{
-          nextEl: ".banner-next",
-          prevEl: ".banner-prev",
-        }}
-        className="overflow-visible select-none"
-      >
-        {banners.map((b) => (
-          <SwiperSlide key={b.id}>
-            <div className="relative h-[360px] rounded-2xl overflow-hidden shadow-lg">
-              <img
-                src={b.image}
-                alt={b.title}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/45" />
-              <div className="relative z-10 flex flex-col justify-center h-full px-8 text-white">
-                <h2 className="text-3xl font-extrabold mb-2 drop-shadow-md">
-                  {b.title}
-                </h2>
-                <p className="text-lg opacity-90">{b.desc}</p>
+    <div className="w-full mt-10 mb-4">
+      <div className="relative w-full max-w-[1104px] mx-auto px-4 sm:px-6 lg:px-0">
+        <Swiper
+          modules={[Navigation, Autoplay]}
+          loop
+          speed={900}
+          autoplay={{ delay: 4000, disableOnInteraction: false }}
+          navigation={{ nextEl: ".banner-next", prevEl: ".banner-prev" }}
+          breakpoints={{
+            0: { slidesPerView: 1, spaceBetween: 12 },
+            640: { slidesPerView: 1.15, spaceBetween: 16 },
+            768: { slidesPerView: 1.4, spaceBetween: 20 },
+            1024: { slidesPerView: 2, spaceBetween: 24 },
+          }}
+          className="overflow-visible select-none"
+        >
+          {banners.map((b) => (
+            <SwiperSlide key={b.id}>
+              <div className="relative overflow-hidden rounded-2xl shadow-lg h-[220px] sm:h-[260px] lg:h-[360px]">
+                <img
+                  src={b.image}
+                  alt={b.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/45" />
+                <div className="relative z-10 flex flex-col justify-center h-full px-5 sm:px-7 lg:px-8 text-white">
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold mb-2 drop-shadow-md">
+                    {b.title}
+                  </h2>
+                  <p className="text-sm sm:text-base lg:text-lg opacity-90">
+                    {b.desc}
+                  </p>
+                </div>
               </div>
-            </div>
-          </SwiperSlide>
-        ))}
-      </Swiper>
+            </SwiperSlide>
+          ))}
+        </Swiper>
 
-      {/* 좌우 버튼 */}
-      <div className="absolute inset-0 flex justify-between items-center -left-10 -right-10 pointer-events-none">
-        <button
-          className="banner-prev pointer-events-auto w-10 h-10 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:scale-105 hover:bg-white transition"
-          aria-label="Previous"
-        >
-          <ChevronLeft className="text-gray-700" size={20} />
-        </button>
-        <button
-          className="banner-next pointer-events-auto w-10 h-10 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:scale-105 hover:bg-white transition"
-          aria-label="Next"
-        >
-          <ChevronRight className="text-gray-700" size={20} />
-        </button>
+        <div className="hidden lg:flex absolute inset-0 justify-between items-center -left-10 -right-10 pointer-events-none">
+          <button
+            className="banner-prev pointer-events-auto w-10 h-10 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:scale-105 hover:bg-white transition"
+            aria-label="Previous"
+          >
+            <ChevronLeft className="text-gray-700" size={20} />
+          </button>
+          <button
+            className="banner-next pointer-events-auto w-10 h-10 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:scale-105 hover:bg-white transition"
+            aria-label="Next"
+          >
+            <ChevronRight className="text-gray-700" size={20} />
+          </button>
+        </div>
       </div>
     </div>
   );
