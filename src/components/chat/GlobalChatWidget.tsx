@@ -35,7 +35,6 @@ export default function GlobalChatWidget() {
 
   return (
     <>
-      {/* Floating Button */}
       <button
         ref={buttonRef}
         onClick={() => {
@@ -62,7 +61,6 @@ export default function GlobalChatWidget() {
         )}
       </button>
 
-      {/* 사이드 패널 */}
       {isOpen && (
         <div
           ref={widgetRef}

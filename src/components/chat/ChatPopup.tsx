@@ -29,7 +29,6 @@ export default function ChatPopup({
     initialMemberCount ?? null
   );
 
-  // ✅ 화면 크기(md 미만) 감지: 모바일에서는 풀스크린 + 드래그 비활성화
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -97,7 +96,7 @@ export default function ChatPopup({
       nodeRef={nodeRef as unknown as React.RefObject<HTMLElement>}
       handle=".drag-handle"
       bounds="parent"
-      disabled={isMobile} // ✅ 모바일에서는 드래그 끔
+      disabled={isMobile}
     >
       <div
         ref={nodeRef}
@@ -119,7 +118,6 @@ export default function ChatPopup({
               }
         }
       >
-        {/* ✅ flex 레이아웃으로 높이 안정화 */}
         <div className="flex flex-col h-full">
           {/* 헤더 */}
           <div
