@@ -132,41 +132,62 @@ export default function TicketSection() {
                     <li
                       key={ticket.tsId}
                       onClick={() => navigate(`/tickets/${ticket.tsId}`)}
-                      className="flex items-center gap-6 bg-white border border-gray-100 transition rounded-xl p-5 shadow-sm min-h-[120px] cursor-pointer hover:shadow-md hover:border-gray-200"
+                      className="
+                        flex flex-col md:flex-row md:items-center
+                        gap-4 md:gap-6
+                        bg-white border border-gray-100 transition
+                        rounded-xl p-4 md:p-5
+                        shadow-sm cursor-pointer
+                        hover:shadow-md hover:border-gray-200
+                      "
                     >
-                      <div className="flex-1 flex flex-col justify-center gap-1">
-                        <h3 className="text-[18px] font-semibold text-gray-800 truncate">
+                      <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+                        <h3 className="text-base md:text-[18px] font-semibold text-gray-800 truncate">
                           {ticket.title}
                         </h3>
-                        <p className="text-sm text-gray-500">
+
+                        <p className="text-sm text-gray-500 truncate">
                           {ticket.home} vs {ticket.away} · {ticket.stadium}
                         </p>
+
                         <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
-                          <FaRegCalendarAlt size={11} />
-                          <span>
+                          <FaRegCalendarAlt size={11} className="shrink-0" />
+                          <span className="truncate">
                             경기일:{" "}
                             {ticket.gameDay
                               ? formatDate(ticket.gameDay)
                               : "미정"}
                           </span>
                         </div>
+
                         <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                          <FaUser size={12} />
-                          <span>
+                          <FaUser size={12} className="shrink-0" />
+                          <span className="truncate">
                             판매자 {ticket.sellerNickname || "알 수 없음"}
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end justify-between h-[100px]">
-                        <span className="text-sm font-semibold text-gray-700 text-[18px] mt-3">
+                      <div
+                        className="
+                          w-full
+                          flex flex-col items-start gap-2
+                          md:w-auto md:items-end md:min-w-[140px] md:shrink-0
+                        "
+                      >
+                        <span className="text-base md:text-[18px] font-semibold text-gray-700">
                           {ticket.price.toLocaleString()}원
                         </span>
 
                         {isRated ? (
-                          <div className="flex items-center gap-1 text-yellow-500 text-sm font-bold text-[20px] mb-4">
-                            <FaStar size={13} className="text-yellow-400" />
-                            <span>{ticket.rating?.toFixed(1)}</span>
+                          <div className="flex items-center gap-1 text-yellow-500 font-bold">
+                            <FaStar
+                              size={13}
+                              className="text-yellow-400 shrink-0"
+                            />
+                            <span className="text-sm md:text-base">
+                              {ticket.rating?.toFixed(1)}
+                            </span>
                           </div>
                         ) : isBuyer && hasBuyer ? (
                           <button
@@ -174,12 +195,20 @@ export default function TicketSection() {
                               e.stopPropagation();
                               handleOpenReview(ticket);
                             }}
-                            className="px-3 py-1 text-[17px] font-semibold text-white bg-[#6F00B6] rounded-md hover:bg-[#57008f] transition mb-4"
+                            className="
+                              px-3 py-2
+                              text-sm md:text-[15px]
+                              font-semibold text-white
+                              bg-[#6F00B6] rounded-md
+                              hover:bg-[#57008f] transition
+                              w-fit
+                              whitespace-nowrap
+                            "
                           >
                             거래 평가하기
                           </button>
                         ) : isSeller && hasBuyer ? (
-                          <span className="text-xs font-semibold text-gray-400 text-[17px] mb-5">
+                          <span className="text-xs md:text-sm font-semibold text-gray-400 whitespace-nowrap">
                             구매자 평가 대기중
                           </span>
                         ) : null}
@@ -190,6 +219,7 @@ export default function TicketSection() {
               </ul>
             </section>
           ))}
+
           <div
             ref={observerRef}
             className="flex justify-center items-center py-6 text-gray-400"
