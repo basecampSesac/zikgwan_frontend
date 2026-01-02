@@ -66,8 +66,16 @@ export default function GlobalChatWidget() {
       {isOpen && (
         <div
           ref={widgetRef}
-          className="fixed bottom-24 right-6 w-[380px] h-[540px] bg-white rounded-2xl 
-                     shadow-lg border border-gray-200 overflow-hidden flex flex-col z-[999]"
+          className="
+            fixed z-[999] bg-white border border-gray-200 shadow-lg overflow-hidden flex flex-col
+            rounded-2xl
+
+            /* 모바일: 화면 폭에 맞춰 좌우 여백만 두고 꽉 채움 */
+            left-4 right-4 bottom-24 h-[70vh] w-auto
+
+            /* 데스크탑: 기존 고정 크기/위치 유지 */
+            md:left-auto md:right-6 md:bottom-24 md:w-[380px] md:h-[540px]
+          "
         >
           <ChatListPanel onSelect={handleRoomSelect} />
         </div>

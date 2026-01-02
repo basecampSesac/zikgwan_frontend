@@ -29,6 +29,16 @@ export default function ChatPopup({
     initialMemberCount ?? null
   );
 
+  // ✅ 화면 크기(md 미만) 감지: 모바일에서는 풀스크린 + 드래그 비활성화
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   // 상세 정보 불러오기
   useEffect(() => {
     const fetchRoomDetail = async () => {
@@ -87,87 +97,108 @@ export default function ChatPopup({
       nodeRef={nodeRef as unknown as React.RefObject<HTMLElement>}
       handle=".drag-handle"
       bounds="parent"
+      disabled={isMobile} // ✅ 모바일에서는 드래그 끔
     >
       <div
         ref={nodeRef}
-        className="fixed w-[440px] h-[640px] rounded-2xl border border-gray-300 shadow-lg overflow-hidden bg-white z-[2000]"
-        style={{
-          top: `calc(50% - 320px)`,
-          left: `calc(50% - 220px + ${offsetX * 40}px)`,
-        }}
+        className="
+          fixed bg-white z-[2000] overflow-hidden border border-gray-300 shadow-lg
+
+          /* 모바일: 풀스크린 */
+          inset-0 w-full h-[100dvh] rounded-none
+
+          /* 데스크탑: 기존 팝업 */
+          md:inset-auto md:w-[440px] md:h-[640px] md:rounded-2xl
+        "
+        style={
+          isMobile
+            ? undefined
+            : {
+                top: `calc(50% - 320px)`,
+                left: `calc(50% - 220px + ${offsetX * 40}px)`,
+              }
+        }
       >
-        {/* 헤더 */}
-        <div
-          className="drag-handle cursor-move flex justify-between items-center 
-                   px-4 py-3 bg-gray-100 text-gray-700 border-b border-gray-200 
-                   rounded-t-2xl select-none active:cursor-grabbing"
-        >
-          <span className="inline-flex items-center gap-2 font-semibold text-[15px] max-w-[300px] truncate">
-            💬{" "}
-            {title
-              ? title.length > 19
-                ? title.slice(0, 19) + "..."
-                : title
-              : `모임 채팅 #${roomId}`}
-            {/* 인원 표시 */}
-            {memberCount !== null && (
-              <span className="inline-flex items-center text-gray-500 text-sm font-normal ml-2">
-                <IoPeopleOutline size={16} className="mr-1" />
-                {memberCount}명
-              </span>
-            )}
-          </span>
-
-          <div className="flex items-center gap-2">
-            {/* 검색 버튼 */}
-            <button
-              onClick={() => setShowSearch((prev) => !prev)}
-              className="text-gray-500 hover:text-[#6F00B6] transition"
-              title="검색"
-            >
-              <IoSearchOutline size={20} />
-            </button>
-
-            {/* 닫기 버튼 */}
-            <button
-              onClick={() => closePopup(roomId)}
-              className="p-1 text-gray-500 hover:bg-gray-200 rounded-md transition"
-            >
-              <IoClose size={20} />
-            </button>
-          </div>
-        </div>
-
-        {/* 본문 */}
-        <div className="relative h-[calc(100%-52px)] bg-gray-50 overflow-hidden">
-          <ChatRoom
-            ref={chatRef}
-            roomId={roomId}
-            nickname={user?.nickname || "익명"}
-            search={search}
-          />
-
-          {/* 검색 패널 */}
+        {/* ✅ flex 레이아웃으로 높이 안정화 */}
+        <div className="flex flex-col h-full">
+          {/* 헤더 */}
           <div
-            className={`absolute top-0 left-0 w-full bg-white/95 border-b border-gray-200 backdrop-blur-md z-50 
-            transition-transform duration-300 ease-in-out
-            ${showSearch ? "translate-y-0" : "-translate-y-full"}`}
+            className="
+              drag-handle cursor-move flex justify-between items-center
+              px-4 py-3 bg-gray-100 text-gray-700 border-b border-gray-200
+              select-none active:cursor-grabbing
+              md:rounded-t-2xl
+            "
           >
-            <div className="flex items-center px-4 py-3">
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="메시지 검색..."
-                autoFocus={showSearch}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#6F00B6]/40 bg-white"
-              />
+            <span className="inline-flex items-center gap-2 font-semibold text-[15px] max-w-[300px] truncate">
+              💬{" "}
+              {title
+                ? title.length > 19
+                  ? title.slice(0, 19) + "..."
+                  : title
+                : `모임 채팅 #${roomId}`}
+              {/* 인원 표시 */}
+              {memberCount !== null && (
+                <span className="inline-flex items-center text-gray-500 text-sm font-normal ml-2">
+                  <IoPeopleOutline size={16} className="mr-1" />
+                  {memberCount}명
+                </span>
+              )}
+            </span>
+
+            <div className="flex items-center gap-2">
+              {/* 검색 버튼 */}
               <button
-                onClick={handleCloseSearch}
-                className="ml-2 text-gray-500 hover:text-gray-700 text-sm"
+                onClick={() => setShowSearch((prev) => !prev)}
+                className="text-gray-500 hover:text-[#6F00B6] transition"
+                title="검색"
               >
-                닫기
+                <IoSearchOutline size={20} />
               </button>
+
+              {/* 닫기 버튼 */}
+              <button
+                onClick={() => closePopup(roomId)}
+                className="p-1 text-gray-500 hover:bg-gray-200 rounded-md transition"
+              >
+                <IoClose size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* 본문 */}
+          <div className="relative flex-1 bg-gray-50 overflow-hidden">
+            <ChatRoom
+              ref={chatRef}
+              roomId={roomId}
+              nickname={user?.nickname || "익명"}
+              search={search}
+            />
+
+            {/* 검색 패널 */}
+            <div
+              className={`
+                absolute top-0 left-0 w-full bg-white/95 border-b border-gray-200 backdrop-blur-md z-50
+                transition-transform duration-300 ease-in-out
+                ${showSearch ? "translate-y-0" : "-translate-y-full"}
+              `}
+            >
+              <div className="flex items-center px-4 py-3">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="메시지 검색..."
+                  autoFocus={showSearch}
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#6F00B6]/40 bg-white"
+                />
+                <button
+                  onClick={handleCloseSearch}
+                  className="ml-2 text-gray-500 hover:text-gray-700 text-sm"
+                >
+                  닫기
+                </button>
+              </div>
             </div>
           </div>
         </div>
