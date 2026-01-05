@@ -133,7 +133,7 @@ const ChatRoom = forwardRef(function ChatRoom(
                     isMine ? "items-end" : "items-start"
                   }`}
                 >
-                  <div className="min-w-[80px] max-w-[70%] px-4 py-2.5 rounded-xl bg-white border border-gray-200 shadow-sm">
+                  <div className="min-w-[80px] max-w-[70%] sm:max-w-[65%] px-4 py-2.5 rounded-xl bg-white border border-gray-200 shadow-sm">
                     <div className="flex justify-between items-start">
                       <p className="font-semibold text-[14px] text-gray-700">
                         {m.nickname}
@@ -146,14 +146,14 @@ const ChatRoom = forwardRef(function ChatRoom(
                           title="복사"
                           className="text-gray-400 hover:text-gray-600 text-sm"
                         >
-                          <IoCopyOutline size={12} />
+                          <IoCopyOutline size={14} className="sm:size-[12px]" />
                         </button>
                         <button
                           onClick={() => setReplyTarget(m)}
                           title="인용"
                           className="text-gray-400 hover:text-gray-600 text-sm"
                         >
-                          <IoReturnDownBackOutline size={13} />
+                          <IoReturnDownBackOutline size={15} className="sm:size-[13px]" />
                         </button>
                       </div>
                     </div>
@@ -258,7 +258,7 @@ const ChatRoom = forwardRef(function ChatRoom(
 
           <button
             onClick={handleSend}
-            className="px-5 py-2 bg-[#6F00B6] hover:bg-[#8A2BE2] text-white text-[14px] font-medium rounded-lg transition"
+            className="px-5 py-2 sm:py-2.5 md:text-[15px] bg-[#6F00B6] hover:bg-[#8A2BE2] text-white text-[14px] font-medium rounded-lg transition"
           >
             전송
           </button>
@@ -266,7 +266,7 @@ const ChatRoom = forwardRef(function ChatRoom(
 
         {/* 이모지 리스트 */}
         {showEmojiPicker && (
-          <div className="absolute bottom-[64px] left-4 z-50">
+          <div className="absolute bottom-[64px] left-1/2 -translate-x-1/2 md:left-4 md:translate-x-0 z-50">
             <EmojiPicker onEmojiClick={handleEmojiClick} />
           </div>
         )}

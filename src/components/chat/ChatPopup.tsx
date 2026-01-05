@@ -128,11 +128,11 @@ export default function ChatPopup({
               md:rounded-t-2xl
             "
           >
-            <span className="inline-flex items-center gap-2 font-semibold text-[15px] max-w-[300px] truncate">
+            <span className="inline-flex items-center gap-2 font-semibold text-[15px] max-w-[300px] sm:max-w-[200px] md:max-w-[300px] truncate">
               💬{" "}
               {title
-                ? title.length > 19
-                  ? title.slice(0, 19) + "..."
+                ? title.length > (isMobile ? 12 : 19)
+                  ? title.slice(0, isMobile ? 12 : 19) + "..."
                   : title
                 : `모임 채팅 #${roomId}`}
               {/* 인원 표시 */}
@@ -151,7 +151,7 @@ export default function ChatPopup({
                 className="text-gray-500 hover:text-[#6F00B6] transition"
                 title="검색"
               >
-                <IoSearchOutline size={20} />
+                <IoSearchOutline size={22} className="sm:size-[20px]" />
               </button>
 
               {/* 닫기 버튼 */}
@@ -159,7 +159,7 @@ export default function ChatPopup({
                 onClick={() => closePopup(roomId)}
                 className="p-1 text-gray-500 hover:bg-gray-200 rounded-md transition"
               >
-                <IoClose size={20} />
+                <IoClose size={22} className="sm:size-[20px]" />
               </button>
             </div>
           </div>
