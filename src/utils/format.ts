@@ -1,30 +1,39 @@
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
-// 📅 날짜 포맷팅 (2024-05-20 (월) 18:30)
-export const formatDate = (dateStr?: string | Date): string => {
-  if (!dateStr) return "-";
-  const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
-  if (isNaN(date.getTime())) return "-";
+const DATE_PLACEHOLDER = "-";
+
+type DateInput = string | Date;
+
+const toValidDate = (value?: DateInput | null): Date | null => {
+  if (!value) return null;
+
+  const date = typeof value === "string" ? new Date(value) : value;
+  return isNaN(date.getTime()) ? null : date;
+};
+
+export const formatDate = (dateStr?: DateInput): string => {
+  const date = toValidDate(dateStr);
+  if (!date) return DATE_PLACEHOLDER;
+
   return format(date, "yyyy-MM-dd (EEE) HH:mm", { locale: ko });
 };
 
-// 💰 가격 포맷팅 (35,000)
 export const formatPrice = (price: number): string => {
   return price.toLocaleString("ko-KR");
 };
 
-// 📅 경기 일정 탭용 날짜 포맷 (20일 (월))
-export const formatTabDate = (dateStr: string | Date): string => {
-  const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+export const formatTabDate = (dateStr?: DateInput): string => {
+  const date = toValidDate(dateStr);
+  if (!date) return DATE_PLACEHOLDER;
+
   return format(date, "d일 (EEE)", { locale: ko });
 };
 
-// 🔔 알림 시간 포맷
-// 오늘: "방금 전" / "5분 전" / "2시간 전"
-// 어제 포함 과거: "10.18 16:20"
-export const formatNotificationTime = (sentAt: string | Date): string => {
-  const date = typeof sentAt === "string" ? new Date(sentAt) : sentAt;
+export const formatNotificationTime = (sentAt?: DateInput): string => {
+  const date = toValidDate(sentAt);
+  if (!date) return DATE_PLACEHOLDER;
+
   const now = new Date();
 
   const isToday = date.toDateString() === now.toDateString();
@@ -32,13 +41,11 @@ export const formatNotificationTime = (sentAt: string | Date): string => {
   const diffMin = Math.floor(diffMs / 60000);
   const diffHour = Math.floor(diffMin / 60);
 
-  // 오늘인 경우: 상대시간
   if (isToday) {
     if (diffMin < 1) return "방금 전";
     if (diffMin < 60) return `${diffMin}분 전`;
     if (diffHour < 24) return `${diffHour}시간 전`;
   }
 
-  // 어제 포함 과거는 고정 포맷
   return format(date, "MM.dd HH:mm");
 };

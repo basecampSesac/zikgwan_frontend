@@ -14,19 +14,23 @@ interface ToastState {
   removeToast: (id: string) => void;
 }
 
+const TOAST_DURATION_MS = 3000;
+
 export const useToastStore = create<ToastState>((set) => ({
   toasts: [],
   addToast: (message, type) => {
-    const id = Date.now().toString();
+    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const newToast = { id, message, type };
 
-    set({ toasts: [newToast] });
+    set((state) => ({
+      toasts: [...state.toasts, newToast],
+    }));
 
     setTimeout(() => {
       set((state) => ({
         toasts: state.toasts.filter((toast) => toast.id !== id),
       }));
-    }, 3000);
+    }, TOAST_DURATION_MS);
   },
   removeToast: (id) =>
     set((state) => ({
