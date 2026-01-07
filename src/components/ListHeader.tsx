@@ -8,7 +8,7 @@ type ListHeaderProps = {
   onSortChange?: (value: string) => void;
   buttonText?: string;
   onButtonClick?: () => void;
-  externalRef?: React.RefObject<HTMLElement>; 
+  externalRef?: React.RefObject<HTMLElement>;
 };
 
 export default function ListHeader({
@@ -47,13 +47,30 @@ export default function ListHeader({
   return (
     <div
       ref={containerRef}
-      className="flex justify-between items-center mb-6 w-full border-b border-gray-200 pb-4"
+      className="
+      w-full border-b border-gray-200 pb-3 sm:pb-4 mb-4 sm:mb-6
+      flex items-center gap-2 sm:gap-3
+      flex-nowrap
+    "
     >
-      <p className="text-sm font-medium text-gray-600">
-        {count !== undefined ? <>총 {count}개의 {title}</> : title}
+      <p
+        className="
+        min-w-0 flex-1
+        text-xs sm:text-sm font-medium text-gray-600
+        truncate
+      "
+        title={count !== undefined ? `총 ${count}개의 ${title}` : title}
+      >
+        {count !== undefined ? (
+          <>
+            총 {count}개의 {title}
+          </>
+        ) : (
+          title
+        )}
       </p>
 
-      <div className="flex items-center gap-3 ml-auto">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {sortOptions && sortOptions.length > 0 && (
           <CustomSelect
             id="list-header-sort"
@@ -68,7 +85,13 @@ export default function ListHeader({
         {buttonText && (
           <button
             onClick={onButtonClick}
-            className="px-4 py-2 rounded-lg bg-[#8A2BE2] text-white hover:bg-[#6F00B6] text-sm"
+            className="
+            px-2.5 py-1.5 sm:px-4 sm:py-2
+            rounded-lg bg-[#8A2BE2] text-white hover:bg-[#6F00B6]
+            text-xs sm:text-sm
+            whitespace-nowrap
+            shrink-0
+          "
           >
             {buttonText}
           </button>
@@ -97,7 +120,7 @@ function CustomSelect({
 }) {
   const isOpen = openSelectId === id;
 
-  const handleToggle = () => setOpenSelectId(isOpen ? null : id); 
+  const handleToggle = () => setOpenSelectId(isOpen ? null : id);
   const handleSelect = (val: string) => {
     onChange(val);
     setOpenSelectId(null);
@@ -106,17 +129,28 @@ function CustomSelect({
   const selectedLabel = options.find((o) => o.value === value)?.label;
 
   return (
-    <div className="relative w-40 custom-select">
+    <div className="relative w-32 sm:w-40 custom-select">
       <button
         type="button"
         onClick={handleToggle}
-        className={`w-full h-10 flex items-center justify-between px-3 text-sm border rounded-md bg-white focus:outline-none
-          ${isOpen ? "border-[#6F00B6] ring-1 ring-[#6F00B6]" : "border-gray-200"} transition-colors`}
+        className={`
+        w-full h-9 sm:h-10
+        flex items-center justify-between
+        px-2.5 sm:px-3
+        text-xs sm:text-sm
+        border rounded-md bg-white focus:outline-none
+        ${isOpen ? "border-[#6F00B6] ring-1 ring-[#6F00B6]" : "border-gray-200"}
+        transition-colors
+      `}
       >
-        <span className={!selectedLabel ? "text-gray-400" : "text-gray-700"}>
+        <span
+          className={`truncate ${
+            !selectedLabel ? "text-gray-400" : "text-gray-700"
+          }`}
+        >
           {selectedLabel || placeholder}
         </span>
-        <FiChevronDown size={18} className="text-gray-400" />
+        <FiChevronDown size={16} className="text-gray-400 shrink-0" />
       </button>
 
       {isOpen && (
@@ -124,7 +158,7 @@ function CustomSelect({
           {options.map((o) => (
             <li
               key={o.value}
-              className="px-3 py-2 text-sm cursor-pointer rounded-md hover:bg-purple-50 hover:text-purple-700 transition-colors text-gray-700"
+              className="px-2.5 py-2 text-xs sm:text-sm cursor-pointer rounded-md hover:bg-purple-50 hover:text-purple-700 transition-colors text-gray-700"
               onClick={() => handleSelect(o.value)}
             >
               {o.label}

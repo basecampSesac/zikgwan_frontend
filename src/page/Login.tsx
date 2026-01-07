@@ -7,8 +7,7 @@ import axiosInstance from "../lib/axiosInstance";
 import { useToastStore } from "../store/toastStore";
 import PasswordReset from "../components/auth/PasswordReset";
 
-
-const  API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 export default function LoginPage() {
   const { email, password, setEmail, setPassword, login } = useAuthStore();
@@ -174,7 +173,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex flex-1 justify-center bg-white min-h-screen pt-20">
+    <main className="flex justify-center bg-white">
       <div className="w-full max-w-sm p-6 rounded-lg bg-white">
         <h1 className="text-2xl font-bold mb-8 text-center">이메일로 로그인</h1>
 

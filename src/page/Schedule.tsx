@@ -24,29 +24,24 @@ export default function SchedulePage() {
     fetchMatches();
   }, [fetchMatches]);
 
-  // 오늘 날짜
   const today = new Date();
   const todayStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 10);
 
-  // 날짜 정렬
   const sortedDates = useMemo(() => {
     return [...new Set(dates)].sort();
   }, [dates]);
 
-  // 오늘 날짜 찾기
   useEffect(() => {
     if (sortedDates.length === 0) return;
 
     let todayIdx = sortedDates.indexOf(todayStr);
 
-    // 오늘 날짜가 없으면 오늘을 배열에 추가하고 정렬
     if (todayIdx === -1) {
       const extended = [...sortedDates, todayStr].sort();
       todayIdx = extended.indexOf(todayStr);
 
-      // 중앙 정렬 (오늘 기준)
       setCurrentIndex(todayIdx);
       setWindowStart(Math.max(0, todayIdx - 4));
     } else {
@@ -55,7 +50,7 @@ export default function SchedulePage() {
     }
   }, [sortedDates, todayStr]);
 
-  const currentDate = sortedDates[currentIndex] || todayStr; // fallback
+  const currentDate = sortedDates[currentIndex] || todayStr;
   const todayMatches = useMemo(
     () => matches.filter((m: Match) => m.date === currentDate),
     [matches, currentDate]
@@ -65,7 +60,6 @@ export default function SchedulePage() {
   const visibleDates = useMemo(() => {
     const slice = sortedDates.slice(windowStart, windowStart + 9);
 
-    // 오늘 날짜가 범위 안에 없으면 중앙으로 이동
     if (!slice.includes(todayStr)) {
       const idx = sortedDates.indexOf(todayStr);
       if (idx !== -1) {
@@ -76,7 +70,6 @@ export default function SchedulePage() {
     return slice;
   }, [sortedDates, todayStr, windowStart]);
 
-  // 이동 핸들러
   const handlePrev = () => {
     startTransition(() => {
       if (currentIndex > 0) {
@@ -110,13 +103,11 @@ export default function SchedulePage() {
   return (
     <div className="bg-white min-h-screen">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* 제목 */}
         <h1 className="text-2xl font-bold text-gray-800 mb-2">경기 일정</h1>
         <p className="text-gray-500 mb-8">
           티켓 예매와 모임 준비 전에 경기 일정을 확인해보세요.
         </p>
 
-        {/* 월 헤더 + 슬라이드 네비 */}
         <section className="mb-10">
           <div className="w-full bg-gray-100 border border-gray-200 py-4 mb-3 flex items-center justify-between rounded-md">
             <button
@@ -145,16 +136,40 @@ export default function SchedulePage() {
           </div>
 
           {/* 날짜 탭 */}
-          <div className="grid grid-cols-9 gap-2">
+          <div className="md:hidden -mx-4 px-4 overflow-x-auto">
+            <div className="flex gap-2 min-w-max">
+              {visibleDates.map((date) => {
+                const idx = sortedDates.indexOf(date);
+                const isActive = idx === currentIndex;
+                return (
+                  <button
+                    key={date}
+                    onClick={() => startTransition(() => setCurrentIndex(idx))}
+                    disabled={isPending}
+                    className={`shrink-0 h-10 px-3 rounded-lg border text-sm font-medium transition whitespace-nowrap ${
+                      isActive
+                        ? "bg-[#6F00B6] text-white border-[#6F00B6]"
+                        : "bg-white text-gray-600 border-gray-300"
+                    } ${isPending ? "cursor-wait opacity-80" : ""}`}
+                  >
+                    {formatTabDate(date)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="hidden md:grid grid-cols-9 gap-2">
             {visibleDates.map((date) => {
               const idx = sortedDates.indexOf(date);
+              const isActive = idx === currentIndex;
               return (
                 <button
                   key={date}
                   onClick={() => startTransition(() => setCurrentIndex(idx))}
                   disabled={isPending}
                   className={`w-full py-3 rounded-lg border text-base font-medium transition ${
-                    idx === currentIndex
+                    isActive
                       ? "bg-[#6F00B6] text-white border-[#6F00B6]"
                       : "bg-white text-gray-600 border-gray-300"
                   } ${isPending ? "cursor-wait opacity-80" : ""}`}
@@ -166,7 +181,6 @@ export default function SchedulePage() {
           </div>
         </section>
 
-        {/* 경기 리스트 */}
         <div className="border border-gray-200 rounded-lg overflow-hidden ">
           {todayMatches.length === 0 ? (
             <p className="text-gray-500 px-6 py-9 text-center text-base">
@@ -212,7 +226,6 @@ export default function SchedulePage() {
             </ul>
           )}
 
-          {/* 안내 문구 */}
           <div className="border-t border-gray-200 bg-gray-50 px-6 py-5 text-center">
             <p className="text-sm font-semibold text-gray-600">
               경기 일정 안내
