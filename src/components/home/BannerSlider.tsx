@@ -10,19 +10,19 @@ export default function BannerSlider() {
       id: 1,
       title: "🎟️ 2매 구매 시 30% 할인",
       desc: "티켓 양도 시 자동 쿠폰 발급 이벤트 진행 중",
-      image: "/fans.jpg",
+      image: "/fans.webp",
     },
     {
       id: 2,
       title: "🔥 포스트시즌 모임 폭주!",
       desc: "지금 바로 모임을 만들고 친구들과 응원하세요!",
-      image: "/view.jpg",
+      image: "/view.webp",
     },
     {
       id: 3,
       title: "📅 10월 직관 일정 공개!",
-      desc: "가을야구 일정 확인하고 티켓 미리 예매하세요 ⚾",
-      image: "/ball.jpg",
+      desc: "가을야구 일정 확인하고 티켓 미리 예매하세요",
+      image: "/ball.webp",
     },
   ];
 
@@ -43,15 +43,18 @@ export default function BannerSlider() {
           }}
           className="overflow-visible select-none"
         >
-          {banners.map((b) => (
+          {banners.map((b, idx) => (
             <SwiperSlide key={b.id}>
               <div className="relative overflow-hidden rounded-2xl shadow-lg h-[220px] sm:h-[260px] lg:h-[360px]">
                 <img
                   src={b.image}
                   alt={b.title}
                   className="absolute inset-0 w-full h-full object-cover"
+                  loading={idx === 0 ? "eager" : "lazy"}
+                  fetchPriority={idx === 0 ? "high" : "auto"}
+                  decoding="async"
                 />
-                <div className="absolute inset-0 bg-black/45" />
+                <div className="absolute inset-0 bg-black/58" />
                 <div className="relative z-10 flex flex-col justify-center h-full px-5 sm:px-7 lg:px-8 text-white">
                   <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold mb-2 drop-shadow-md">
                     {b.title}
