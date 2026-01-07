@@ -8,6 +8,7 @@ import Modal from "../components/Modal";
 import axiosInstance from "../lib/axiosInstance";
 import type { TicketUI } from "../types/ticket";
 import { useToastStore } from "../store/toastStore";
+import { useAuthStore } from "../store/authStore";
 
 type SortType = "RECENT" | "LOW" | "HIGH";
 
@@ -42,14 +43,14 @@ export default function TicketList() {
   const [sortType, setSortType] = useState<SortType>("RECENT");
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [_loading, setLoading] = useState(false); // 로딩 텍스트 비활성화용
+  const [_loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
+  const { isAuthenticated } = useAuthStore();
   const { addToast } = useToastStore();
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
-  // 티켓 목록 조회
   const fetchTickets = useCallback(
     async (sort: SortType = "RECENT", pageNum = 0, filter = filters) => {
       setLoading(true);
@@ -83,12 +84,10 @@ export default function TicketList() {
           let totalElementsValue = 0;
 
           if (res.data.data.content) {
-            // 페이지 객체 응답
             content = res.data.data.content;
             totalPagesValue = res.data.data.totalPages;
             totalElementsValue = res.data.data.totalElements;
           } else if (Array.isArray(res.data.data)) {
-            // 배열 응답 (검색 API)
             content = res.data.data.slice(pageNum * 12, pageNum * 12 + 12);
             totalPagesValue = Math.ceil(res.data.data.length / 12);
             totalElementsValue = res.data.data.length;
@@ -153,6 +152,14 @@ export default function TicketList() {
     fetchTickets(sortType, pageNum, filters);
   };
 
+  const handleCreateClick = () => {
+    if (!isAuthenticated) {
+      addToast("로그인 후 티켓을 등록할 수 있어요.", "error");
+      return;
+    }
+    setIsCreateOpen(true);
+  };
+
   useEffect(() => {
     fetchTickets(sortType, 0);
   }, []);
@@ -160,7 +167,6 @@ export default function TicketList() {
   return (
     <div className="bg-white min-h-screen">
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* 검색 패널 */}
         <div className="mb-6">
           <SearchPanel
             title="티켓 검색"
@@ -177,17 +183,15 @@ export default function TicketList() {
           />
         </div>
 
-        {/* 헤더 */}
         <ListHeader
           title="티켓"
           count={totalCount}
           sortOptions={["최신순", "낮은 가격순", "높은 가격순"]}
           onSortChange={handleSortChange}
           buttonText="+ 티켓 등록"
-          onButtonClick={() => setIsCreateOpen(true)}
+          onButtonClick={handleCreateClick}
         />
 
-        {/* 카드 리스트 */}
         <div className="min-h-[300px]">
           {tickets.length > 0 ? (
             <div className="grid gap-6 grid-cols-[repeat(auto-fill,_minmax(240px,_1fr))] ">
@@ -202,7 +206,6 @@ export default function TicketList() {
           )}
         </div>
 
-        {/* 페이지네이션 */}
         <Pagination
           page={page}
           totalPages={totalPages}
@@ -210,7 +213,6 @@ export default function TicketList() {
         />
       </div>
 
-      {/* 등록 모달 */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)}>
         <TicketForm
           mode="create"
