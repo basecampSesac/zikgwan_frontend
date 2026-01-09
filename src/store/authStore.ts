@@ -90,7 +90,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       await axiosInstance.get("/api/user/logout");
-      console.log("서버 로그아웃 완료");
     } catch (err) {
       console.error("로그아웃 중 오류:", err);
     } finally {
@@ -161,7 +160,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (status === "success" && data?.token) {
         set({ accessToken: data.token });
         localStorage.setItem("accessToken", data.token);
-        console.log("액세스 토큰 갱신 완료");
       } else {
         console.warn("토큰 갱신 실패: 서버 응답 오류");
         set({ isAuthenticated: false, user: null, accessToken: null });

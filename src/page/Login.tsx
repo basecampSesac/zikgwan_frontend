@@ -51,8 +51,8 @@ export default function LoginPage() {
               profileImage: imageUrl,
             });
           }
-        } catch {
-          console.log("⚠️ 프로필 이미지 없음 (기본 표시)");
+        } catch (err) {
+          console.error("프로필 이미지 조회 오류:", err);
         }
         addToast(`${data.nickname || "회원"}님, 환영합니다! 🎉`, "success");
         navigate("/");

@@ -37,19 +37,16 @@ export default function NotificationSse() {
     eventSourceRef.current = eventSource;
 
     eventSource.addEventListener("ping", (event) => {
-      const e = event as MessageEvent<string>;
-      console.log("서버 heartbeat:", e.data);
+      // Ping event for keeping connection alive
     });
 
     eventSource.addEventListener("connect", (event) => {
       const e = event as MessageEvent<string>;
-      console.log("SSE 연결 성공:", e.data);
     });
 
     eventSource.addEventListener("chat-notification", (event) => {
       const e = event as MessageEvent<string>;
       const data: ChatNotification = JSON.parse(e.data);
-      console.log("새 알림 수신:", data);
       addNotification(data);
     });
 
@@ -59,7 +56,6 @@ export default function NotificationSse() {
     };
 
     return () => {
-      console.log("SSE 연결 해제");
       eventSource.close();
     };
   }, [user?.userId, addNotification]);

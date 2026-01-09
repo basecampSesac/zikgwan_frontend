@@ -71,7 +71,6 @@ export default function ChatPopup({
     const joinRoom = async () => {
       try {
         await axiosInstance.patch(`/api/chatroom/${roomId}/join`);
-        console.log(`✅ joined room ${roomId}`);
       } catch (err) {
         console.warn("채팅방 join 실패:", err);
       }
@@ -80,7 +79,6 @@ export default function ChatPopup({
 
     return () => {
       axiosInstance.patch(`/api/chatroom/exit`).catch(() => {});
-      console.log(`🚪 exited room ${roomId}`);
     };
   }, [roomId]);
 

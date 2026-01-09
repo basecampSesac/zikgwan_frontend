@@ -69,7 +69,9 @@ export default function ProfileSection() {
       }
     } catch (err) {
       console.error("프로필 업로드 오류:", err);
-      setErrorMessage("프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요.");
+      setErrorMessage(
+        "프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요."
+      );
       addToast("프로필 이미지 업로드 실패", "error");
     } finally {
       setUploading(false);
@@ -82,7 +84,9 @@ export default function ProfileSection() {
 
     const fetchProfileImage = async () => {
       try {
-        const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
+        const { data } = await axiosInstance.get(
+          `/api/images/U/${user.userId}`
+        );
         if (data.status === "success" && data.data) {
           const imageUrl = data.data.startsWith("http")
             ? data.data
@@ -153,8 +157,6 @@ export default function ProfileSection() {
           nickname: data.data.nickname || nickname,
           club: data.data.club || club,
         });
-        console.log("닉네임변경 : "+nickname);
-        console.log("구단변경 : "+club);
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
@@ -163,8 +165,14 @@ export default function ProfileSection() {
       }
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        const axiosError = err as AxiosError<{ status: string; message: string }>;
-        console.error("회원정보 수정 오류:", axiosError.response?.data || axiosError.message);
+        const axiosError = err as AxiosError<{
+          status: string;
+          message: string;
+        }>;
+        console.error(
+          "회원정보 수정 오류:",
+          axiosError.response?.data || axiosError.message
+        );
 
         if (axiosError.response?.status === 401) {
           addToast("세션이 만료되었습니다. 다시 로그인해주세요.", "error");
@@ -172,7 +180,8 @@ export default function ProfileSection() {
           window.location.href = "/login";
         } else {
           addToast(
-            axiosError.response?.data?.message || "회원정보 수정 중 오류가 발생했습니다.",
+            axiosError.response?.data?.message ||
+              "회원정보 수정 중 오류가 발생했습니다.",
             "error"
           );
         }
@@ -195,7 +204,9 @@ export default function ProfileSection() {
   const handleDelete = async () => {
     if (!user) return;
     try {
-      const { data } = await axiosInstance.patch(`/api/user/delete/${user.userId}`);
+      const { data } = await axiosInstance.patch(
+        `/api/user/delete/${user.userId}`
+      );
       if (data.status === "success" && data.data === true) {
         addToast("회원탈퇴가 완료되었습니다.", "success");
         logout();
@@ -250,7 +261,9 @@ export default function ProfileSection() {
 
       {/* 이메일 */}
       <label className="block mb-4">
-        <span className="block text-sm font-medium mb-1 text-gray-600">이메일</span>
+        <span className="block text-sm font-medium mb-1 text-gray-600">
+          이메일
+        </span>
         <input
           type="text"
           value={user?.email || ""}
@@ -260,7 +273,9 @@ export default function ProfileSection() {
       </label>
 
       {/* 비밀번호 변경 */}
-      <span className="block text-sm font-medium mb-1 text-gray-600">비밀번호 변경</span>
+      <span className="block text-sm font-medium mb-1 text-gray-600">
+        비밀번호 변경
+      </span>
 
       {/* 현재 비밀번호 */}
       <label className="block mb-4">
@@ -270,7 +285,9 @@ export default function ProfileSection() {
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             placeholder="현재 비밀번호를 입력해주세요."
-            className={`input-border h-11 pr-10 ${isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""}`}
+            className={`input-border h-11 pr-10 ${
+              isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""
+            }`}
             disabled={isSocialLogin}
           />
           <button
@@ -279,7 +296,11 @@ export default function ProfileSection() {
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
             disabled={isSocialLogin}
           >
-            {showCurrentPw ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
+            {showCurrentPw ? (
+              <AiOutlineEyeInvisible size={20} />
+            ) : (
+              <AiOutlineEye size={20} />
+            )}
           </button>
         </div>
       </label>
@@ -292,7 +313,9 @@ export default function ProfileSection() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="새 비밀번호를 입력해주세요."
-            className={`input-border h-11 pr-10 ${isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""}`}
+            className={`input-border h-11 pr-10 ${
+              isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""
+            }`}
             disabled={isSocialLogin}
           />
           <button
@@ -301,7 +324,11 @@ export default function ProfileSection() {
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
             disabled={isSocialLogin}
           >
-            {showNewPw ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
+            {showNewPw ? (
+              <AiOutlineEyeInvisible size={20} />
+            ) : (
+              <AiOutlineEye size={20} />
+            )}
           </button>
         </div>
       </label>
@@ -314,7 +341,9 @@ export default function ProfileSection() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="새 비밀번호를 확인해주세요."
-            className={`input-border h-11 pr-10 ${isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""}`}
+            className={`input-border h-11 pr-10 ${
+              isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""
+            }`}
             disabled={isSocialLogin}
           />
           <button
@@ -323,19 +352,27 @@ export default function ProfileSection() {
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
             disabled={isSocialLogin}
           >
-            {showConfirmPw ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
+            {showConfirmPw ? (
+              <AiOutlineEyeInvisible size={20} />
+            ) : (
+              <AiOutlineEye size={20} />
+            )}
           </button>
         </div>
       </label>
 
       {/* 닉네임 */}
       <label className="block mb-4">
-        <span className="block text-sm font-medium mb-1 text-gray-600">닉네임</span>
+        <span className="block text-sm font-medium mb-1 text-gray-600">
+          닉네임
+        </span>
         <input
           type="text"
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
-          className={`input-border h-11 ${isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""}`}
+          className={`input-border h-11 ${
+            isSocialLogin ? "bg-gray-100 cursor-not-allowed" : ""
+          }`}
           placeholder={user?.nickname || "닉네임 입력"}
           disabled={isSocialLogin}
         />
@@ -343,7 +380,9 @@ export default function ProfileSection() {
 
       {/* 구단 */}
       <label className="block mb-6">
-        <span className="block text-sm font-medium mb-1 text-gray-600">좋아하는 구단</span>
+        <span className="block text-sm font-medium mb-1 text-gray-600">
+          좋아하는 구단
+        </span>
         <select
           value={club}
           onChange={(e) => setClub(e.target.value)}
