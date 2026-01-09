@@ -30,8 +30,6 @@ export function useChatSocket(
       reconnectDelay: 5000,
       debug: () => {},
       onConnect: () => {
-        console.log("✅ STOMP connected");
-
         // 메시지 수신 구독
         client.subscribe(`/sub/chat.${roomId}`, (msg) => {
           const body: ChatMessage = JSON.parse(msg.body);
@@ -43,9 +41,6 @@ export function useChatSocket(
           destination: `/pub/chat.enter.${roomId}`,
           body: JSON.stringify({ nickname }),
         });
-
-        console.log("채팅방 입장 메시지 전송 완료");
-        
       },
     });
 
@@ -54,7 +49,6 @@ export function useChatSocket(
 
     return () => {
       client.deactivate();
-      console.log("STOMP disconnected");
     };
   }, [roomId, nickname, accessToken]); // onMessage는 useCallback으로 감싸놨으니 제외
 

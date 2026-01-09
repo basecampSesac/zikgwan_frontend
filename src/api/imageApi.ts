@@ -13,8 +13,6 @@ export async function uploadImage(
     const formData = new FormData();
     formData.append("file", file);
 
-    console.log("📤 업로드 요청 FormData", [...formData.entries()]);
-
     const { data } = await axiosInstance.post(
       `/api/images/${type}${refId ? `?refId=${refId}` : ""}`,
       formData,
@@ -24,7 +22,6 @@ export async function uploadImage(
     );
 
     if (data.status === "success") {
-      console.log("✅ 업로드 성공:", data.data);
       return data.data; // { imageId, imagePath, ... }
     } else {
       throw new Error(data.message || "이미지 업로드 실패");
@@ -47,7 +44,7 @@ export function getImageUrl(path?: string | null) {
   return `${baseUrl}${normalizedPath}`;
   */
   if (!path) return "";
-  
+
   return path;
 }
 

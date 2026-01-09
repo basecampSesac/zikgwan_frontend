@@ -102,7 +102,6 @@ export default function TicketDetailView() {
     async (tsId: number, sellerNickname?: string) => {
       // 판매자라면 실행하지 않음
       if (user?.nickname === sellerNickname) {
-        console.log("판매자는 채팅방 조회를 생략");
         return;
       }
 
@@ -110,10 +109,9 @@ export default function TicketDetailView() {
         const res = await axiosInstance.get(`/api/chatroom/ticket/${tsId}`);
         if (res.data?.status === "success" && res.data.data) {
           setRoomId(res.data.data.roomId);
-          console.log("채팅방 정보 불러오기 성공:", res.data.data);
         }
       } catch (err) {
-        console.log("채팅방이 아직 없음:", err);
+        console.error("채팅방 조회 실패:", err);
       }
     },
     [user?.nickname]

@@ -9,19 +9,16 @@ export default function GroupChatPage() {
   const nickname = localStorage.getItem("nickname") || "익명";
 
   useEffect(() => {
-
     // 채팅방 조회
     const getChatRoom = async () => {
       try {
         const res = await axiosInstance.get(`/api/chatroom/community/${id}`);
 
         if (res.data.status === "success") {
-          console.log(`roomId 확인 ================== ${res.data.roomId}`);
-          
           setRoomId(res.data.roomId);
         }
-      } catch (err) {
-        console.log("채팅방 조회 실패:", err);
+      } catch (error) {
+        console.error("채팅방 조회 실패:", error);
       }
     };
 

@@ -36,12 +36,6 @@ export const useChatWidgetStore = create<ChatWidgetState>((set) => ({
   },
 
   openPopup: (roomId, roomName, memberCount, leaderNickname) => {
-    console.log(
-      `[Store] openPopup() 실행됨 → roomId=${roomId}, roomName=${roomName}, leader=${
-        leaderNickname ?? "없음"
-      }, members=${memberCount ?? "?"}`
-    );
-    console.trace("openPopup 호출 스택");
     set((state) => ({
       openedRooms: {
         ...state.openedRooms,
@@ -51,7 +45,6 @@ export const useChatWidgetStore = create<ChatWidgetState>((set) => ({
   },
 
   closePopup: (roomId) => {
-    console.log(`[Store] closePopup() 실행됨 → roomId=${roomId}`);
     set((state) => {
       const updated = { ...state.openedRooms };
       delete updated[roomId];

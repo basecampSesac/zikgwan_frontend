@@ -89,7 +89,6 @@ export default function GroupDetailView() {
       const res = await axiosInstance.get(`/api/chatroom/community/${id}`);
       if (res.data.status === "success" && res.data.data) {
         setRoomId(res.data.data.roomId);
-        console.log("✅ 채팅방 정보 불러오기 성공:", res.data.data);
       } else {
         console.warn("채팅방 정보를 불러오지 못했습니다.");
       }
