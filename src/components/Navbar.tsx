@@ -54,13 +54,11 @@ export function Navbar() {
       <header className="fixed top-0 left-0 w-full border-b border-gray-200 bg-white/95 backdrop-blur z-50">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="md:hidden">
-<button
+            <button
               type="button"
               onClick={openMenu}
-              className="w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-[#6F00B6]"
+              className="w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center transition"
               aria-label="메뉴 열기"
-              aria-expanded={isMenuOpen}
-              aria-controls="mobile-menu"
             >
               <Menu className="text-gray-700" size={22} />
             </button>
@@ -75,25 +73,22 @@ export function Navbar() {
           </div>
 
           {/* 메뉴 */}
-<nav className="hidden md:flex items-center gap-6 text-base font-semibold text-[#29292D] flex-grow ml-8" role="navigation" aria-label="메인 메뉴">
+          <nav className="hidden md:flex items-center gap-6 text-base font-semibold text-[#29292D] flex-grow ml-8">
             <button
               onClick={() => navigate("/tickets")}
-              className="hover:text-[#6F00B6] focus:outline-none focus:ring-2 focus:ring-[#6F00B6] focus:ring-offset-2 rounded px-2 py-1"
-              aria-label="티켓 거래 페이지로 이동"
+              className="hover:text-[#6F00B6]"
             >
               티켓 거래
             </button>
             <button
               onClick={() => navigate("/groups")}
-              className="hover:text-[#6F00B6] focus:outline-none focus:ring-2 focus:ring-[#6F00B6] focus:ring-offset-2 rounded px-2 py-1"
-              aria-label="직관 모임 페이지로 이동"
+              className="hover:text-[#6F00B6]"
             >
               직관 모임
             </button>
             <button
               onClick={() => navigate("/schedule")}
-              className="hover:text-[#6F00B6] focus:outline-none focus:ring-2 focus:ring-[#6F00B6] focus:ring-offset-2 rounded px-2 py-1"
-              aria-label="경기 일정 페이지로 이동"
+              className="hover:text-[#6F00B6]"
             >
               경기 일정
             </button>

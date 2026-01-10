@@ -1,56 +1,48 @@
-import { memo } from "react";
+import { useEffect, useState } from "react";
 import GroupCard from "../groups/GroupCard";
 import type { GroupUI } from "../../types/group";
-import { useApiData } from "../../hooks/useApiData";
+import axiosInstance from "../../lib/axiosInstance";
+import { useToastStore } from "../../store/toastStore";
 
-// API 응답 타입 정의
-interface CommunityApiResponse {
-  communityId: number;
-  title: string;
-  description: string;
-  date: string;
-  home: string;
-  away: string;
-  stadium: string;
-  memberCount: number;
-  nickname: string;
-  isFull: boolean;
-  imageUrl: string;
-}
+export default function GroupSection() {
+  const [groups, setGroups] = useState<GroupUI[]>([]);
+  const { addToast } = useToastStore();
 
-const GroupSection = function GroupSection() {
-  const { data: groups, loading } = useApiData<GroupUI[]>(
-    "/api/communities/closing-soon",
-    {
-      errorMessage: "모임 정보를 불러오지 못했습니다.",
-      transform: (data) => {
-        if (!Array.isArray(data)) {
-          throw new Error("Invalid data format: expected array");
+  useEffect(() => {
+    const fetchClosingSoonGroups = async () => {
+      try {
+        const res = await axiosInstance.get("/api/communities/closing-soon");
+        if (res.data.status === "success" && Array.isArray(res.data.data)) {
+          const formatted = res.data.data.map((item: any) => ({
+            id: item.communityId,
+            title: item.title,
+            description: item.description,
+            date: item.date,
+            teams: `${item.home} vs ${item.away}`,
+            stadiumName: item.stadium,
+            personnel: item.memberCount,
+            leader: item.nickname,
+            status: item.isFull ? "모집마감" : "모집중",
+            imageUrl: item.imageUrl,
+          }));
+          setGroups(formatted);
+        } else {
+          addToast("모임 정보를 불러오지 못했습니다.", "error");
         }
-        return data.map((item: CommunityApiResponse) => ({
-          id: item.communityId,
-          title: item.title,
-          description: item.description,
-          date: item.date,
-          teams: `${item.home} vs ${item.away}`,
-          stadiumName: item.stadium,
-          personnel: item.memberCount,
-          leader: item.nickname,
-          status: item.isFull ? "모집마감" : "모집중",
-          imageUrl: item.imageUrl,
-        }));
+      } catch (err) {
+        console.error("🚨 마감 직전 모임 불러오기 실패:", err);
+        addToast("마감 직전 모임을 불러오지 못했습니다.", "error");
       }
-    }
-  );
+    };
 
-return (
+    fetchClosingSoonGroups();
+  }, [addToast]);
+
+  return (
     <div>
       <h2 className="text-xl font-bold mb-4">👫 마감 직전인 모임</h2>
-      {loading && (
-        <p className="text-gray-400 text-sm">불러오는 중...</p>
-      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {groups && groups.length > 0 ? (
+        {groups.length > 0 ? (
           groups.map((group) => <GroupCard key={group.id} {...group} />)
         ) : (
           <p className="text-gray-500 text-sm">불러올 모임이 없습니다.</p>
@@ -58,6 +50,4 @@ return (
       </div>
     </div>
   );
-};
-
-export default memo(GroupSection);
+}

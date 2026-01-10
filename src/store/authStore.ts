@@ -1,17 +1,6 @@
 import { create } from "zustand";
 import axiosInstance from "../lib/axiosInstance";
 import { useToastStore } from "../store/toastStore";
-import { logger } from "../utils/logger";
-
-interface ApiError {
-  response?: {
-    data?: {
-      message: string;
-    };
-    status: number;
-  };
-  message: string;
-}
 
 export interface User {
   userId: number;
@@ -102,7 +91,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await axiosInstance.get("/api/user/logout");
     } catch (err) {
-      logger.error("로그아웃 중 오류", err);
+      console.error("로그아웃 중 오류:", err);
     } finally {
       localStorage.removeItem("accessToken");
       sessionStorage.removeItem("accessToken");
@@ -142,16 +131,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         localStorage.setItem("accessToken", data.token);
       } else {
-        logger.warn("자동 로그인 실패: 서버 응답 오류", {
-          status,
-          data,
-        });
+        console.warn("자동 로그인 실패: 서버 응답 오류");
         set({ isAuthenticated: false, user: null, accessToken: null });
       }
-    } catch (err: unknown) {
-      const apiError = err as ApiError;
+    } catch (err: any) {
       const message =
-        apiError.response?.data?.message ||
+        err.response?.data?.message ||
         "세션이 만료되었습니다. 다시 로그인해주세요.";
       addToast(message, "error");
       localStorage.removeItem("accessToken");
@@ -176,16 +161,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ accessToken: data.token });
         localStorage.setItem("accessToken", data.token);
       } else {
-        logger.warn("토큰 갱신 실패: 서버 응답 오류", {
-          status,
-          data,
-        });
+        console.warn("토큰 갱신 실패: 서버 응답 오류");
         set({ isAuthenticated: false, user: null, accessToken: null });
       }
-    } catch (err: unknown) {
-      const apiError = err as ApiError;
+    } catch (err: any) {
       const message =
-        apiError.response?.data?.message ||
+        err.response?.data?.message ||
         "토큰이 만료되었습니다. 다시 로그인해주세요.";
 
       addToast(message, "error");

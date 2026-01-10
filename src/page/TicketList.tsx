@@ -49,7 +49,7 @@ export default function TicketList() {
   const { isAuthenticated } = useAuthStore();
   const { addToast } = useToastStore();
 
-  
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
   const fetchTickets = useCallback(
     async (sort: SortType = "RECENT", pageNum = 0, filter = filters) => {

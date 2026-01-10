@@ -9,12 +9,12 @@ export default function HomePage() {
       <BannerSection />
 
       {/* 티켓 미리보기 섹션 */}
-      <section className="w-full max-w-4xl sm:max-w-5xl md:max-w-6xl px-4 sm:px-6 mt-8 sm:mt-12">
+      <section className="w-full max-w-6xl px-6 mt-12">
         <TicketSection />
       </section>
 
       {/* 모임 미리보기 섹션 */}
-      <section className="w-full max-w-4xl sm:max-w-5xl md:max-w-6xl px-4 sm:px-6 mt-8 sm:mt-12 mb-16 sm:mb-20">
+      <section className="w-full max-w-6xl px-6 mt-12 mb-20">
         <GroupSection />
       </section>
     </main>

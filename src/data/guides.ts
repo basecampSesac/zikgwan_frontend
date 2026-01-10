@@ -6,5 +6,10 @@ export const MANNER_GUIDE: string[] = [
   "예의 있는 대화를 부탁드려요.",
 ];
 
-/** 🧭 티켓 거래 주의사항 가이드 URL */
-export const TICKET_TRADE_GUIDE = "https://example.com/ticket-trade-guide";
+/** 🧭 티켓 거래 주의사항 가이드 문구 리스트 */
+export const TICKET_TRADE_GUIDE: string[] = [
+  "거래 전 티켓의 진위 여부를 반드시 확인하세요.",
+  "직거래는 항상 사람이 많은 장소에서 진행하세요.",
+  "‘계좌이체 후 티켓 발송’ 방식은 사기 위험이 높습니다.",
+  "거래 내역(대화, 송금, 인증 캡처 등)은 꼭 보관해두세요."
+];

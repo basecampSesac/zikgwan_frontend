@@ -36,12 +36,12 @@ export default function NotificationSse() {
 
     eventSourceRef.current = eventSource;
 
-eventSource.addEventListener("ping", () => {
+    eventSource.addEventListener("ping", (event) => {
       // Ping event for keeping connection alive
     });
 
-eventSource.addEventListener("connect", () => {
-      // Connection established
+    eventSource.addEventListener("connect", (event) => {
+      const e = event as MessageEvent<string>;
     });
 
     eventSource.addEventListener("chat-notification", (event) => {
