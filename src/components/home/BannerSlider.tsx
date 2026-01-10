@@ -3,6 +3,7 @@ import { Navigation, Autoplay } from "swiper/modules";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import "swiper/css";
 import "swiper/css/navigation";
+import { OptimizedImage } from "../common/OptimizedImage";
 
 export default function BannerSlider() {
   const banners = [
@@ -46,13 +47,11 @@ export default function BannerSlider() {
           {banners.map((b, idx) => (
             <SwiperSlide key={b.id}>
               <div className="relative overflow-hidden rounded-2xl shadow-lg h-[220px] sm:h-[260px] lg:h-[360px]">
-                <img
+<OptimizedImage
                   src={b.image}
                   alt={b.title}
                   className="absolute inset-0 w-full h-full object-cover"
                   loading={idx === 0 ? "eager" : "lazy"}
-                  fetchPriority={idx === 0 ? "high" : "auto"}
-                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-black/58" />
                 <div className="relative z-10 flex flex-col justify-center h-full px-5 sm:px-7 lg:px-8 text-white">
@@ -68,16 +67,16 @@ export default function BannerSlider() {
           ))}
         </Swiper>
 
-        <div className="hidden lg:flex absolute inset-0 justify-between items-center -left-10 -right-10 pointer-events-none">
+<div className="hidden lg:flex absolute inset-0 justify-between items-center -left-10 -right-10 pointer-events-none">
           <button
-            className="banner-prev pointer-events-auto w-10 h-10 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:scale-105 hover:bg-white transition"
-            aria-label="Previous"
+            className="banner-prev pointer-events-auto w-10 h-10 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:scale-105 hover:bg-white transition focus:outline-none focus:ring-2 focus:ring-[#6F00B6] focus:ring-offset-2"
+            aria-label="이전 배너로 이동"
           >
             <ChevronLeft className="text-gray-700" size={20} />
           </button>
-          <button
-            className="banner-next pointer-events-auto w-10 h-10 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:scale-105 hover:bg-white transition"
-            aria-label="Next"
+<button
+            className="banner-next pointer-events-auto w-10 h-10 bg-white/90 rounded-full shadow-lg flex items-center justify-center hover:scale-105 hover:bg-white transition focus:outline-none focus:ring-2 focus:ring-[#6F00B6] focus:ring-offset-2"
+            aria-label="다음 배너로 이동"
           >
             <ChevronRight className="text-gray-700" size={20} />
           </button>

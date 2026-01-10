@@ -1,17 +1,21 @@
 import { BiShareAlt } from "react-icons/bi";
 
-export default function ShareButton() {
-  const handleShare = async () => {
-    const url = window.location.href;
+interface ShareButtonProps {
+  url?: string;
+}
+
+export default function ShareButton({ url }: ShareButtonProps) {
+const handleShare = async () => {
+    const shareUrl = url || window.location.href;
     try {
       if (navigator.share) {
-        await navigator.share({
+await navigator.share({
           title: "직관 티켓",
           text: "이 티켓을 확인해보세요!",
-          url,
+          url: shareUrl,
         });
       } else {
-        await navigator.clipboard.writeText(url);
+        await navigator.clipboard.writeText(shareUrl);
         alert("링크가 복사되었습니다!");
       }
     } catch (err) {

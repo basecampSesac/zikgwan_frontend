@@ -21,7 +21,8 @@ export default function ChatListItemRow({
     try {
       await axiosInstance.delete(`/api/chatroom/${room.roomId}/leave`);
       onLeaveSuccess();
-    } catch (err) {
+} catch (err) {
+      // TODO: logger로 변경
       console.error("채팅방 나가기 실패:", err);
     }
   };
