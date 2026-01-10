@@ -35,7 +35,7 @@ export const useChatWidgetStore = create<ChatWidgetState>((set) => ({
     set({ isOpen: false });
   },
 
-  openPopup: (roomId, roomName, memberCount, leaderNickname) => {
+  openPopup: (roomId, roomName, memberCount = 0, leaderNickname) => {
     set((state) => ({
       openedRooms: {
         ...state.openedRooms,

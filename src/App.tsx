@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Layout from "./layouts/Layout";
 import HomePage from "./page/Home";
@@ -14,14 +13,12 @@ import TicketDetail from "./page/TicketDetail";
 import GroupDetail from "./page/GroupDetail";
 import GroupChatPage from "./page/GroupChatPage";
 import TicketChatPage from "./page/TicketChatPage";
-import { useAuthStore } from "./store/authStore";
-import axiosInstance from "./lib/axiosInstance";
 import NotificationSSE from "./components/notification/NotificationSse";
 import GlobalChatWidget from "./components/chat/GlobalChatWidget";
 import ChatPopupManager from "./components/chat/ChatPopupManger";
-import { getImageUrl } from "./api/imageApi";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 import { Analytics } from "@vercel/analytics/react";
-import axios from "axios";
+import { useAppInitialization } from "./hooks/useAppInitialization";
 const router = createBrowserRouter([
   {
     Component: Layout,
@@ -44,76 +41,26 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  const { tryAutoLogin, setUser } = useAuthStore();
-  const [loading, setLoading] = useState(true);
+  const { loading } = useAppInitialization();
 
-  useEffect(() => {
-    const initAuth = async () => {
-      const token =
-        localStorage.getItem("accessToken") ||
-        sessionStorage.getItem("accessToken");
-
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        await tryAutoLogin();
-
-        const currentUser = useAuthStore.getState().user;
-        const token = useAuthStore.getState().accessToken;
-        const defaultImage = `${window.location.origin}/profileimage.png`;
-
-        if (token && currentUser?.userId) {
-          const userRes = await axiosInstance.get(
-            `/api/user/${currentUser.userId}`
-          );
-
-          if (userRes.data.status === "success" && userRes.data.data) {
-            const userData = userRes.data.data;
-            let profileImage = defaultImage;
-
-            try {
-              const imgRes = await axiosInstance.get(
-                `/api/images/U/${currentUser.userId}`
-              );
-              if (imgRes.data.status === "success" && imgRes.data.data) {
-                profileImage = getImageUrl(imgRes.data.data);
-              } else {
-                profileImage = defaultImage;
-              }
-            } catch (err: any) {
-              if (axios.isAxiosError(err) && err.response?.status === 404) {
-                profileImage = defaultImage;
-              } else {
-                console.error("🚨 프로필 이미지 조회 중 오류:", err);
-              }
-            }
-
-            setUser({
-              ...userData,
-              profileImage: profileImage || defaultImage,
-            });
-          }
-        }
-      } catch (err) {
-        console.warn("자동 로그인 복원 중 오류:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initAuth();
-  }, [tryAutoLogin, setUser]);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#6F00B6]"></div>
+          <p className="mt-4 text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
+    <ErrorBoundary>
       <NotificationSSE />
       <RouterProvider router={router} />
       <ChatPopupManager />
       <GlobalChatWidget />
       <Analytics />
-    </>
+    </ErrorBoundary>
   );
 }

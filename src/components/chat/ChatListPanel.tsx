@@ -60,7 +60,7 @@ export default function ChatListPanel({
 
           // leaderNickname 미리 저장
           for (const room of withLastMessageTime) {
-            if (!room.communityId) continue;
+            if (room.type !== "C" || !room.communityId) continue;
             try {
               const { data } = await axiosInstance.get(
                 `/api/chatroom/community/${room.communityId}`
