@@ -19,6 +19,7 @@ import axiosInstance from "./lib/axiosInstance";
 import NotificationSSE from "./components/notification/NotificationSse";
 import GlobalChatWidget from "./components/chat/GlobalChatWidget";
 import ChatPopupManager from "./components/chat/ChatPopupManger";
+import LoadingOverlay from "./components/common/LoadingOverlay";
 import { getImageUrl } from "./api/imageApi";
 import { Analytics } from "@vercel/analytics/react";
 import axios from "axios";
@@ -113,6 +114,7 @@ export default function App() {
       <RouterProvider router={router} />
       <ChatPopupManager />
       <GlobalChatWidget />
+      <LoadingOverlay />
       <Analytics />
     </>
   );
