@@ -153,28 +153,6 @@ export default function TicketDetailView() {
     }
   };
 
-  // 상태 변경
-  const handleToggleState = async () => {
-    if (!ticket) return;
-    try {
-      const newState = ticket.state === "ING" ? "END" : "ING";
-      const res = await api.put<{ status: string; message?: string }>(
-        `/api/tickets/state/${ticket.tsId}`,
-        { state: newState },
-        { key: `ticket-state-${ticket.tsId}` }
-      );
-      if (res?.status === "success") {
-        addToast("거래 상태가 변경되었습니다", "success");
-        setTicket((prev) => (prev ? { ...prev, state: newState } : prev));
-      } else {
-        addToast(res?.message || "상태 변경 실패", "error");
-      }
-    } catch (err: any) {
-      if (err?.name === "CanceledError") return;
-      addToast("서버 오류가 발생했습니다.", "error");
-    }
-  };
-
   // 판매자와 채팅 시작 (최초 생성 → 이후 입장)
   const handleJoinTicket = async () => {
     if (!user) {

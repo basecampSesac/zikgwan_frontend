@@ -46,7 +46,7 @@ const router = createBrowserRouter([
 
 export default function App() {
   const { tryAutoLogin, setUser } = useAuthStore();
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     const initAuth = async () => {

@@ -12,6 +12,8 @@ export interface ChatListItem {
   lastMessage: string;
   unreadCount: number;
   type?: "C" | "T"; // RoomType 구분 필드
+  leaderId?: number; // 모임방 리더 ID
+  communityId?: number; // 모임 ID
 }
 
 // 모임 / 티켓 관련

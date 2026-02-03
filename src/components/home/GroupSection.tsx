@@ -17,7 +17,7 @@ export default function GroupSection() {
           { key: "home-group-section" }
         );
         if (res.status === "success" && Array.isArray(res.data)) {
-          const formatted = res.data.map((item: any) => ({
+          const formatted: GroupUI[] = res.data.map((item: any) => ({
             id: item.communityId,
             title: item.title,
             description: item.description,
@@ -26,7 +26,7 @@ export default function GroupSection() {
             stadiumName: item.stadium,
             personnel: item.memberCount,
             leader: item.nickname,
-            status: item.isFull ? "모집마감" : "모집중",
+            status: item.isFull ? "모집마감" as const : "모집중" as const,
             imageUrl: item.imageUrl,
           }));
           setGroups(formatted);

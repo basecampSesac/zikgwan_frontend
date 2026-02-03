@@ -26,6 +26,7 @@ interface TicketFormProps {
     adjacentSeat: string;
     gameDay: string;
     imageUrl: string; // 기존 이미지 URL
+    state: string; // 티켓 상태 (ING, DONE 등)
   }>;
   onClose?: () => void;
   onSuccess?: () => void;
