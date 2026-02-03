@@ -4,14 +4,11 @@ import axiosInstance from "../lib/axiosInstance";
 import { useLoadingStore } from "../store/loadingStore";
 import type { AxiosRequestConfig } from "axios";
 
-const LOADING_DELAY = 300;
 const pendingRequests = new Map<string, AbortController>();
 
 export function useApi() {
   const location = useLocation();
-  const { show, hide, clear } = useLoadingStore.getState();
   const activeKeys = useRef<Set<string>>(new Set());
-  const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // 페이지 이동 시 모든 요청 취소
   useEffect(() => {
@@ -22,12 +19,9 @@ export function useApi() {
           controller.abort();
           pendingRequests.delete(key);
         }
-        const timer = timers.current.get(key);
-        if (timer) clearTimeout(timer);
       });
       activeKeys.current.clear();
-      timers.current.clear();
-      clear();
+      useLoadingStore.getState().clear();
     };
   }, [location.pathname]);
 
@@ -42,25 +36,15 @@ export function useApi() {
         const existing = pendingRequests.get(key);
         existing?.abort();
         pendingRequests.delete(key);
-        hide(key);
-        const timer = timers.current.get(key);
-        if (timer) {
-          clearTimeout(timer);
-          timers.current.delete(key);
-        }
+        useLoadingStore.getState().hide(key);
       }
 
       const controller = new AbortController();
       pendingRequests.set(key, controller);
       activeKeys.current.add(key);
 
-      // 300ms 후 로딩 표시
-      const timer = setTimeout(() => {
-        if (pendingRequests.has(key)) {
-          show(key);
-        }
-      }, LOADING_DELAY);
-      timers.current.set(key, timer);
+      // 즉시 로딩 표시 (테스트용)
+      useLoadingStore.getState().show(key);
 
       try {
         const response = await axiosInstance({
@@ -69,11 +53,9 @@ export function useApi() {
         });
         return response.data as T;
       } finally {
-        clearTimeout(timer);
-        timers.current.delete(key);
         pendingRequests.delete(key);
         activeKeys.current.delete(key);
-        hide(key);
+        useLoadingStore.getState().hide(key);
       }
     },
     []
@@ -116,13 +98,8 @@ export function useApi() {
       controller.abort();
       pendingRequests.delete(key);
     }
-    const timer = timers.current.get(key);
-    if (timer) {
-      clearTimeout(timer);
-      timers.current.delete(key);
-    }
     activeKeys.current.delete(key);
-    hide(key);
+    useLoadingStore.getState().hide(key);
   }, []);
 
   return { request, get, post, put, patch, del, cancel };
