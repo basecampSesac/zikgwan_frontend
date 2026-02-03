@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
 import GroupCard from "../groups/GroupCard";
 import type { GroupUI } from "../../types/group";
-import axiosInstance from "../../lib/axiosInstance";
+import { useApi } from "../../hooks/useApi";
 import { useToastStore } from "../../store/toastStore";
 
 export default function GroupSection() {
   const [groups, setGroups] = useState<GroupUI[]>([]);
   const { addToast } = useToastStore();
+  const api = useApi();
 
   useEffect(() => {
     const fetchClosingSoonGroups = async () => {
       try {
-        const res = await axiosInstance.get("/api/communities/closing-soon");
-        if (res.data.status === "success" && Array.isArray(res.data.data)) {
-          const formatted = res.data.data.map((item: any) => ({
+        const res = await api.get<{ status: string; data: any[] }>(
+          "/api/communities/closing-soon",
+          { key: "home-group-section" }
+        );
+        if (res.status === "success" && Array.isArray(res.data)) {
+          const formatted = res.data.map((item: any) => ({
             id: item.communityId,
             title: item.title,
             description: item.description,
@@ -29,14 +33,14 @@ export default function GroupSection() {
         } else {
           addToast("모임 정보를 불러오지 못했습니다.", "error");
         }
-      } catch (err) {
-        console.error("🚨 마감 직전 모임 불러오기 실패:", err);
+      } catch (err: any) {
+        if (err?.name === "CanceledError") return;
         addToast("마감 직전 모임을 불러오지 못했습니다.", "error");
       }
     };
 
     fetchClosingSoonGroups();
-  }, [addToast]);
+  }, []);
 
   return (
     <div>

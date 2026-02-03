@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
 import TicketCard from "../tickets/TicketCard";
 import type { TicketUI } from "../../types/ticket";
-import axiosInstance from "../../lib/axiosInstance";
+import { useApi } from "../../hooks/useApi";
 import { useToastStore } from "../../store/toastStore";
 
 export default function TicketSection() {
   const [tickets, setTickets] = useState<TicketUI[]>([]);
   const [loading, setLoading] = useState(false);
   const { addToast } = useToastStore();
+  const api = useApi();
 
   useEffect(() => {
     const fetchTickets = async () => {
       try {
         setLoading(true);
 
-        const { data } = await axiosInstance.get(
-          "/api/chatroom/chat/ticket/desc"
+        const data = await api.get<{ status: string; data: TicketUI[] }>(
+          "/api/chatroom/chat/ticket/desc",
+          { key: "home-ticket-section" }
         );
 
         if (data.status === "success" && Array.isArray(data.data)) {
@@ -23,8 +25,8 @@ export default function TicketSection() {
         } else {
           addToast("티켓 데이터를 불러오지 못했습니다.", "error");
         }
-      } catch (error) {
-        console.error("🚨 티켓 데이터 로드 실패:", error);
+      } catch (error: any) {
+        if (error?.name === "CanceledError") return;
         addToast("서버와 연결할 수 없습니다.", "error");
       } finally {
         setLoading(false);
@@ -32,7 +34,7 @@ export default function TicketSection() {
     };
 
     fetchTickets();
-  }, [addToast]);
+  }, []);
 
   return (
     <div>

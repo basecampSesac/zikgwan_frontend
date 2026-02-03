@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Star } from "lucide-react";
 import { useToastStore } from "../store/toastStore";
-import axiosInstance from "../lib/axiosInstance";
+import { useApi } from "../hooks/useApi";
 import UserAvatar from "../components/common/UserAvatar";
 
 interface ReviewModalProps {
@@ -26,6 +26,7 @@ export default function ReviewModal({
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const { addToast } = useToastStore();
+  const api = useApi();
 
   if (!isOpen) return null;
 
@@ -36,9 +37,11 @@ export default function ReviewModal({
     }
 
     try {
-      const { data } = await axiosInstance.post(`/api/review/rating/${tsId}`, {
-        rating,
-      });
+      const data = await api.post<{ status: string; data: string }>(
+        `/api/review/rating/${tsId}`,
+        { rating },
+        { key: `review-submit-${tsId}` }
+      );
 
       if (data.status === "success") {
         addToast(data.data || "리뷰 등록 완료!", "success");
@@ -47,8 +50,8 @@ export default function ReviewModal({
       } else {
         addToast("리뷰 등록에 실패했습니다.", "error");
       }
-    } catch (err) {
-      console.error("🚨 리뷰 등록 실패:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       addToast("리뷰 등록 중 오류가 발생했습니다.", "error");
     }
   };

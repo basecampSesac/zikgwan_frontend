@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FaRegBell } from "react-icons/fa6";
 import { FiTrash2 } from "react-icons/fi";
-import axiosInstance from "../lib/axiosInstance";
+import { useApi } from "../hooks/useApi";
 import { useAuthStore } from "../store/authStore";
 import { useNotificationStore } from "../store/notificationStore";
 import { formatNotificationTime } from "../utils/format";
@@ -27,6 +27,7 @@ export default function NotificationDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { openPopup } = useChatWidgetStore();
+  const api = useApi();
 
   // 외부 클릭 감지
   useEffect(() => {
@@ -48,16 +49,19 @@ export default function NotificationDropdown() {
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await axiosInstance.get(`/api/notification/all`);
-      if (res.data.status === "success") {
+      const res = await api.get<{ status: string; data: Notification[] }>(
+        `/api/notification/all`,
+        { key: "notification-list" }
+      );
+      if (res.status === "success") {
         // 최신순 정렬
-        const sorted = [...res.data.data].sort(
+        const sorted = [...res.data].sort(
           (a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
         );
         setServerNotifications(sorted);
       }
-    } catch (err) {
-      console.error("알림 목록 조회 실패:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
     }
   }, [user]);
 
@@ -65,20 +69,23 @@ export default function NotificationDropdown() {
   const markAsRead = async (roomId: number, id: number) => {
     if (!user) return;
     try {
-      await axiosInstance.patch(`/api/notification/read/${id}`);
+      await api.patch(`/api/notification/read/${id}`, undefined, { key: `notification-read-${id}` });
       setServerNotifications((prev) =>
         prev.map((n) =>
           n.id === id ? { ...n, readAt: new Date().toISOString() } : n
         )
       );
 
-      const res = await axiosInstance.get(`/api/chatroom/detail/${roomId}`);
+      const res = await api.get<{ status: string; data: { roomId: number; roomName: string } }>(
+        `/api/chatroom/detail/${roomId}`,
+        { key: `chatroom-open-${roomId}` }
+      );
 
-      if (res.data.status === "success") {
-        openPopup(res.data.data.roomId, res.data.data.roomName);
+      if (res.status === "success") {
+        openPopup(res.data.roomId, res.data.roomName);
       }
-    } catch (err) {
-      console.error("알림 채팅방 열기 실패:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
     }
   };
 
@@ -86,10 +93,10 @@ export default function NotificationDropdown() {
   const deleteNotification = async (id: number) => {
     if (!user) return;
     try {
-      await axiosInstance.delete(`/api/notification/${id}`);
+      await api.del(`/api/notification/${id}`, { key: `notification-delete-${id}` });
       setServerNotifications((prev) => prev.filter((n) => n.id !== id));
-    } catch (err) {
-      console.error("알림 삭제 실패:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
     }
   };
 
@@ -99,12 +106,12 @@ export default function NotificationDropdown() {
     try {
       await Promise.all(
         serverNotifications.map((n) =>
-          axiosInstance.delete(`/api/notification/${n.id}`).catch(() => null)
+          api.del(`/api/notification/${n.id}`, { key: `notification-delete-all-${n.id}` }).catch(() => null)
         )
       );
       setServerNotifications([]);
-    } catch (err) {
-      console.error("알림 전체 삭제 실패:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
     }
   };
 

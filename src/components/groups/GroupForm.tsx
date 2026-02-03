@@ -5,7 +5,7 @@ import { ko } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
 import { TEAMS } from "../../constants/teams";
 import { STADIUMS, getDefaultStadiumImage } from "../../constants/stadiums";
-import axiosInstance from "../../lib/axiosInstance";
+import { useApi } from "../../hooks/useApi";
 import { useAuthStore } from "../../store/authStore";
 import { useToastStore } from "../../store/toastStore";
 import type { GroupUI } from "../../types/group";
@@ -59,6 +59,7 @@ export default function GroupForm({
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
   const { triggerUpdate } = useGroupUpdateStore();
+  const api = useApi();
 
   /** 🔸 입력 변경 */
   const handleChange = (
@@ -135,44 +136,52 @@ export default function GroupForm({
     try {
       let res;
       if (mode === "create") {
-        res = await axiosInstance.post(`/api/communities`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        res = await api.post<{ status: string; data: { communityId: number }; message?: string }>(
+          `/api/communities`,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+            key: "group-create",
+          }
+        );
 
-        if (res.data.status === "success" && res.data.data) {
-          const communityId = res.data.data.communityId;
+        if (res.status === "success" && res.data) {
+          const communityId = res.data.communityId;
           // 채팅방 생성
-          await axiosInstance.post(
+          await api.post(
             `/api/chatroom/community/${communityId}?roomName=${encodeURIComponent(
               form.title
-            )}`
+            )}`,
+            undefined,
+            { key: `chatroom-create-group-${communityId}` }
           );
         }
       } else {
-        res = await axiosInstance.put(
+        res = await api.put<{ status: string; data: any; message?: string }>(
           `/api/communities/${initialValues?.id}`,
           formData,
           {
             headers: { "Content-Type": "multipart/form-data" },
+            key: `group-edit-${initialValues?.id}`,
           }
         );
       }
 
-      if (res.data.status === "success" && res.data.data) {
+      if (res.status === "success" && res.data) {
         triggerUpdate();
         addToast(
           mode === "create"
-            ? "모임이 등록되었습니다 🎉"
-            : "모임이 수정되었습니다 ✨",
+            ? "모임이 등록되었습니다"
+            : "모임이 수정되었습니다",
           "success"
         );
       } else {
-        addToast(res.data.message || "등록/수정 실패 ❌", "error");
+        addToast(res.message || "등록/수정 실패", "error");
       }
 
       onClose?.();
-    } catch (err) {
-      console.error("모임 등록/수정 오류:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       addToast("서버 오류가 발생했습니다.", "error");
     } finally {
       setIsSubmitting(false);

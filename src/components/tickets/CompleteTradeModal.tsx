@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axiosInstance from "../../lib/axiosInstance";
+import { useApi } from "../../hooks/useApi";
 import { useToastStore } from "../../store/toastStore";
 import ConfirmModal from "../../Modals/ConfirmModal";
 import UserAvatar from "../common/UserAvatar";
@@ -29,6 +29,7 @@ export default function CompleteTradeModal({
   const [selectedBuyer, setSelectedBuyer] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const addToast = useToastStore((s) => s.addToast);
+  const api = useApi();
 
   // 구매자 목록 불러오기
   useEffect(() => {
@@ -36,16 +37,20 @@ export default function CompleteTradeModal({
 
     const preloadBuyerImages = async () => {
       try {
-        const res = await axiosInstance.get(`/api/tickets/buyer/${tsId}`);
-        if (res.data?.status === "success" && Array.isArray(res.data.data)) {
-          const buyersData = res.data.data;
+        const res = await api.get<{ status: string; data: Buyer[] }>(
+          `/api/tickets/buyer/${tsId}`,
+          { key: `ticket-buyers-${tsId}` }
+        );
+        if (res?.status === "success" && Array.isArray(res.data)) {
+          const buyersData = res.data;
 
           // 이미지 미리 병렬로 가져오기
           const withImages = await Promise.all(
             buyersData.map(async (b: Buyer) => {
               try {
-                const { data } = await axiosInstance.get(
-                  `/api/images/U/${b.userId}`
+                const data = await api.get<{ status: string; data: string }>(
+                  `/api/images/U/${b.userId}`,
+                  { key: `buyer-image-${b.userId}` }
                 );
                 if (data.status === "success" && data.data) {
                   const resolvedUrl = data.data.startsWith("http")
@@ -54,25 +59,23 @@ export default function CompleteTradeModal({
                   return { ...b, imageUrl: resolvedUrl };
                 }
                 return { ...b, imageUrl: null };
-              } catch (err) {
-                console.warn(`⚠️ 프로필 로드 실패 (userId=${b.userId})`, err);
+              } catch {
                 return { ...b, imageUrl: null };
               }
             })
           );
           setBuyers(withImages);
         } else {
-          console.warn("⚠️ [fetchBuyers] 데이터 이상:", res.data);
           setBuyers([]);
         }
-      } catch (err) {
-        console.error("🚨 [fetchBuyers] 구매자 목록 조회 실패:", err);
+      } catch (err: any) {
+        if (err?.name === "CanceledError") return;
         addToast("구매자 목록을 불러오지 못했습니다.", "error");
       }
     };
 
     preloadBuyerImages();
-  }, [isOpen, tsId, addToast]);
+  }, [isOpen, tsId]);
 
   // 거래 완료 확정 (구매자 선택 후)
   const handleConfirm = async () => {
@@ -84,28 +87,32 @@ export default function CompleteTradeModal({
     setIsLoading(true);
     try {
       // 구매자 지정
-      const selectRes = await axiosInstance.put(
-        `/api/tickets/select/${tsId}?buyerId=${selectedBuyer}`
+      const selectRes = await api.put<{ status: string; message?: string }>(
+        `/api/tickets/select/${tsId}?buyerId=${selectedBuyer}`,
+        undefined,
+        { key: `ticket-select-buyer-${tsId}` }
       );
-      if (selectRes.data?.status !== "success") {
-        addToast(selectRes.data?.message || "구매자 지정 실패", "error");
+      if (selectRes?.status !== "success") {
+        addToast(selectRes?.message || "구매자 지정 실패", "error");
         setIsLoading(false);
         return;
       }
 
       // 상태 변경 (판매 완료)
-      const stateRes = await axiosInstance.put(`/api/tickets/state/${tsId}`, {
-        state: "END",
-      });
-      if (stateRes.data?.status === "success") {
+      const stateRes = await api.put<{ status: string; message?: string }>(
+        `/api/tickets/state/${tsId}`,
+        { state: "END" },
+        { key: `ticket-complete-${tsId}` }
+      );
+      if (stateRes?.status === "success") {
         addToast("거래가 완료되었습니다.", "success");
         onSuccess();
         onClose();
       } else {
-        addToast(stateRes.data?.message || "거래 완료 처리 실패", "error");
+        addToast(stateRes?.message || "거래 완료 처리 실패", "error");
       }
-    } catch (err) {
-      console.error("🚨 [handleConfirm] 거래 완료 오류:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       addToast("서버 오류가 발생했습니다.", "error");
     } finally {
       setIsLoading(false);

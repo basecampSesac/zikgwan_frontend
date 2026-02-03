@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axiosInstance from "../../lib/axiosInstance";
+import { useApi } from "../../hooks/useApi";
 import { useToastStore } from "../../store/toastStore";
 import { useAuthStore } from "../../store/authStore";
 import ConfirmModal from "../../Modals/ConfirmModal";
@@ -36,6 +36,7 @@ export default function TicketDetailView() {
   const addToast = useToastStore((s) => s.addToast);
   const { user } = useAuthStore();
   const { openPopup } = useChatWidgetStore();
+  const api = useApi();
 
   const [ticket, setTicket] = useState<TicketUI | null>(null);
   const [roomId, setRoomId] = useState<number | null>(null);
@@ -47,9 +48,12 @@ export default function TicketDetailView() {
   // 티켓 상세 조회
   const fetchTicket = useCallback(async () => {
     try {
-      const res = await axiosInstance.get(`/api/tickets/${id}`);
-      if (res.data?.status === "success" && res.data.data) {
-        const t = res.data.data;
+      const res = await api.get<{ status: string; data: any }>(
+        `/api/tickets/${id}`,
+        { key: `ticket-detail-${id}` }
+      );
+      if (res?.status === "success" && res.data) {
+        const t = res.data;
 
         // 이미지 URL 처리 로직
         const resolvedImageUrl =
@@ -89,8 +93,8 @@ export default function TicketDetailView() {
       } else {
         addToast("티켓 정보를 불러오지 못했습니다.", "error");
       }
-    } catch (err) {
-      console.error("티켓 상세 조회 실패:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       addToast("서버 오류가 발생했습니다.", "error");
     } finally {
       setIsLoading(false);
@@ -106,12 +110,15 @@ export default function TicketDetailView() {
       }
 
       try {
-        const res = await axiosInstance.get(`/api/chatroom/ticket/${tsId}`);
-        if (res.data?.status === "success" && res.data.data) {
-          setRoomId(res.data.data.roomId);
+        const res = await api.get<{ status: string; data: { roomId: number } }>(
+          `/api/chatroom/ticket/${tsId}`,
+          { key: `ticket-chatroom-${tsId}` }
+        );
+        if (res?.status === "success" && res.data) {
+          setRoomId(res.data.roomId);
         }
-      } catch (err) {
-        console.error("채팅방 조회 실패:", err);
+      } catch (err: any) {
+        if (err?.name === "CanceledError") return;
       }
     },
     [user?.nickname]
@@ -130,13 +137,16 @@ export default function TicketDetailView() {
   // 티켓 삭제
   const handleDelete = async () => {
     try {
-      const res = await axiosInstance.delete(`/api/tickets/${id}`);
-      if (res.data?.status === "success") {
+      const res = await api.del<{ status: string; message?: string }>(
+        `/api/tickets/${id}`,
+        { key: `ticket-delete-${id}` }
+      );
+      if (res?.status === "success") {
         addToast("티켓이 삭제되었습니다", "success");
         navigate("/tickets");
-      } else addToast(res.data.message || "삭제 실패", "error");
-    } catch (err) {
-      console.error("티켓 삭제 오류:", err);
+      } else addToast(res.message || "삭제 실패", "error");
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       addToast("삭제 중 오류가 발생했습니다.", "error");
     } finally {
       setIsDeleteOpen(false);
@@ -148,17 +158,19 @@ export default function TicketDetailView() {
     if (!ticket) return;
     try {
       const newState = ticket.state === "ING" ? "END" : "ING";
-      const res = await axiosInstance.put(`/api/tickets/state/${ticket.tsId}`, {
-        state: newState,
-      });
-      if (res.data?.status === "success") {
+      const res = await api.put<{ status: string; message?: string }>(
+        `/api/tickets/state/${ticket.tsId}`,
+        { state: newState },
+        { key: `ticket-state-${ticket.tsId}` }
+      );
+      if (res?.status === "success") {
         addToast("거래 상태가 변경되었습니다", "success");
         setTicket((prev) => (prev ? { ...prev, state: newState } : prev));
       } else {
-        addToast(res.data?.message || "상태 변경 실패", "error");
+        addToast(res?.message || "상태 변경 실패", "error");
       }
-    } catch (err) {
-      console.error("상태 변경 오류:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       addToast("서버 오류가 발생했습니다.", "error");
     }
   };
@@ -175,39 +187,45 @@ export default function TicketDetailView() {
       // 이미 채팅방이 있으면 바로 입장
       if (roomId) {
         // 채팅방 입장 시 멤버 수 정보까지 전달
-        const res = await axiosInstance.get(`/api/chatroom/detail/${roomId}`);
-        const memberCount = res.data?.data?.userCount ?? 0;
+        const res = await api.get<{ data: { userCount: number } }>(
+          `/api/chatroom/detail/${roomId}`,
+          { key: `chatroom-detail-${roomId}` }
+        );
+        const memberCount = res?.data?.userCount ?? 0;
 
         openPopup(roomId, ticket.title, memberCount, user.nickname);
         return;
       }
 
       // 없으면 새 채팅방 생성
-      const res = await axiosInstance.post(
+      const res = await api.post<{ status: string; data: { roomId: number } }>(
         `/api/chatroom/ticket/${ticket.tsId}?roomName=${encodeURIComponent(
           ticket.title
-        )}`
+        )}`,
+        undefined,
+        { key: `chatroom-create-ticket-${ticket.tsId}` }
       );
 
-      if (res.data?.status !== "success" || !res.data.data) {
+      if (res?.status !== "success" || !res.data) {
         addToast("채팅방 생성에 실패했습니다.", "error");
         return;
       }
 
-      const newRoomId = res.data.data.roomId;
+      const newRoomId = res.data.roomId;
 
       // 새 채팅방 생성 후 멤버 수 조회
-      const detailRes = await axiosInstance.get(
-        `/api/chatroom/detail/${newRoomId}`
+      const detailRes = await api.get<{ data: { userCount: number } }>(
+        `/api/chatroom/detail/${newRoomId}`,
+        { key: `chatroom-detail-${newRoomId}` }
       );
-      const memberCount = detailRes.data?.data?.userCount ?? 0;
+      const memberCount = detailRes?.data?.userCount ?? 0;
 
       setRoomId(newRoomId);
       addToast("채팅방이 생성되었습니다.", "success");
 
       openPopup(newRoomId, ticket.title, memberCount, user.nickname);
-    } catch (err) {
-      console.error("채팅방 생성 실패:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       addToast("서버 오류가 발생했습니다.", "error");
     }
   };

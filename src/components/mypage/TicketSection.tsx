@@ -8,7 +8,7 @@ import {
 } from "react-icons/fa";
 import ReviewModal from "../../components/ReviewModal";
 import type { CompletedTicket } from "../../types/ticket";
-import axiosInstance from "../../lib/axiosInstance";
+import { useApi } from "../../hooks/useApi";
 import { useToastStore } from "../../store/toastStore";
 import { useAuthStore } from "../../store/authStore";
 import { formatDate } from "../../utils/format";
@@ -19,6 +19,7 @@ export default function TicketSection() {
   const { addToast } = useToastStore();
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const api = useApi();
   const currentUserId = Number(user?.userId || 0);
 
   const [tickets, setTickets] = useState<CompletedTicket[]>([]);
@@ -36,14 +37,17 @@ export default function TicketSection() {
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get(`/api/tickets/completed`);
+      const data = await api.get<{ status: string; data: CompletedTicket[] }>(
+        `/api/tickets/completed`,
+        { key: "mypage-completed-tickets" }
+      );
       if (data.status === "success" && Array.isArray(data.data)) {
         setTickets(data.data);
       } else {
         setError("데이터를 불러오지 못했습니다.");
       }
-    } catch (err) {
-      console.error("🚨 티켓 조회 실패:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       setError("티켓 데이터를 불러오는 중 오류가 발생했습니다.");
       addToast("티켓 데이터를 불러오는 중 오류가 발생했습니다.", "error");
     } finally {
@@ -75,8 +79,9 @@ export default function TicketSection() {
   // 리뷰 등록
   const handleOpenReview = async (ticket: CompletedTicket) => {
     try {
-      const { data } = await axiosInstance.get(
-        `/api/images/U/${ticket.sellerId}`
+      const data = await api.get<{ status: string; data: string }>(
+        `/api/images/U/${ticket.sellerId}`,
+        { key: `seller-profile-${ticket.sellerId}` }
       );
       if (data.status === "success" && data.data) {
         const rawUrl = data.data.startsWith("http")
@@ -86,8 +91,8 @@ export default function TicketSection() {
       } else {
         setSellerProfileImage(null);
       }
-    } catch (err) {
-      console.error("🚨 판매자 프로필 선제 로드 실패:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       setSellerProfileImage(null);
     } finally {
       setSelectedTicket(ticket);

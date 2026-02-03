@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axiosInstance from "../../lib/axiosInstance";
+import { useApi } from "../../hooks/useApi";
 
 interface Group {
   id: number;
@@ -11,14 +11,18 @@ interface Group {
 export default function GroupSection() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
+  const api = useApi();
 
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        const res = await axiosInstance.get("/api/my-groups");
-        setGroups(res.data.data);
-      } catch (error) {
-        console.error("내 그룹/채팅 불러오기 실패:", error);
+        const res = await api.get<{ data: Group[] }>(
+          "/api/my-groups",
+          { key: "mypage-groups" }
+        );
+        setGroups(res.data);
+      } catch (error: any) {
+        if (error?.name === "CanceledError") return;
       } finally {
         setLoading(false);
       }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axiosInstance from "../../lib/axiosInstance";
+import { useApi } from "../../hooks/useApi";
 import ShareButton from "../common/ShareButton";
 import { useToastStore } from "../../store/toastStore";
 import ConfirmModal from "../../Modals/ConfirmModal";
@@ -31,6 +31,7 @@ export default function GroupDetailView() {
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
   const { openPopup } = useChatWidgetStore();
+  const api = useApi();
 
   const [group, setGroup] = useState<GroupUI | null>(null);
   const [roomId, setRoomId] = useState<number | null>(null);
@@ -43,18 +44,13 @@ export default function GroupDetailView() {
   // 상세 조회
   const fetchGroupDetail = useCallback(async () => {
     try {
-      const res = await axiosInstance.get<ApiResponse<CommunityDetail>>(
-        `/api/communities/${id}`
+      const res = await api.get<ApiResponse<CommunityDetail>>(
+        `/api/communities/${id}`,
+        { key: `group-detail-${id}` }
       );
 
-      if (res.data.status === "success" && res.data.data) {
-        const g = res.data.data;
-        /*
-        //로컬 이미지 저장
-        const fullImageUrl = g.imageUrl
-          ? `http://localhost:8080/images/${g.imageUrl.replace(/^\/+/, "")}`
-          : undefined;
-          */
+      if (res.status === "success" && res.data) {
+        const g = res.data;
         //AWS S3 이미지 저장
         const fullImageUrl = g.imageUrl ? g.imageUrl : undefined;
 
@@ -77,8 +73,8 @@ export default function GroupDetailView() {
       } else {
         addToast("모임 정보를 불러오지 못했습니다.", "error");
       }
-    } catch (err) {
-      console.error("모임 상세 조회 실패:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       addToast("서버 오류가 발생했습니다.", "error");
     }
   }, [id, addToast]);
@@ -86,14 +82,15 @@ export default function GroupDetailView() {
   // 채팅방 상세 조회
   const fetchChatRoom = useCallback(async () => {
     try {
-      const res = await axiosInstance.get(`/api/chatroom/community/${id}`);
-      if (res.data.status === "success" && res.data.data) {
-        setRoomId(res.data.data.roomId);
-      } else {
-        console.warn("채팅방 정보를 불러오지 못했습니다.");
+      const res = await api.get<{ status: string; data: { roomId: number } }>(
+        `/api/chatroom/community/${id}`,
+        { key: `group-chatroom-${id}` }
+      );
+      if (res.status === "success" && res.data) {
+        setRoomId(res.data.roomId);
       }
-    } catch (err) {
-      console.error("채팅방 상세 조회 실패:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
     }
   }, [id]);
 
@@ -101,14 +98,17 @@ export default function GroupDetailView() {
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const res = await axiosInstance.get(`/api/chatroom/user/${roomId}`);
-        if (res.data.status === "success" && Array.isArray(res.data.data)) {
-          setMembers(res.data.data);
+        const res = await api.get<{ status: string; data: Array<{ nickname: string; club: string; imageUrl: string }> }>(
+          `/api/chatroom/user/${roomId}`,
+          { key: `chatroom-members-${roomId}` }
+        );
+        if (res.status === "success" && Array.isArray(res.data)) {
+          setMembers(res.data);
         } else {
           setMembers([]);
         }
-      } catch (err) {
-        console.error("멤버 조회 실패:", err);
+      } catch (err: any) {
+        if (err?.name === "CanceledError") return;
         setMembers([]);
       }
     };
@@ -136,14 +136,18 @@ export default function GroupDetailView() {
   const handleToggleState = async () => {
     if (!group) return;
     try {
-      const res = await axiosInstance.put(`/api/communities/state/${group.id}`);
-      if (res.data.status === "success") {
+      const res = await api.put<{ status: string; message?: string }>(
+        `/api/communities/state/${group.id}`,
+        undefined,
+        { key: `group-state-${group.id}` }
+      );
+      if (res.status === "success") {
         const nextStatus = group.status === "모집중" ? "모집마감" : "모집중";
         setGroup({ ...group, status: nextStatus });
-        addToast("모집 상태가 변경되었습니다 ✅", "success");
-      } else addToast(res.data.message || "상태 변경 실패 ❌", "error");
-    } catch (err) {
-      console.error("상태 변경 오류:", err);
+        addToast("모집 상태가 변경되었습니다", "success");
+      } else addToast(res.message || "상태 변경 실패", "error");
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       addToast("서버 오류가 발생했습니다.", "error");
     }
   };
@@ -151,13 +155,16 @@ export default function GroupDetailView() {
   // 삭제
   const handleDeleteGroup = async () => {
     try {
-      const res = await axiosInstance.delete(`/api/communities/${id}`);
-      if (res.data.status === "success") {
-        addToast("모임이 삭제되었습니다 ✅", "success");
+      const res = await api.del<{ status: string; message?: string }>(
+        `/api/communities/${id}`,
+        { key: `group-delete-${id}` }
+      );
+      if (res.status === "success") {
+        addToast("모임이 삭제되었습니다", "success");
         navigate("/groups");
-      } else addToast(res.data.message || "삭제 실패 ❌", "error");
-    } catch (err) {
-      console.error("모임 삭제 오류:", err);
+      } else addToast(res.message || "삭제 실패", "error");
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       addToast("모임 삭제 중 오류가 발생했습니다.", "error");
     } finally {
       setIsDeleteOpen(false);

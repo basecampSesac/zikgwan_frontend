@@ -4,7 +4,7 @@ import ConfirmModal from "../../Modals/ConfirmModal";
 import { useAuthStore } from "../../store/authStore";
 import { useToastStore } from "../../store/toastStore";
 import { TEAMS } from "../../constants/teams";
-import axiosInstance from "../../lib/axiosInstance";
+import { useApi } from "../../hooks/useApi";
 import axios, { AxiosError } from "axios";
 import { uploadImage } from "../../api/imageApi";
 
@@ -13,6 +13,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 export default function ProfileSection() {
   const { user, logout, setUser } = useAuthStore();
   const { addToast } = useToastStore();
+  const api = useApi();
 
   const [nickname, setNickname] = useState(user?.nickname || "");
   const [club, setClub] = useState(user?.club || "");
@@ -51,7 +52,10 @@ export default function ProfileSection() {
       await uploadImage("U", file, user.userId);
 
       // 업로드 후 서버에서 최신 이미지 URL 다시 조회
-      const { data } = await axiosInstance.get(`/api/images/U/${user.userId}`);
+      const data = await api.get<{ status: string; data: string; message?: string }>(
+        `/api/images/U/${user.userId}`,
+        { key: "profile-image-refresh" }
+      );
 
       if (data.status === "success" && data.data) {
         // 캐시 방지 쿼리 추가
@@ -67,8 +71,8 @@ export default function ProfileSection() {
       } else {
         throw new Error(data.message || "이미지 조회 실패");
       }
-    } catch (err) {
-      console.error("프로필 업로드 오류:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       setErrorMessage(
         "프로필 이미지를 업로드하지 못했습니다. 다시 시도해주세요."
       );
@@ -84,8 +88,9 @@ export default function ProfileSection() {
 
     const fetchProfileImage = async () => {
       try {
-        const { data } = await axiosInstance.get(
-          `/api/images/U/${user.userId}`
+        const data = await api.get<{ status: string; data: string }>(
+          `/api/images/U/${user.userId}`,
+          { key: "profile-image-load" }
         );
         if (data.status === "success" && data.data) {
           const imageUrl = data.data.startsWith("http")
@@ -96,17 +101,17 @@ export default function ProfileSection() {
         } else {
           setProfileImage("/profileimage.png");
         }
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.name === "CanceledError") return;
         if (axios.isAxiosError(err) && err.response?.status === 404) {
           setProfileImage("/profileimage.png");
           return;
         }
-        console.error("🚨 프로필 이미지 조회 실패:", err);
       }
     };
 
     fetchProfileImage();
-  }, [user]);
+  }, [user?.userId]);
 
   // 회원정보 수정
   const handleSave = async () => {
@@ -145,9 +150,10 @@ export default function ProfileSection() {
         }),
       };
 
-      const { data } = await axiosInstance.put(
+      const data = await api.put<{ status: string; data: any; message?: string }>(
         `/api/user/${user.userId}`,
-        payload
+        payload,
+        { key: "profile-update" }
       );
 
       if (data.status === "success") {
@@ -163,16 +169,13 @@ export default function ProfileSection() {
       } else {
         addToast(data.message || "회원 정보 수정에 실패했습니다.", "error");
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       if (axios.isAxiosError(err)) {
         const axiosError = err as AxiosError<{
           status: string;
           message: string;
         }>;
-        console.error(
-          "회원정보 수정 오류:",
-          axiosError.response?.data || axiosError.message
-        );
 
         if (axiosError.response?.status === 401) {
           addToast("세션이 만료되었습니다. 다시 로그인해주세요.", "error");
@@ -186,7 +189,6 @@ export default function ProfileSection() {
           );
         }
       } else {
-        console.error("예상치 못한 오류:", err);
         addToast("알 수 없는 오류가 발생했습니다.", "error");
       }
     }
@@ -204,8 +206,10 @@ export default function ProfileSection() {
   const handleDelete = async () => {
     if (!user) return;
     try {
-      const { data } = await axiosInstance.patch(
-        `/api/user/delete/${user.userId}`
+      const data = await api.patch<{ status: string; data: boolean; message?: string }>(
+        `/api/user/delete/${user.userId}`,
+        undefined,
+        { key: "user-delete" }
       );
       if (data.status === "success" && data.data === true) {
         addToast("회원탈퇴가 완료되었습니다.", "success");
@@ -214,8 +218,8 @@ export default function ProfileSection() {
       } else {
         addToast(data.message || "회원탈퇴에 실패했습니다.", "error");
       }
-    } catch (err) {
-      console.error("회원탈퇴 오류:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       addToast("회원탈퇴 중 오류가 발생했습니다.", "error");
     } finally {
       setOpenModal(false);

@@ -8,7 +8,7 @@ import { STADIUMS } from "../../constants/stadiums";
 import { useToastStore } from "../../store/toastStore";
 import { useAuthStore } from "../../store/authStore";
 import { getDefaultStadiumImage } from "../../constants/stadiums";
-import axiosInstance from "../../lib/axiosInstance";
+import { useApi } from "../../hooks/useApi";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
@@ -39,6 +39,7 @@ export default function TicketForm({
 }: TicketFormProps) {
   const addToast = useToastStore((s) => s.addToast);
   const { user } = useAuthStore();
+  const api = useApi();
 
   const [form, setForm] = useState({
     title: initialValues?.title || "",
@@ -161,34 +162,40 @@ export default function TicketForm({
       let res;
       if (mode === "edit" && initialValues?.tsId) {
         // 수정 모드: PUT 요청
-        res = await axiosInstance.put(
+        res = await api.put<{ status: string; message?: string }>(
           `/api/tickets/${initialValues.tsId}`,
           formData,
           {
             headers: { "Content-Type": "multipart/form-data" },
+            key: `ticket-edit-${initialValues.tsId}`,
           }
         );
       } else {
         // 생성 모드: POST 요청
-        res = await axiosInstance.post(`/api/tickets`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        res = await api.post<{ status: string; message?: string }>(
+          `/api/tickets`,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+            key: "ticket-create",
+          }
+        );
       }
 
-      if (res.data.status === "success") {
+      if (res.status === "success") {
         addToast(
           mode === "edit"
-            ? "티켓이 수정되었습니다 ✅"
-            : "티켓이 등록되었습니다 🎉",
+            ? "티켓이 수정되었습니다"
+            : "티켓이 등록되었습니다",
           "success"
         );
         onSuccess?.();
         onClose?.();
       } else {
-        addToast(res.data.message || "저장 실패 ❌", "error");
+        addToast(res.message || "저장 실패", "error");
       }
-    } catch (err) {
-      console.error("티켓 저장 오류:", err);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
       addToast("서버 오류가 발생했습니다.", "error");
     } finally {
       setIsSubmitting(false);

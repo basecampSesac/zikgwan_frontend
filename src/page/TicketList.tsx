@@ -5,7 +5,7 @@ import TicketForm from "../components/tickets/TicketForm";
 import ListHeader from "../components/ListHeader";
 import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
-import axiosInstance from "../lib/axiosInstance";
+import { useApi } from "../hooks/useApi";
 import type { TicketUI } from "../types/ticket";
 import { useToastStore } from "../store/toastStore";
 import { useAuthStore } from "../store/authStore";
@@ -48,8 +48,7 @@ export default function TicketList() {
 
   const { isAuthenticated } = useAuthStore();
   const { addToast } = useToastStore();
-
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+  const api = useApi();
 
   const fetchTickets = useCallback(
     async (sort: SortType = "RECENT", pageNum = 0, filter = filters) => {
@@ -76,21 +75,21 @@ export default function TicketList() {
               sortType: sort,
             };
 
-        const res = await axiosInstance.get(endpoint, { params });
+        const res = await api.get<{ status: string; data: any }>(endpoint, { params, key: "ticket-list" });
 
-        if (res.data.status === "success" && res.data.data) {
+        if (res.status === "success" && res.data) {
           let content: TicketResponse[] = [];
           let totalPagesValue = 1;
           let totalElementsValue = 0;
 
-          if (res.data.data.content) {
-            content = res.data.data.content;
-            totalPagesValue = res.data.data.totalPages;
-            totalElementsValue = res.data.data.totalElements;
-          } else if (Array.isArray(res.data.data)) {
-            content = res.data.data.slice(pageNum * 12, pageNum * 12 + 12);
-            totalPagesValue = Math.ceil(res.data.data.length / 12);
-            totalElementsValue = res.data.data.length;
+          if (res.data.content) {
+            content = res.data.content;
+            totalPagesValue = res.data.totalPages;
+            totalElementsValue = res.data.totalElements;
+          } else if (Array.isArray(res.data)) {
+            content = res.data.slice(pageNum * 12, pageNum * 12 + 12);
+            totalPagesValue = Math.ceil(res.data.length / 12);
+            totalElementsValue = res.data.length;
           }
 
           const mapped: TicketUI[] = content.map((t) => ({
@@ -127,11 +126,11 @@ export default function TicketList() {
           setTotalCount(totalElementsValue);
           setPage(pageNum);
         }
-      } catch (err) {
-        console.error("티켓 목록 조회 실패:", err);
+      } catch (err: any) {
+        if (err?.name === "CanceledError") return;
         addToast("티켓 목록을 불러오지 못했습니다.", "error");
       } finally {
-        setTimeout(() => setLoading(false), 150);
+        setLoading(false);
       }
     },
     [filters, addToast]

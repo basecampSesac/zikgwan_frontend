@@ -5,7 +5,7 @@ import ListHeader from "../components/ListHeader";
 import Pagination from "../components/Pagination";
 import GroupForm from "../components/groups/GroupForm";
 import Modal from "../components/Modal";
-import axiosInstance from "../lib/axiosInstance";
+import { useApi } from "../hooks/useApi";
 import type { CommunityItem, GroupUI } from "../types/group";
 import { useAuthStore } from "../store/authStore";
 import { useToastStore } from "../store/toastStore";
@@ -31,6 +31,7 @@ export default function GroupList() {
   const { isAuthenticated } = useAuthStore();
   const { addToast } = useToastStore();
   const { updated, resetUpdate } = useGroupUpdateStore();
+  const api = useApi();
 
   // 모임 목록 + 이미지 불러오기
   const fetchGroups = useCallback(
@@ -60,24 +61,24 @@ export default function GroupList() {
             }
           : { page: pageNum, size: 12, sortType: sort };
 
-        const res = await axiosInstance.get(endpoint, { params });
+        const res = await api.get<{ status: string; data: any }>(endpoint, { params, key: "group-list" });
 
-        if (res.data.status === "success" && res.data.data) {
+        if (res.status === "success" && res.data) {
           // 페이지형 or 배열형 응답 구분
           let content = [];
           let totalPagesValue = 1;
           let totalElementsValue = 0;
 
-          if (res.data.data.content) {
+          if (res.data.content) {
             // 페이지네이션 객체 응답
-            content = res.data.data.content;
-            totalPagesValue = res.data.data.totalPages;
-            totalElementsValue = res.data.data.totalElements;
-          } else if (Array.isArray(res.data.data)) {
+            content = res.data.content;
+            totalPagesValue = res.data.totalPages;
+            totalElementsValue = res.data.totalElements;
+          } else if (Array.isArray(res.data)) {
             // 배열 응답 → 프론트에서 페이지네이션 처리
-            content = res.data.data.slice(pageNum * 12, pageNum * 12 + 12);
-            totalPagesValue = Math.ceil(res.data.data.length / 12);
-            totalElementsValue = res.data.data.length;
+            content = res.data.slice(pageNum * 12, pageNum * 12 + 12);
+            totalPagesValue = Math.ceil(res.data.length / 12);
+            totalElementsValue = res.data.length;
           }
 
           const mapped: GroupUI[] = content.map((g: CommunityItem) => ({
@@ -105,11 +106,11 @@ export default function GroupList() {
           setTotalCount(totalElementsValue);
           setPage(pageNum);
         }
-      } catch (err) {
-        console.error("모임 목록 조회 실패:", err);
+      } catch (err: any) {
+        if (err?.name === "CanceledError") return;
         addToast("모임 목록을 불러오지 못했습니다.", "error");
       } finally {
-        setTimeout(() => setLoading(false), 200);
+        setLoading(false);
       }
     },
     [filters, addToast]
