@@ -3,8 +3,7 @@ import { useLoadingStore } from "../../store/loadingStore";
 export default function LoadingOverlay() {
   const isLoading = useLoadingStore((state) => state.isLoading);
 
-  // 테스트: 강제로 항상 보이게
-  // if (!isLoading) return null;
+  if (!isLoading) return null;
 
   return (
     <div className="fixed inset-0 bg-gray-100/50 flex items-center justify-center z-[12000]">
